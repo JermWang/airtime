@@ -1,0 +1,41 @@
+# AIRTIME — working notes
+
+Browser-native linear TV network where every display surface is data-driven advertising inventory, paid on Robinhood Chain. See `README.md` for the full architecture.
+
+## Ground rules for changes here
+
+- **Money is bigint wei.** Never introduce a float into a monetary path. Multipliers are integer basis points (10000 = 1.0x).
+- **The browser never decides that something is paid.** A tx hash from the client is only a lookup key; the server reads the `AirtimePurchased` event from its own RPC and re-checks every field against the quote it signed.
+- **Inventory is data.** No placement, price or surface may be hardcoded in a React component. Add placements through the control room or `BASE_PLACEMENTS` in `src/server/db/seed.ts`.
+- **Advertiser content is hostile.** No HTML/JS/iframe creatives, ever. Uploads are sniffed by magic bytes, decoded, re-encoded and hashed server-side.
+- **Never fabricate metrics.** No invented viewer counts. Payment facts (chain) and delivery analytics (application) are always presented separately.
+- **Treasury numbers keep their provenance.** Airtime revenue is derived from verified payments and can never be entered by hand; token tax, pre-stock purchases and distributions are operator-recorded and must always be labelled as such.
+- **Showcase cards are never fake ads.** They are text-only, permanently badged EXAMPLE, excluded from the queue and from revenue.
+
+## Commands
+
+```bash
+pnpm dev                 # station on :3000 (embedded PGlite, seeds DEV DATA)
+pnpm studio:build        # regenerate public/models/studio.glb
+pnpm chain:local         # anvil
+pnpm contract:build && pnpm contract:deploy:local
+pnpm test                # vitest (unit + API integration)
+pnpm contract:test       # foundry
+pnpm test:e2e            # playwright (builds and starts the production server)
+pnpm db:reset            # wipe embedded DB + local uploads
+```
+
+Note: Next 16 allows only one dev server per directory. Stop `pnpm dev` before `pnpm test:e2e`.
+
+## Gotchas
+
+- `ensureMigrated` and the DB handle live on `globalThis` because Next evaluates a module once per bundle; two PGlite instances on one directory corrupt it.
+- Programming media must be CORS-enabled, otherwise WebGL video textures fail. Allowed origins are listed in `NEXT_PUBLIC_MEDIA_ORIGINS` and enforced by the CSP in `src/proxy.ts`.
+- The simulation clock is gated by `simulationClockAllowed()` (never on mainnet); E2E sets `AIRTIME_ALLOW_SIM_CLOCK=true`.
+- Studio material dressing in `BroadcastStudio` must stay idempotent — it re-runs on tier changes.
+- Never delete `.pglite-e2e` from the Playwright config or global setup: both can run while a reused server already owns that directory, and PGlite then fails with "could not open file". The wipe belongs in the web-server command (`tests/e2e/prepare-state.ts`).
+- Whether a placement takes over the main picture is the `ownsMainStream` column, not a check on placement type.
+
+## Brand
+
+Accent is the Robinhood lime `#ccff00` on graphite/near-black. Red is reserved for genuine LIVE indicators. "Built on Robinhood Chain" is infrastructure phrasing only; the non-affiliation disclosure stays on every page.

@@ -1,0 +1,7 @@
+allowBuilds:
+  esbuild: true
+  sharp: true
+  '@electric-sql/pglite': true
+minimumReleaseAgeExclude:
+  - jose@6.2.11
+verifyDepsBeforeRun: false

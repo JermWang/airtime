@@ -1,0 +1,1 @@
+ALTER TABLE "placements" ADD COLUMN "owns_main_stream" boolean DEFAULT false NOT NULL;
