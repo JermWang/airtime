@@ -24,7 +24,15 @@
   --color-line: rgba(255, 255, 255, 0.09);
   --color-line-strong: rgba(255, 255, 255, 0.16);
 
-  --font-sans: var(--font-inter-tight), "Inter", system-ui, sans-serif;
+  /*
+   * Anduril's own stack: HelveticaNowDisplay, Helvetica, Arial, sans-serif.
+   * Helvetica Now Display is a licensed Monotype face, so it is named rather
+   * than shipped — anyone who has it installed (or who drops the licensed
+   * woff2 files into public/fonts and enables the @font-face block below) gets
+   * the real thing. macOS falls through to Helvetica Neue, Windows to Arial,
+   * both very close; Liberation Sans covers Linux metric-compatibly.
+   */
+  --font-sans: "Helvetica Now Display", "HelveticaNowDisplay", "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
 
   --shadow-glass: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 20px 60px rgba(0, 0, 0, 0.45);
@@ -37,6 +45,20 @@
   color-scheme: dark;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/*
+ * To use the real Helvetica Now Display, license it from Monotype, put the
+ * woff2 files in public/fonts/ and uncomment this. Nothing else needs to change
+ * — it is already first in --font-sans.
+ *
+ * @font-face {
+ *   font-family: "Helvetica Now Display";
+ *   src: url("/fonts/HelveticaNowDisplay-Regular.woff2") format("woff2");
+ *   font-weight: 400;
+ *   font-display: swap;
+ * }
+ * …repeat for Medium (500), Bold (700), Black (900).
+ */
 
 html,
 body {
@@ -53,7 +75,28 @@ body {
 body {
   margin: 0;
   font-size: 14px;
-  letter-spacing: -0.005em;
+  /* Anduril sets -0.009rem on body copy and buttons. */
+  letter-spacing: -0.009rem;
+}
+
+/* Their heading scale: the larger the type, the tighter it is set. */
+h1 {
+  letter-spacing: -0.1rem;
+}
+h2 {
+  letter-spacing: -0.08rem;
+}
+h3 {
+  letter-spacing: -0.07rem;
+}
+h4 {
+  letter-spacing: -0.05rem;
+}
+h5 {
+  letter-spacing: -0.02rem;
+}
+h6 {
+  letter-spacing: -0.015rem;
 }
 
 ::selection {
