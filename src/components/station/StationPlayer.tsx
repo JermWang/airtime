@@ -18,6 +18,8 @@ interface Props {
   className?: string;
   /** Show DOM overlays (lower third, bug, ticker) on top of the picture. */
   overlays?: boolean;
+  /** How the picture fills its box. "cover" is for the full-bleed hero. */
+  fit?: "contain" | "cover";
 }
 
 function canPlayNativeHls(video: HTMLVideoElement): boolean {
@@ -32,7 +34,7 @@ function canPlayNativeHls(video: HTMLVideoElement): boolean {
  *   (video or image) or a house slate when nothing is booked.
  * - Uses hls.js for LIVE_HLS blocks when native HLS is unavailable.
  */
-export function StationPlayer({ channelId = "MAIN", visible, className, overlays = true }: Props) {
+export function StationPlayer({ channelId = "MAIN", visible, className, overlays = true, fit = "contain" }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const { data: state } = useBroadcastState(channelId);
@@ -248,7 +250,7 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
     <div className={cn("relative overflow-hidden bg-black", visible ? className : "pointer-events-none fixed -left-[9999px] top-0 h-[2px] w-[2px] opacity-0")} aria-label="AIRTIME station">
       <video
         ref={videoRef}
-        className={cn("h-full w-full object-contain", showVideo ? "opacity-100" : "opacity-0")}
+        className={cn("h-full w-full", fit === "cover" ? "object-cover" : "object-contain", showVideo ? "opacity-100" : "opacity-0")}
         playsInline
         muted={muted}
         autoPlay
@@ -258,7 +260,7 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
       />
       {visible && source?.kind === "campaign-image" && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={source.url} alt="" className={cn("absolute inset-0 h-full w-full", source.campaign.fit === "FILL" ? "object-cover" : "object-contain")} />
+        <img src={source.url} alt="" className={cn("absolute inset-0 h-full w-full", fit === "cover" || source.campaign.fit === "FILL" ? "object-cover" : "object-contain")} />
       )}
       {visible && (slate || holding || error) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-ink-950">

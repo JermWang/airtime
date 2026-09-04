@@ -63,7 +63,7 @@ export function BroadcastStudio({ channelId = "MAIN", onReady }: { channelId?: s
           break;
         case "light":
           // Emissive fixture: readable as a light source, under the bloom threshold.
-          obj.material = new THREE.MeshBasicMaterial({ color: base.emissive.clone().multiplyScalar(1.35), toneMapped: false });
+          obj.material = new THREE.MeshBasicMaterial({ color: base.emissive.clone().multiplyScalar(0.95), toneMapped: false });
           break;
         default:
           if (extras.surface) {

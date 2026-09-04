@@ -1,7 +1,9 @@
-import { StationShell } from "@/components/station/StationShell";
+import { StationHome } from "@/components/station/StationHome";
 
 export const dynamic = "force-dynamic";
 
+/** The front page: the live picture as the splash, everything that explains the
+ *  network stacked underneath it. No WebGL. */
 export default function HomePage() {
-  return <StationShell channelId="MAIN" />;
+  return <StationHome channelId="MAIN" />;
 }

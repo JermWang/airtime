@@ -4,7 +4,7 @@ A browser-native, 24/7 linear television network where **every display surface i
 
 Everything the network earns — airtime revenue and token tax — is used to buy **Anduril pre-stock**, which is then distributed to holders. The [treasury page](#treasury) shows income in, pre-stock bought and pre-stock distributed.
 
-Open the homepage and you are already watching the station: a screening room built around one large display, with an LED ticker under it and a readable panel either side. Any of those surfaces can be clicked, previewed with your own creative, and bought.
+Open the homepage and you are already watching the station. The live picture is the splash: it plays full-bleed behind the fold exactly as it is going out, and everything that explains the network is stacked underneath it in full-width slices. The page is plain 2D - no WebGL - so it behaves the same on every device.
 
 You are not buying a thirty-second spot. **Every surface runs a continuous descending auction.** It asks a price that falls with time; pay it and the surface is yours, on air, until somebody pays more than you did. A sale ratchets the ask up to twice what you paid and time walks it back down again, so a wanted surface gets expensive and an unwanted one gets cheap. Payment settles on chain; the station verifies the on-chain event itself, puts the run on air immediately, and issues an **AirLog** receipt when it ends.
 
@@ -612,7 +612,7 @@ See `.env.example`. Secrets must never be placed in `NEXT_PUBLIC_*` variables.
 
 | Route | Purpose |
 | --- | --- |
-| `/` | The station: immersive studio + live television + purchase |
+| `/` | The front page: live picture as the splash, then how it works, the board, treasury, chat and the room |
 | `/watch` | 2D station with guide and broadcast log (no WebGL required) |
 | `/guide` | Program guide |
 | `/queue` | Public board: who is standing on which surface, and who was outbid off one recently |

@@ -16,9 +16,9 @@ const SCREEN_Y = 6.5;
 const SCREEN_Z = -5.2;
 const WATCH_POS = new THREE.Vector3(0, SCREEN_Y, 14.0);
 const WATCH_TARGET = new THREE.Vector3(0, SCREEN_Y, SCREEN_Z);
-const BROWSE_POS = new THREE.Vector3(0, SCREEN_Y, 16.8);
+const BROWSE_POS = new THREE.Vector3(0, SCREEN_Y, 16.2);
 const BROWSE_TARGET = new THREE.Vector3(0, SCREEN_Y, SCREEN_Z);
-const MOBILE_POS = new THREE.Vector3(0, SCREEN_Y, 17.6);
+const MOBILE_POS = new THREE.Vector3(0, SCREEN_Y, 17.2);
 const MOBILE_TARGET = new THREE.Vector3(0, SCREEN_Y, SCREEN_Z);
 
 /* ---- opening move ------------------------------------------------------- */

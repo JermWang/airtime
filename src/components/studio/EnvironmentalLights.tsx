@@ -34,6 +34,8 @@ export function EnvironmentalLights({ tier }: { tier: Tier }) {
         shadow-normalBias={0.02}
         target-position={[0, 1, -3]}
       />
+      {/* A broad wash down onto the marble, well outside the shot. */}
+      <spotLight position={[0, 12.4, 7]} angle={1.02} penumbra={1} intensity={150} distance={34} decay={2} color="#c9d4e0" target-position={[0, 0, 3]} />
       <spotLight position={[-9, 11, 3.2]} angle={0.72} penumbra={1} intensity={45} distance={28} decay={2} color="#d6dde3" />
       <spotLight position={[9, 11, 3.2]} angle={0.72} penumbra={1} intensity={45} distance={28} decay={2} color="#d6dde3" />
       {/* Spill from the picture onto the room. Deliberately gentle: it should
