@@ -68,7 +68,7 @@ export function StationShell({ channelId = "MAIN" }: { channelId?: string }) {
 
       {/* 2D station picture: hero on mobile / no-WebGL, hidden (but playing) once the room is live on desktop */}
       <motion.div
-        className={cn("pointer-events-none fixed left-1/2 z-10 -translate-x-1/2", mobile ? "top-14 w-[calc(100%-1.5rem)]" : "top-1/2 w-[min(70vw,1100px)] -translate-y-1/2")}
+        className={cn("pointer-events-none fixed left-1/2 z-10 -translate-x-1/2", mobile ? "top-16 w-[calc(100%-1.5rem)]" : "top-1/2 w-[min(70vw,1100px)] -translate-y-1/2")}
         animate={{ opacity: show2d ? 1 : 0, scale: show2d ? 1 : 0.98 }}
         transition={{ duration: 0.9, ease: [0.2, 0.8, 0.2, 1] }}
         style={{ visibility: "visible" }}
@@ -128,7 +128,7 @@ export function StationShell({ channelId = "MAIN" }: { channelId?: string }) {
           <Link href="/treasury" className="text-signal">
             treasury
           </Link>{" "}
-          · Built on Robinhood Chain · AIRTIME is an independent product, not affiliated with or endorsed by Robinhood or Anduril
+          · Built on Robinhood Chain
         </div>
       </div>
       {mode === "focus" && !mobile && (

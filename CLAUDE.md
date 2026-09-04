@@ -42,4 +42,4 @@ The repo root is the Next.js app; Vercel needs no root override. On any serverle
 
 ## Brand
 
-Accent is the Robinhood lime `#ccff00` on graphite/near-black. Red is reserved for genuine LIVE indicators. "Built on Robinhood Chain" is infrastructure phrasing only; the non-affiliation disclosure stays on every page.
+Accent is the Robinhood lime `#ccff00` on graphite/near-black. Red is reserved for genuine LIVE indicators. "Built on Robinhood Chain" is infrastructure phrasing only. The owner asked for no non-affiliation disclaimer in the UI — do not add one back.

@@ -108,7 +108,7 @@ export default function TreasuryPage() {
           <p className="mt-5 max-w-3xl text-[11px] leading-relaxed text-ink-500">
             Airtime revenue is derived from payments whose on-chain event the station verified independently. Everything else on this page is a figure entered by the
             station operator: this site cannot prove a broker purchase or a distribution the way it can prove an airtime payment. Nothing here is an offer, a
-            prospectus, or investment advice, and AIRTIME is not affiliated with Anduril Industries or Robinhood.
+            prospectus, or investment advice.
           </p>
         </>
       )}

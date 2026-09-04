@@ -29,12 +29,12 @@ export function StatusRail({ channelId = "MAIN", compact = false }: { channelId?
   const programTitle = source?.kind === "ad-video" || source?.kind === "ad-image" ? `${source.campaign.displayName} · commercial` : nowBlock?.title ?? "—";
 
   return (
-    <div className={cn("pointer-events-none fixed inset-x-0 top-0 z-30 flex items-start justify-between p-3 md:p-5")}>
-      <div className="pointer-events-auto flex items-center gap-3 md:gap-5">
-        <Link href="/" className="flex items-center" onClick={() => focusPlacement(null)}>
+    <div className="glass-bar fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between gap-3 px-3 md:px-5">
+      <div className="flex min-w-0 items-center gap-3 md:gap-4">
+        <Link href="/" className="flex shrink-0 items-center" onClick={() => focusPlacement(null)}>
           <Wordmark size={compact ? 13 : 15} />
         </Link>
-        <span className="hidden h-4 w-px bg-white/15 md:block" />
+        <span className="hidden h-4 w-px shrink-0 bg-white/15 md:block" />
         <span className={cn("chip", isLive ? "chip-live" : playing ? "chip-signal" : "")}>
           {isLive ? <span className="dot-live" /> : <span className={cn("h-1.5 w-1.5 rounded-full", playing ? "bg-signal" : "bg-ink-400")} />}
           {isLive ? "Live" : playing ? "On air" : "Stand by"}
@@ -44,16 +44,17 @@ export function StatusRail({ channelId = "MAIN", compact = false }: { channelId?
           {formatClock(now)} UTC
         </span>
       </div>
-      <div className="pointer-events-auto flex items-center gap-2">
-        <button className="btn btn-ghost btn-sm" onClick={() => setMuted(!muted)} aria-pressed={!muted} title={muted ? "Unmute" : "Mute"}>
+      <div className="flex shrink-0 items-center gap-1 md:gap-2">
+        <button className="btn btn-ghost" onClick={() => setMuted(!muted)} aria-pressed={!muted} title={muted ? "Unmute" : "Mute"}>
           {muted ? "Muted" : "Sound on"}
         </button>
-        <Link href="/treasury" className="btn btn-ghost btn-sm hidden lg:inline-flex" title="Ad revenue and token tax buy Anduril pre-stock for holders">
+        <Link href="/treasury" className="btn btn-ghost hidden lg:inline-flex" title="Ad revenue and token tax buy Anduril pre-stock for holders">
           Treasury
         </Link>
-        <Link href="/queue" className="btn btn-ghost btn-sm hidden md:inline-flex" onClick={(e) => { if (window.location.pathname === "/") { e.preventDefault(); setDrawer("queue"); } }}>
+        <Link href="/queue" className="btn btn-ghost hidden md:inline-flex" onClick={(e) => { if (window.location.pathname === "/") { e.preventDefault(); setDrawer("queue"); } }}>
           Broadcast log
         </Link>
+        <span className="mx-1 hidden h-4 w-px bg-white/15 md:block" />
         <WalletButton />
         {!compact && (
           <button

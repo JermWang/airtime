@@ -6,7 +6,7 @@ Everything the network earns — airtime revenue and token tax — is used to bu
 
 Open the homepage and you are already watching the station: a broadcast studio with a live main display, a rear video wall, architectural billboards, an LED ticker and control-room monitors. Any of those surfaces can be clicked, previewed with your own creative, priced, and bought. Payment settles on chain; the station verifies the on-chain event itself, queues the campaign, airs it at the reserved second and issues an **AirLog** receipt.
 
-> AIRTIME is an independent product. It is **not** affiliated with, endorsed by, or operated by Robinhood. Robinhood Chain is used as payment infrastructure.
+> AIRTIME is an independent product. Robinhood Chain is used as payment infrastructure.
 
 ---
 
@@ -352,7 +352,7 @@ A configured share of network income (100% by default) buys Anduril pre-stock fo
 
 Nobody can type in airtime revenue, and the operator ledger never pretends to be chain data. Distributions are refused if they exceed the pre-stock recorded as held. The allocation percentage is set in **Control room → Settings**, and entries are added in **Control room → Treasury**. Every entry is written to the audit log.
 
-The page carries an explicit disclosure: it is not an offer, a prospectus, or investment advice, and AIRTIME is not affiliated with Anduril Industries or Robinhood.
+The page carries an explicit disclosure: it is not an offer, a prospectus, or investment advice.
 
 ### Showcase cards
 

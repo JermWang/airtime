@@ -15,12 +15,12 @@ const NAV = [
   { href: "/treasury", label: "Treasury" },
 ];
 
-/** Chrome for the non-immersive routes: quiet header, wallet, mobile dock, disclosure. */
+/** Chrome for the non-immersive routes: quiet header, wallet, mobile dock. */
 export function PageFrame({ children, title, wide = false }: { children: React.ReactNode; title?: string; wide?: boolean }) {
   const path = usePathname();
   return (
     <div className="min-h-dvh bg-ink-950 pb-24 md:pb-10">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-ink-950/80 backdrop-blur-md">
+      <header className="glass-bar sticky top-0 z-30">
         <div className={cn("mx-auto flex h-14 items-center justify-between px-4", wide ? "max-w-[1400px]" : "max-w-5xl")}>
           <div className="flex items-center gap-5">
             <Link href="/">
@@ -42,7 +42,7 @@ export function PageFrame({ children, title, wide = false }: { children: React.R
         {children}
       </main>
       <footer className={cn("mx-auto px-4 pt-8", wide ? "max-w-[1400px]" : "max-w-5xl")}>
-        <div className="mono text-[9.5px] uppercase tracking-[0.16em] text-ink-500">Built on Robinhood Chain · AIRTIME is an independent product and is not affiliated with, endorsed by, or operated by Robinhood.</div>
+        <div className="mono text-[9.5px] uppercase tracking-[0.16em] text-ink-500">Built on Robinhood Chain</div>
       </footer>
       <MobileDock />
     </div>

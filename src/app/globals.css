@@ -171,6 +171,15 @@ textarea {
   border-color: var(--color-line);
 }
 
+/* Full-width top bar: smoked glass so navigation never blends into the scene behind it. */
+.glass-bar {
+  background: linear-gradient(180deg, rgba(8, 9, 11, 0.78), rgba(8, 9, 11, 0.6));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
 .specular {
   position: relative;
 }
