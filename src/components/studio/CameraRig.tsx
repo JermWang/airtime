@@ -107,7 +107,12 @@ export function CameraRig({ reducedMotion, mobile, mode }: Props) {
     target.current.z = THREE.MathUtils.damp(target.current.z, desiredTarget.z, lambda, dt);
     camera.position.copy(pos.current);
     camera.lookAt(target.current);
-    const wantFov = mobile ? 62 : focused ? 38 : 48;
+    // Keep the room's horizontal coverage constant across viewport shapes, so
+    // the wing billboards stay in frame on narrow windows instead of being cut
+    // off. Vertical FOV is derived from a fixed horizontal one and clamped.
+    const horizontalFov = THREE.MathUtils.degToRad(mobile ? 70 : focused ? 52 : 72);
+    const derived = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(horizontalFov / 2) / aspect));
+    const wantFov = THREE.MathUtils.clamp(derived, focused ? 34 : 42, mobile ? 78 : 66);
     if (Math.abs(camera.fov - wantFov) > 0.01) {
       camera.fov = THREE.MathUtils.damp(camera.fov, wantFov, lambda, dt);
       camera.updateProjectionMatrix();

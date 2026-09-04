@@ -296,7 +296,7 @@ export const BASE_PLACEMENTS: NewPlacement[] = [
     id: "REAR_MONITOR",
     channelId: "MAIN",
     name: "Rear video wall",
-    description: "Wide video wall behind the anchor desk.",
+    description: "Wide LED wall behind the anchor desk. The main display hangs in front of its centre, so the creative reads on the left and right wings.",
     type: "ENVIRONMENT",
     kind: "video_wall",
     aspectRatio: "32:9",

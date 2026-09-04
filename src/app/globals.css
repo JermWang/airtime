@@ -279,6 +279,9 @@ select.field {
   gap: 6px;
   height: 22px;
   padding: 0 8px;
+  /* A chip is a single token: never wrap, never let a flex row squeeze it. */
+  white-space: nowrap;
+  flex-shrink: 0;
   border-radius: 4px;
   border: 1px solid var(--color-line);
   font-family: var(--font-mono);

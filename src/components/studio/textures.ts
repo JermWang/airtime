@@ -145,25 +145,61 @@ interface HouseOptions {
   seed?: number;
 }
 
-/** Procedural AIRTIME house graphic for unsold surfaces (no fake ads, ever). */
-export function createHouseTexture(opts: HouseOptions): SurfaceTexture {
-  const sa = parseAspect(opts.aspect);
-  const W = sa >= 8 ? 2048 : 1024;
-  const H = Math.max(64, Math.round(W / sa));
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d")!;
+/** Same stack the page uses, so canvas type matches DOM type. */
+const SANS = '"Helvetica Now Display", "HelveticaNowDisplay", "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif';
+const MONO = '"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace';
+
+/**
+ * Shrink a font size until the text fits in maxWidth, then wrap into at most
+ * maxLines lines. Returns the lines and the size that was used. Long headlines
+ * on a 16:9 billboard, or anything on a portrait panel, would otherwise run off
+ * the canvas.
+ */
+function fitText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  opts: { weight: number; family: string; size: number; minSize: number; maxWidth: number; maxLines: number; letterSpacing?: number },
+): { lines: string[]; size: number } {
+  const words = text.split(/\s+/).filter(Boolean);
+  const setFont = (size: number) => {
+    ctx.font = `${opts.weight} ${size}px ${opts.family}`;
+    ctx.letterSpacing = `${(opts.letterSpacing ?? 0) * size}px`;
+  };
+  const wrap = (size: number): string[] | null => {
+    setFont(size);
+    const lines: string[] = [];
+    let line = "";
+    for (const w of words) {
+      const candidate = line ? `${line} ${w}` : w;
+      if (ctx.measureText(candidate).width <= opts.maxWidth) {
+        line = candidate;
+      } else {
+        if (!line) return null; // a single word is wider than the box at this size
+        lines.push(line);
+        line = w;
+        if (lines.length > opts.maxLines) return null;
+      }
+    }
+    if (line) lines.push(line);
+    return lines.length <= opts.maxLines ? lines : null;
+  };
+  for (let size = opts.size; size >= opts.minSize; size = Math.floor(size * 0.92)) {
+    const lines = wrap(size);
+    if (lines) return { lines, size };
+  }
+  setFont(opts.minSize);
+  return { lines: wrap(opts.minSize) ?? [text], size: opts.minSize };
+}
+
+function paintLedBackdrop(ctx: CanvasRenderingContext2D, W: number, H: number): void {
   const g = ctx.createLinearGradient(0, 0, W, H);
-  g.addColorStop(0, "#0b0d10");
-  g.addColorStop(1, "#111418");
+  g.addColorStop(0, "#07090c");
+  g.addColorStop(1, "#12161b");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
-
-  // Fine grid – reads as an LED wall up close.
   ctx.strokeStyle = "rgba(255,255,255,0.035)";
   ctx.lineWidth = 1;
-  const step = Math.max(16, Math.round(W / 64));
+  const step = Math.max(14, Math.round(W / 72));
   for (let x = 0; x < W; x += step) {
     ctx.beginPath();
     ctx.moveTo(x, 0);
@@ -176,35 +212,73 @@ export function createHouseTexture(opts: HouseOptions): SurfaceTexture {
     ctx.lineTo(W, y);
     ctx.stroke();
   }
+}
 
+/** Procedural AIRTIME house graphic for unsold surfaces (no fake ads, ever). */
+export function createHouseTexture(opts: HouseOptions): SurfaceTexture {
+  const sa = parseAspect(opts.aspect);
+  const W = sa >= 8 ? 2048 : sa < 1 ? 720 : 1280;
+  const H = Math.max(64, Math.round(W / sa));
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+  paintLedBackdrop(ctx, W, H);
+
+  const pad = Math.round(Math.min(W, H) * 0.08);
+  const inner = W - pad * 2;
   const unit = Math.min(W, H);
-  const barW = Math.max(3, unit * 0.035);
-  const fontSize = opts.variant === "ribbon" ? H * 0.5 : unit * 0.11;
-  ctx.fillStyle = "#ccff00";
-  ctx.shadowColor = "rgba(204, 255, 0,0.6)";
-  ctx.shadowBlur = unit * 0.05;
-  const textX = W * 0.06;
-  const textY = H / 2;
-  ctx.fillRect(textX, textY - fontSize * 0.55, barW, fontSize * 1.1);
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = "#f2f4f7";
-  ctx.font = `600 ${fontSize}px "Inter Tight", Inter, system-ui, sans-serif`;
-  ctx.textBaseline = "middle";
-  ctx.letterSpacing = `${fontSize * 0.22}px`;
-  ctx.fillText((opts.label ?? "AIRTIME").toUpperCase(), textX + barW * 2.6, textY);
-  if (opts.sublabel && opts.variant !== "ribbon") {
-    ctx.fillStyle = "rgba(185,193,204,0.9)";
-    ctx.font = `500 ${fontSize * 0.34}px "JetBrains Mono", ui-monospace, monospace`;
-    ctx.letterSpacing = `${fontSize * 0.08}px`;
-    ctx.fillText(opts.sublabel.toUpperCase(), textX + barW * 2.6, textY + fontSize * 0.85);
-  }
-  if (opts.variant !== "ribbon") {
+  const barW = Math.max(3, Math.round(unit * 0.035));
+  const textX = pad + barW * 2.2;
+  const maxW = W - pad - textX;
+
+  if (opts.variant === "ribbon") {
+    const { lines, size } = fitText(ctx, (opts.label ?? "AIRTIME").toUpperCase(), { weight: 600, family: SANS, size: H * 0.55, minSize: 12, maxWidth: inner - barW * 3, maxLines: 1, letterSpacing: 0.18 });
+    ctx.fillStyle = "#ccff00";
+    ctx.fillRect(pad, H * 0.25, barW, H * 0.5);
+    ctx.fillStyle = "#f2f4f7";
+    ctx.textBaseline = "middle";
+    ctx.fillText(lines[0], textX, H / 2 + size * 0.04);
+  } else {
+    const label = (opts.label ?? "AIRTIME").toUpperCase();
+    const head = fitText(ctx, label, { weight: 600, family: SANS, size: unit * 0.13, minSize: 14, maxWidth: maxW, maxLines: 2, letterSpacing: 0.16 });
+    const lineH = head.size * 1.12;
+    const sub = opts.sublabel ? fitText(ctx, opts.sublabel.toUpperCase(), { weight: 500, family: MONO, size: head.size * 0.34, minSize: 9, maxWidth: maxW, maxLines: 2, letterSpacing: 0.08 }) : null;
+    const blockH = head.lines.length * lineH + (sub ? sub.lines.length * sub.size * 1.4 + head.size * 0.35 : 0);
+    let y = H / 2 - blockH / 2;
+
+    ctx.fillStyle = "#ccff00";
+    ctx.shadowColor = "rgba(204, 255, 0, 0.55)";
+    ctx.shadowBlur = unit * 0.04;
+    ctx.fillRect(pad, y, barW, blockH);
+    ctx.shadowBlur = 0;
+
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "#f2f4f7";
+    ctx.font = `600 ${head.size}px ${SANS}`;
+    ctx.letterSpacing = `${0.16 * head.size}px`;
+    for (const line of head.lines) {
+      ctx.fillText(line, textX, y);
+      y += lineH;
+    }
+    if (sub) {
+      y += head.size * 0.35;
+      ctx.fillStyle = "rgba(185,193,204,0.9)";
+      ctx.font = `500 ${sub.size}px ${MONO}`;
+      ctx.letterSpacing = `${0.08 * sub.size}px`;
+      for (const line of sub.lines) {
+        ctx.fillText(line, textX, y);
+        y += sub.size * 1.4;
+      }
+    }
+
+    const foot = fitText(ctx, "AVAILABLE AIRTIME", { weight: 500, family: MONO, size: Math.max(9, head.size * 0.26), minSize: 8, maxWidth: inner, maxLines: 1, letterSpacing: 0.12 });
     ctx.fillStyle = "rgba(255,255,255,0.35)";
-    ctx.font = `500 ${fontSize * 0.28}px "JetBrains Mono", ui-monospace, monospace`;
-    ctx.letterSpacing = `${fontSize * 0.1}px`;
     ctx.textAlign = "right";
-    ctx.fillText("AVAILABLE AIRTIME", W * 0.94, H * 0.9);
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(foot.lines[0], W - pad, H - pad * 0.6);
   }
+
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
@@ -220,7 +294,7 @@ export function createTickerTexture(text: string, aspect: string): SurfaceTextur
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
-  const font = `600 ${H * 0.62}px "JetBrains Mono", ui-monospace, monospace`;
+  const font = `600 ${H * 0.62}px ${MONO}`;
   ctx.font = font;
   ctx.letterSpacing = `${H * 0.08}px`;
   const content = `${text.toUpperCase()}     •     `;
@@ -264,87 +338,115 @@ export interface ShowcaseCard {
 }
 
 /**
- * House showcase card for an unbooked surface. Drawn from text only – no
- * third-party artwork – and always stamped EXAMPLE so it cannot be mistaken for
+ * Draw one showcase card into a rectangle of the canvas. Used once for a
+ * normal surface, and once per wing on ultra-wide surfaces whose middle sits
+ * behind the main display.
+ */
+function paintShowcaseCard(ctx: CanvasRenderingContext2D, card: ShowcaseCard, x0: number, y0: number, w: number, h: number, badge: boolean): void {
+  const unit = Math.min(w, h);
+  const pad = Math.round(unit * 0.09);
+  const accent = card.accent || "#ccff00";
+  const barW = Math.max(3, Math.round(unit * 0.022));
+  const textX = x0 + pad + barW + Math.round(unit * 0.05);
+  const maxW = x0 + w - pad - textX;
+
+  const label = fitText(ctx, card.label.toUpperCase(), { weight: 500, family: MONO, size: unit * 0.05, minSize: 9, maxWidth: maxW, maxLines: 1, letterSpacing: 0.16 });
+  const head = fitText(ctx, card.headline, { weight: 600, family: SANS, size: unit * 0.16, minSize: 16, maxWidth: maxW, maxLines: 3, letterSpacing: -0.02 });
+  const sub = card.sublabel ? fitText(ctx, card.sublabel.toUpperCase(), { weight: 500, family: MONO, size: unit * 0.042, minSize: 9, maxWidth: maxW, maxLines: 2, letterSpacing: 0.08 }) : null;
+
+  const headLine = head.size * 1.08;
+  const blockH = label.size * 1.9 + head.lines.length * headLine + (sub ? head.size * 0.3 + sub.lines.length * sub.size * 1.45 : 0);
+  let y = y0 + h / 2 - blockH / 2;
+
+  ctx.fillStyle = accent;
+  ctx.fillRect(x0 + pad, y, barW, blockH);
+
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillStyle = accent;
+  ctx.font = `500 ${label.size}px ${MONO}`;
+  ctx.letterSpacing = `${0.16 * label.size}px`;
+  ctx.fillText(label.lines[0], textX, y);
+  y += label.size * 1.9;
+
+  ctx.fillStyle = "#f4f6f8";
+  ctx.font = `600 ${head.size}px ${SANS}`;
+  ctx.letterSpacing = `${-0.02 * head.size}px`;
+  for (const line of head.lines) {
+    ctx.fillText(line, textX, y);
+    y += headLine;
+  }
+
+  if (sub) {
+    y += head.size * 0.3;
+    ctx.fillStyle = "rgba(185,193,204,0.85)";
+    ctx.font = `500 ${sub.size}px ${MONO}`;
+    ctx.letterSpacing = `${0.08 * sub.size}px`;
+    for (const line of sub.lines) {
+      ctx.fillText(line, textX, y);
+      y += sub.size * 1.45;
+    }
+  }
+
+  if (badge) {
+    // EXAMPLE badge: permanent, so a showcase card is never mistaken for a sold spot.
+    const badgeSize = Math.max(9, Math.round(unit * 0.036));
+    ctx.font = `600 ${badgeSize}px ${MONO}`;
+    ctx.letterSpacing = `${badgeSize * 0.2}px`;
+    const text = "EXAMPLE";
+    const bw = ctx.measureText(text).width + badgeSize * 1.8;
+    const bh = badgeSize * 2.1;
+    const bx = x0 + w - pad - bw;
+    const by = y0 + pad;
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeStyle = "rgba(255,255,255,0.28)";
+    ctx.lineWidth = Math.max(1, badgeSize * 0.08);
+    ctx.strokeRect(bx, by, bw, bh);
+    ctx.fillStyle = "rgba(240,244,248,0.92)";
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
+    ctx.fillText(text, bx + badgeSize * 0.9, by + bh / 2);
+
+    const foot = fitText(ctx, "THIS SPACE IS AVAILABLE", { weight: 500, family: MONO, size: badgeSize, minSize: 8, maxWidth: w - pad * 2, maxLines: 1, letterSpacing: 0.12 });
+    ctx.fillStyle = "rgba(255,255,255,0.32)";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(foot.lines[0], x0 + w - pad, y0 + h - pad * 0.7);
+  }
+}
+
+/**
+ * House showcase card for an unbooked surface. Drawn from text only, no
+ * third-party artwork, and always stamped EXAMPLE so it cannot be mistaken for
  * a paid campaign.
+ *
+ * Layout follows the surface: portrait panels stack, and ultra-wide walls
+ * (3:1 and wider, i.e. the rear LED wall whose centre is behind the main
+ * display) paint the card on both wings and leave the middle quiet.
  */
 export function createShowcaseTexture(card: ShowcaseCard, aspect: string): SurfaceTexture {
   const sa = parseAspect(aspect);
-  const W = sa >= 8 ? 2048 : 1280;
+  const W = sa >= 3 ? 2560 : sa < 1 ? 720 : 1280;
   const H = Math.max(80, Math.round(W / sa));
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
+  paintLedBackdrop(ctx, W, H);
 
-  const g = ctx.createLinearGradient(0, 0, W, H);
-  g.addColorStop(0, "#07090c");
-  g.addColorStop(1, "#12161b");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-
-  // LED grain
-  ctx.strokeStyle = "rgba(255,255,255,0.03)";
-  ctx.lineWidth = 1;
-  const step = Math.max(14, Math.round(W / 72));
-  for (let x = 0; x < W; x += step) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, H);
-    ctx.stroke();
+  if (sa >= 3) {
+    // Wings. From the room, the rear wall is hidden in the middle by the main
+    // display and at the far edges by the angled side walls, so the band that
+    // actually reads is roughly 7%–26% of the width on each side. The cards
+    // are laid out inside that band and wrap to fit it.
+    const inset = Math.round(W * 0.07);
+    const wing = Math.round(W * 0.19);
+    paintShowcaseCard(ctx, card, inset, 0, wing, H, true);
+    paintShowcaseCard(ctx, card, W - inset - wing, 0, wing, H, true);
+  } else {
+    paintShowcaseCard(ctx, card, 0, 0, W, H, true);
   }
-
-  const pad = W * 0.06;
-  const unit = Math.min(W, H);
-  const accent = card.accent || "#ccff00";
-
-  // Accent rule
-  ctx.fillStyle = accent;
-  ctx.fillRect(pad, H * 0.22, Math.max(3, unit * 0.02), H * 0.56);
-
-  const textX = pad + Math.max(3, unit * 0.02) + W * 0.03;
-  const headSize = Math.min(unit * 0.16, H * 0.3);
-
-  ctx.fillStyle = accent;
-  ctx.font = `500 ${headSize * 0.38}px "JetBrains Mono", ui-monospace, monospace`;
-  ctx.letterSpacing = `${headSize * 0.14}px`;
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText(card.label.toUpperCase(), textX, H * 0.32);
-
-  ctx.fillStyle = "#f4f6f8";
-  ctx.font = `600 ${headSize}px "Inter Tight", Inter, system-ui, sans-serif`;
-  ctx.letterSpacing = `${headSize * 0.01}px`;
-  ctx.fillText(card.headline, textX, H * 0.56);
-
-  if (card.sublabel) {
-    ctx.fillStyle = "rgba(185,193,204,0.85)";
-    ctx.font = `500 ${headSize * 0.32}px "JetBrains Mono", ui-monospace, monospace`;
-    ctx.letterSpacing = `${headSize * 0.06}px`;
-    ctx.fillText(card.sublabel.toUpperCase(), textX, H * 0.74);
-  }
-
-  // EXAMPLE badge – permanent, so a showcase card is never mistaken for a sold spot.
-  const badge = "EXAMPLE";
-  const badgeSize = Math.max(10, headSize * 0.26);
-  ctx.font = `600 ${badgeSize}px "JetBrains Mono", ui-monospace, monospace`;
-  ctx.letterSpacing = `${badgeSize * 0.2}px`;
-  const bw = ctx.measureText(badge).width + badgeSize * 1.6;
-  const bh = badgeSize * 2.1;
-  const bx = W - pad - bw;
-  const by = H * 0.16 - bh / 2;
-  ctx.fillStyle = "rgba(255,255,255,0.08)";
-  ctx.fillRect(bx, by, bw, bh);
-  ctx.strokeStyle = "rgba(255,255,255,0.28)";
-  ctx.lineWidth = Math.max(1, badgeSize * 0.08);
-  ctx.strokeRect(bx, by, bw, bh);
-  ctx.fillStyle = "rgba(240,244,248,0.92)";
-  ctx.textBaseline = "middle";
-  ctx.fillText(badge, bx + badgeSize * 0.8, by + bh / 2);
-
-  ctx.fillStyle = "rgba(255,255,255,0.32)";
-  ctx.font = `500 ${badgeSize}px "JetBrains Mono", ui-monospace, monospace`;
-  ctx.textAlign = "right";
-  ctx.fillText("THIS SPACE IS AVAILABLE", W - pad, H * 0.88);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
