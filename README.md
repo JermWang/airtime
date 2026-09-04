@@ -29,6 +29,7 @@ Open the homepage and you are already watching the station: a broadcast studio w
 - [Performance](#performance)
 - [Testing](#testing)
 - [Production deployment](#production-deployment)
+- [Deploying to Railway](#deploying-to-railway)
 - [Deploying to Vercel](#deploying-to-vercel)
 - [Environment variables](#environment-variables)
 - [Routes](#routes)
@@ -510,6 +511,36 @@ pnpm build && pnpm start
 ```
 
 ---
+
+## Deploying to Railway
+
+Railway runs the app as a long-lived container, which suits AIRTIME better than a serverless host: the in-process scheduler works as designed, so no cron is needed, and a volume gives creative uploads a real disk.
+
+```bash
+railway init --name airtime
+railway add --database postgres
+railway add --service airtime
+railway domain --service airtime            # note the port it reports
+railway volume add -m /data                 # persistent creative storage
+railway up --service airtime
+```
+
+Set these on the app service before the first build, because `NEXT_PUBLIC_*` values are baked into the browser bundle at build time:
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
+| `STORAGE_PROVIDER` / `STORAGE_LOCAL_DIR` | `local` / `/data/storage` (the volume mount) |
+| `NEXT_PUBLIC_APP_URL` | the generated domain |
+| `NEXT_PUBLIC_CHAIN_ENV`, `ROBINHOOD_*_RPC_URL` | chain selection and RPC |
+| `AIRTIME_QUOTE_SIGNER_PRIVATE_KEY`, `AIRTIME_SESSION_SECRET`, `AIRTIME_UPLOAD_SECRET`, `ADMIN_PASSWORD` | required; the app refuses to boot in production without them |
+
+Two things that will bite otherwise:
+
+- **Target port.** Railway injects `PORT` (8080), and `next start` honours it. A generated domain defaults to port 3000, which answers 502. Point it at the port from the boot log: `railway domain update <domain> --port 8080`.
+- **pnpm version.** `packageManager` is pinned in `package.json` and `pnpm-workspace.yaml` declares `packages`, because pnpm 9 rejects a workspace file without that field.
+
+The boot log prints the platform, the database in use and which scheduler is active — check it after the first deploy.
 
 ## Deploying to Vercel
 
