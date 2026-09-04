@@ -39,6 +39,12 @@ const schema = z.object({
   NEXT_PUBLIC_USDG_ADDRESS: z.string().optional().default(""),
   NEXT_PUBLIC_EXPLORER_URL: z.string().optional().default(""),
   NEXT_PUBLIC_DEV_WALLET_PRIVATE_KEY: z.string().optional().default(""),
+  AIRTIME_CRON_SECRET: z.string().optional().default(""),
+  AIRTIME_MIGRATE_ON_BOOT: z
+    .string()
+    .optional()
+    .default("true")
+    .transform((v) => v === "true" || v === "1"),
   AIRTIME_ALLOW_SIM_CLOCK: z
     .string()
     .optional()

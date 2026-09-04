@@ -29,6 +29,7 @@ Open the homepage and you are already watching the station: a broadcast studio w
 - [Performance](#performance)
 - [Testing](#testing)
 - [Production deployment](#production-deployment)
+- [Deploying to Vercel](#deploying-to-vercel)
 - [Environment variables](#environment-variables)
 - [Routes](#routes)
 
@@ -510,6 +511,36 @@ pnpm build && pnpm start
 
 ---
 
+## Deploying to Vercel
+
+The repository root is the Next.js app, so Vercel needs no root-directory override — import the repo and it builds. `vercel.json` pins the framework, the pnpm install command, the cron schedule and per-function limits; `.vercelignore` keeps the Foundry project and the test suites out of the deployment.
+
+Three parts of AIRTIME assume a long-lived server with a disk. On Vercel each request gets a short-lived, read-only container, so they are wired differently and the app refuses to start with a configuration that cannot work:
+
+| | Off Vercel | On Vercel |
+| --- | --- | --- |
+| Database | embedded PGlite on disk | **required:** `DATABASE_URL` to managed Postgres. The embedded fallback is refused with an explanatory error |
+| Creative storage | `./storage` on disk | **required:** `STORAGE_PROVIDER=s3` plus bucket, credentials and `STORAGE_PUBLIC_BASE_URL`. Local storage is refused |
+| Scheduler | `setInterval` every second | Vercel Cron calls `/api/cron/tick` every minute, and `/api/queue`, `/api/activations` and `/api/broadcast/state` tick opportunistically (at most once every 4s) so traffic keeps the station moving between firings |
+
+### Setup
+
+1. Import the repository on Vercel. Framework detection is Next.js; leave the root directory at the repository root.
+2. Provision Postgres (Vercel Postgres, Neon, Supabase) and set `DATABASE_URL`. Migrations run on boot under a Postgres advisory lock, so simultaneous cold starts cannot race; set `AIRTIME_MIGRATE_ON_BOOT=false` to run them from a deploy step instead.
+3. Provision object storage and set the `STORAGE_*` variables.
+4. Set the secrets: `AIRTIME_QUOTE_SIGNER_PRIVATE_KEY`, `AIRTIME_SESSION_SECRET`, `AIRTIME_UPLOAD_SECRET`, `ADMIN_PASSWORD` and `AIRTIME_CRON_SECRET`. The app refuses to boot in production without the first four, and the cron endpoint returns 401 without the last.
+5. Set the chain variables: `NEXT_PUBLIC_CHAIN_ENV`, a dedicated `ROBINHOOD_*_RPC_URL`, `NEXT_PUBLIC_AIRTIME_PAYMENT_CONTRACT`, `AIRTIME_PAYMENT_CONTRACT_DEPLOY_BLOCK` and `TREASURY_ADDRESS`.
+6. Set `AIRTIME_SEED_DEV_DATA=false`. Seeded programming is refused on mainnet regardless.
+
+### What to expect
+
+- **Scheduling granularity.** Cron fires once a minute, so with no traffic a campaign can go on air up to a minute late. Any request to the station tightens that to a few seconds. Slots are on a five-minute grid, so this is within tolerance; for exact-second activation, run the app on a normal server where the in-process scheduler is used.
+- **Realtime.** Server-Sent Events streams close after `AIRTIME_SSE_LIFETIME_MS` (50s by default, under the 60s Hobby function limit) and the browser reconnects automatically. On a plan with longer limits, raise that value and `maxDuration` in `vercel.json` together.
+- **Cron on Hobby.** Hobby projects only run cron once a day. Minute-level scheduling needs Pro, or an external scheduler calling `/api/cron/tick` with the bearer secret.
+- `pnpm worker` is for self-hosted deployments and is not used on Vercel.
+
+The boot log prints the detected platform, the database in use and which scheduler is active, and warns about any configuration that cannot work on the host.
+
 ## Environment variables
 
 See `.env.example`. Secrets must never be placed in `NEXT_PUBLIC_*` variables.
@@ -534,6 +565,9 @@ See `.env.example`. Secrets must never be placed in `NEXT_PUBLIC_*` variables.
 | `NEXT_PUBLIC_USDG_ADDRESS` | Optional verified ERC-20; unset means not selectable |
 | `NEXT_PUBLIC_DEV_WALLET_PRIVATE_KEY` | Development/E2E only local wallet connector |
 | `AIRTIME_DISABLE_TICKER` | Disable the in-process scheduler (multi-instance deployments) |
+| `AIRTIME_CRON_SECRET` | **Secret.** Bearer token `/api/cron/tick` requires; mandatory in production |
+| `AIRTIME_MIGRATE_ON_BOOT` | Run migrations at boot (default true, advisory-locked) |
+| `AIRTIME_SSE_LIFETIME_MS` | How long a realtime stream stays open before the client reconnects |
 
 ---
 

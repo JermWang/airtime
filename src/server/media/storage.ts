@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { env } from "../env";
+import { isServerless } from "../platform";
 
 /**
  * Storage abstraction. Creatives are written to controlled storage and served
@@ -145,6 +146,11 @@ export function storage(): StorageProvider {
       publicBaseUrl: e.STORAGE_PUBLIC_BASE_URL,
     });
   } else {
+    if (isServerless()) {
+      throw new Error(
+        "STORAGE_PROVIDER=local writes creatives to the local disk, which is read-only on a serverless host. Set STORAGE_PROVIDER=s3 with STORAGE_S3_* credentials and STORAGE_PUBLIC_BASE_URL.",
+      );
+    }
     provider = new LocalStorageProvider(path.resolve(process.cwd(), e.STORAGE_LOCAL_DIR));
   }
   return provider;

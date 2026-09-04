@@ -36,6 +36,10 @@ Note: Next 16 allows only one dev server per directory. Stop `pnpm dev` before `
 - Never delete `.pglite-e2e` from the Playwright config or global setup: both can run while a reused server already owns that directory, and PGlite then fails with "could not open file". The wipe belongs in the web-server command (`tests/e2e/prepare-state.ts`).
 - Whether a placement takes over the main picture is the `ownsMainStream` column, not a check on placement type.
 
+## Hosting
+
+The repo root is the Next.js app; Vercel needs no root override. On any serverless host (`isServerless()` in `src/server/platform.ts`) three things change: the embedded database and local storage are refused outright, and the scheduler runs from `/api/cron/tick` plus an opportunistic tick on read endpoints instead of `setInterval`. Never reintroduce a disk write or a resident timer on a code path that runs there.
+
 ## Brand
 
 Accent is the Robinhood lime `#ccff00` on graphite/near-black. Red is reserved for genuine LIVE indicators. "Built on Robinhood Chain" is infrastructure phrasing only; the non-affiliation disclosure stays on every page.

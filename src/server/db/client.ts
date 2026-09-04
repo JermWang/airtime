@@ -7,6 +7,7 @@ import { Pool } from "pg";
 import { PGlite } from "@electric-sql/pglite";
 import * as schema from "./schema";
 import { env } from "../env";
+import { isServerless } from "../platform";
 
 /**
  * Database client.
@@ -37,6 +38,9 @@ declare global {
 
 const MIGRATIONS_FOLDER = path.join(process.cwd(), "drizzle");
 
+/** Arbitrary but stable key for the migration advisory lock. */
+const AIRTIME_MIGRATION_LOCK = 4663_0001;
+
 /**
  * PGlite is a single embedded Postgres instance and is **not** safe to drive
  * from overlapping async callers: the scheduler tick, an SSE stream and a few
@@ -51,14 +55,30 @@ const MIGRATIONS_FOLDER = path.join(process.cwd(), "drizzle");
 function createHandle(): DbHandle {
   const e = env();
   if (e.DATABASE_URL) {
-    const pool = new Pool({ connectionString: e.DATABASE_URL, max: 10 });
+    const pool = new Pool({ connectionString: e.DATABASE_URL, max: isServerless() ? 1 : 10 });
     const db = drizzlePg(pool, { schema });
     return {
       db,
       kind: "pg",
       close: () => pool.end(),
-      migrate: () => migratePg(db, { migrationsFolder: MIGRATIONS_FOLDER }),
+      // Several instances can cold-start at once (every serverless invocation is
+      // a fresh process), so migrations run under a Postgres advisory lock.
+      migrate: async () => {
+        const client = await pool.connect();
+        try {
+          await client.query("select pg_advisory_lock($1)", [AIRTIME_MIGRATION_LOCK]);
+          await migratePg(db, { migrationsFolder: MIGRATIONS_FOLDER });
+        } finally {
+          await client.query("select pg_advisory_unlock($1)", [AIRTIME_MIGRATION_LOCK]).catch(() => {});
+          client.release();
+        }
+      },
     };
+  }
+  if (isServerless()) {
+    throw new Error(
+      "No DATABASE_URL set. AIRTIME falls back to an embedded PGlite database that writes to the local disk, which cannot work on a serverless host: the filesystem is read-only and every invocation gets a fresh container. Set DATABASE_URL to a managed Postgres instance (Vercel Postgres, Neon, Supabase, …).",
+    );
   }
   const inMemory = process.env.AIRTIME_DB_MEMORY === "1";
   const dataDir = inMemory ? undefined : process.env.AIRTIME_PGLITE_DIR || path.join(process.cwd(), ".pglite");

@@ -6,6 +6,7 @@ import { startTicker } from "./worker/ticker";
 import { env, isProduction } from "./env";
 import { quoteSignerAddress } from "./chain/quoteSigner";
 import { paymentContractAddress } from "./chain/client";
+import { canRunInProcessTicker, configurationProblems, isServerless, platformName } from "./platform";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -20,7 +21,7 @@ declare global {
 export function boot(opts: { ticker?: boolean } = {}): Promise<void> {
   if (!globalThis.__airtimeBooted) {
     globalThis.__airtimeBooted = (async () => {
-      await ensureMigrated();
+      if (env().AIRTIME_MIGRATE_ON_BOOT) await ensureMigrated();
       const { adminPassword } = await ensureBaseline();
       const seeded = await seedDevData();
       await loadClockOffset();
@@ -31,10 +32,12 @@ export function boot(opts: { ticker?: boolean } = {}): Promise<void> {
         [
           "",
           "  AIRTIME station boot",
+          `  platform     ${platformName()}`,
           `  chain        ${e.NEXT_PUBLIC_CHAIN_ENV}`,
           `  contract     ${contract ?? "NOT CONFIGURED – purchases disabled"}`,
           `  quote signer ${quoteSignerAddress()}`,
           `  database     ${e.DATABASE_URL ? "postgres" : "pglite (embedded)"}`,
+          `  scheduler    ${canRunInProcessTicker() ? "in-process (1s)" : isServerless() ? "cron + opportunistic (/api/cron/tick)" : "disabled"}`,
           seeded ? "  seeded       DEV DATA programming" : "",
           adminPassword && !isProduction() ? `  admin        ${e.ADMIN_EMAIL} / ${adminPassword}` : "",
           "",
@@ -42,7 +45,9 @@ export function boot(opts: { ticker?: boolean } = {}): Promise<void> {
           .filter(Boolean)
           .join("\n"),
       );
-      if ((opts.ticker ?? true) && !e.AIRTIME_DISABLE_TICKER) startTicker(1000);
+      for (const problem of configurationProblems()) console.warn(`  [config] ${problem}`);
+      // A serverless host gets no resident scheduler: cron and request traffic drive it.
+      if ((opts.ticker ?? true) && canRunInProcessTicker()) startTicker(1000);
     })().catch((err) => {
       globalThis.__airtimeBooted = undefined;
       throw err;

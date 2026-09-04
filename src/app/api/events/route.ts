@@ -3,6 +3,15 @@ import { subscribe } from "@/server/realtime/bus";
 import { serverNowMs } from "@/server/time/clock";
 
 export const dynamic = "force-dynamic";
+/**
+ * A serverless function is killed at its time limit, so the stream closes itself
+ * a little earlier and the browser reconnects (EventSource does this natively).
+ * Off serverless the stream simply lives until the client goes away.
+ */
+export const maxDuration = 60;
+// Default sits under the 60s ceiling of Vercel's Hobby plan. On a plan with a
+// longer function limit, raise both this and maxDuration.
+const STREAM_LIFETIME_MS = Number(process.env.AIRTIME_SSE_LIFETIME_MS ?? 50_000);
 
 /** Server-Sent Events stream of station state changes. */
 export async function GET(req: Request): Promise<Response> {
@@ -10,6 +19,7 @@ export async function GET(req: Request): Promise<Response> {
   const encoder = new TextEncoder();
   let unsubscribe: (() => void) | null = null;
   let ping: ReturnType<typeof setInterval> | null = null;
+  let lifetime: ReturnType<typeof setTimeout> | null = null;
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -32,17 +42,21 @@ export async function GET(req: Request): Promise<Response> {
       const close = () => {
         unsubscribe?.();
         if (ping) clearInterval(ping);
+        if (lifetime) clearTimeout(lifetime);
         try {
           controller.close();
         } catch {
           /* already closed */
         }
       };
+      lifetime = setTimeout(close, STREAM_LIFETIME_MS);
+      lifetime.unref?.();
       req.signal.addEventListener("abort", close);
     },
     cancel() {
       unsubscribe?.();
       if (ping) clearInterval(ping);
+      if (lifetime) clearTimeout(lifetime);
     },
   });
 

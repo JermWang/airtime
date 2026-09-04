@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm exec next build",
+  "crons": [
+    {
+      "path": "/api/cron/tick",
+      "schedule": "* * * * *"
+    }
+  ],
+  "functions": {
+    "src/app/api/cron/tick/route.ts": { "maxDuration": 60 },
+    "src/app/api/events/route.ts": { "maxDuration": 60 },
+    "src/app/api/creatives/route.ts": { "maxDuration": 60 },
+    "src/app/api/campaigns/[id]/confirm/route.ts": { "maxDuration": 60 }
+  }
+}

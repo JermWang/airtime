@@ -71,6 +71,23 @@ async function safe(label: string, fn: () => Promise<unknown>): Promise<void> {
   }
 }
 
+/**
+ * Run a tick from request traffic, at most once every `minGapMs`.
+ *
+ * On a serverless host there is no resident scheduler between cron firings, so
+ * read endpoints nudge the station forward. It is cheap, idempotent and never
+ * blocks the response: worst case a campaign activates on the next request
+ * instead of waiting for the next cron minute.
+ */
+let lastOpportunistic = 0;
+
+export function tickOpportunistically(minGapMs = 4000): void {
+  const now = Date.now();
+  if (now - lastOpportunistic < minGapMs) return;
+  lastOpportunistic = now;
+  void tickOnce().catch((err) => console.error("[ticker:opportunistic]", err));
+}
+
 export function startTicker(intervalMs = 1000): void {
   if (globalThis.__airtimeTicker) return;
   const timer = setInterval(() => void tickOnce(), intervalMs);
