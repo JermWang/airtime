@@ -176,28 +176,42 @@ export interface PlacementMaterial {
   idleKind?: "image" | "video" | "house";
 }
 
-export interface PlacementPricingRules {
-  mode: "FIXED" | "DYNAMIC";
-  /** Duration in seconds that basePriceWei buys. */
-  unitSeconds: number;
-  /** Multiplier applied to (duration/unit); 1 = linear. Basis points (10000 = 1.0). */
-  durationExponentBps: number;
-  timeOfDay: Array<{ fromHourUtc: number; toHourUtc: number; multiplierBps: number }>;
-  premiumProgramMultiplierBps: number;
-  demand: { enabled: boolean; maxMultiplierBps: number };
-  proximity: Array<{ withinMinutes: number; multiplierBps: number }>;
+/**
+ * Continuous descending-price auction, one per surface.
+ *
+ * A surface is not sold as a fixed-length spot. A buyer takes the surface at the
+ * current ask and runs on it until somebody pays more. Every sale ratchets the
+ * ask up to `takeoverPremiumBps` of what the occupant paid; time walks it back
+ * down again, linearly, over `decaySeconds`. While a surface is occupied the ask
+ * never falls below what the occupant paid plus `minIncrementBps`, so a takeover
+ * is always a strictly higher bid. Once the surface is free the ask keeps
+ * descending all the way to `floorPriceWei`.
+ */
+export interface PlacementAuctionRules {
+  /** Ask on a surface that has never been sold, in wei. */
+  openingPriceWei: string;
+  /** The ask never decays below this, in wei. */
+  floorPriceWei: string;
+  /** Seconds for the ask to fall from the top of a descent to its floor. */
+  decaySeconds: number;
+  /** Where the ask restarts after a sale, as bps of the price paid. 20000 = 2×. */
+  takeoverPremiumBps: number;
+  /** A takeover must beat the occupant by at least this. 500 = +5%. */
+  minIncrementBps: number;
+  /** Runtime a buyer is guaranteed before the surface can be taken from them. */
+  minHoldSeconds: number;
+  /** Hard cap on a single run, in seconds. 0 = runs until outbid. */
+  maxHoldSeconds: number;
 }
 
 export interface PlacementAvailabilityRules {
-  /** CONTINUOUS = any slot on the grid; AD_BREAK = only inside AD_BREAK blocks. */
+  /**
+   * CONTINUOUS – the occupant is on the surface the whole time it holds it.
+   * AD_BREAK   – the occupant owns the picture during every commercial break
+   *              for as long as it holds the surface.
+   */
   inventoryMode: "CONTINUOUS" | "AD_BREAK";
-  /** Slot grid in seconds. */
-  slotSeconds: number;
-  /** Minimum seconds between now and the earliest bookable slot. */
-  leadTimeSec: number;
-  /** How far ahead the inventory is sold, in hours. */
-  horizonHours: number;
-  /** Optional daily window (UTC hours). */
+  /** Optional daily window (UTC hours) during which the surface can be taken. */
   hoursUtc?: { from: number; to: number } | null;
 }
 
@@ -213,14 +227,18 @@ export const placements = pgTable("placements", {
   kind: text("kind").notNull(),
   aspectRatio: text("aspect_ratio").notNull().default("16:9"),
   mediaTypes: jsonb("media_types").$type<Array<"IMAGE" | "VIDEO" | "TEXT" | "LOGO">>().notNull().default(["IMAGE"]),
-  minDurationSec: integer("min_duration_sec").notNull(),
-  maxDurationSec: integer("max_duration_sec").notNull(),
-  durationOptionsSec: jsonb("duration_options_sec").$type<number[]>().notNull().default([]),
-  basePriceWei: numeric("base_price_wei", { precision: 78, scale: 0 }).notNull(),
-  priceMultiplierBps: integer("price_multiplier_bps").notNull().default(10000),
-  pricingRules: jsonb("pricing_rules").$type<PlacementPricingRules>().notNull(),
+  auction: jsonb("auction").$type<PlacementAuctionRules>().notNull(),
   availability: jsonb("availability").$type<PlacementAvailabilityRules>().notNull(),
-  /** Reservations in the same lane are mutually exclusive. */
+  /**
+   * Live auction state. `lastClearingPriceWei` is what the most recent buyer
+   * paid (0 if never sold) and `askResetAt` is when the current descent began:
+   * together with `auction` they determine the ask at any instant.
+   */
+  lastClearingPriceWei: numeric("last_clearing_price_wei", { precision: 78, scale: 0 }).notNull().default("0"),
+  askResetAt: timestamp("ask_reset_at", { withTimezone: true }).notNull().defaultNow(),
+  /** The campaign currently on this surface, denormalised for a single-row read. */
+  currentCampaignId: uuid("current_campaign_id"),
+  /** Only one buyer may hold a quote on a lane at a time. */
   lane: text("lane").notNull(),
   /**
    * When true, an airing campaign on this placement takes over the main
@@ -233,6 +251,8 @@ export const placements = pgTable("placements", {
   material: jsonb("material").$type<PlacementMaterial>().notNull(),
   maxWidth: integer("max_width").notNull().default(1920),
   maxHeight: integer("max_height").notNull().default(1080),
+  /** Longest video creative accepted, in seconds. 0 = video not applicable. A shorter clip simply loops for the whole run. */
+  maxCreativeSec: integer("max_creative_sec").notNull().default(60),
   maxFileBytes: integer("max_file_bytes").notNull().default(8 * 1024 * 1024),
   allowsAudio: boolean("allows_audio").notNull().default(false),
   allowsClickThrough: boolean("allows_click_through").notNull().default(false),
@@ -291,8 +311,17 @@ export const campaigns = pgTable(
     creativeId: uuid("creative_id").references(() => creatives.id),
     displayName: text("display_name").notNull(),
     status: campaignStatus("status").notNull().default("DRAFT"),
+    /** When this campaign took the surface. Null until it does. */
     startsAt: timestamp("starts_at", { withTimezone: true }),
+    /** When it lost the surface. Null while it is still running. */
     endsAt: timestamp("ends_at", { withTimezone: true }),
+    /** Runtime it is guaranteed before anyone can outbid it. */
+    guaranteedUntil: timestamp("guaranteed_until", { withTimezone: true }),
+    /** What it paid to take the surface: the bar a challenger has to clear. */
+    paidPriceWei: numeric("paid_price_wei", { precision: 78, scale: 0 }),
+    /** OUTBID | WITHDRAWN | CAP_REACHED | REMOVED */
+    endedReason: text("ended_reason"),
+    /** Realised runtime in seconds, written when the run ends. */
     durationSec: integer("duration_sec"),
     fit: text("fit").$type<"FIT" | "FILL">().notNull().default("FIT"),
     clickUrl: text("click_url"),
@@ -342,6 +371,12 @@ export const quotes = pgTable(
     status: quoteStatus("status").notNull().default("ACTIVE"),
     /** Chain block height when the quote was issued (payment watcher lower bound). */
     issuedAtBlock: bigint("issued_at_block", { mode: "bigint" }),
+    /**
+     * Transaction the buyer says paid this quote. A hint only: the server still
+     * reads the transaction from its own RPC before anything is marked paid. It
+     * is stored so the scheduler can finish the verification if the tab closes.
+     */
+    txHint: text("tx_hint"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("quotes_status_expires_idx").on(t.status, t.expiresAt)],
@@ -360,7 +395,8 @@ export const reservations = pgTable(
       .references(() => campaigns.id, { onDelete: "cascade" }),
     quoteId: text("quote_id"),
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
-    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    /** Null on a live occupancy: it lasts until somebody outbids it. */
+    endsAt: timestamp("ends_at", { withTimezone: true }),
     status: reservationStatus("status").notNull().default("HELD"),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -617,6 +653,40 @@ export const adActivationsRelations = relations(adActivations, ({ one }) => ({
   campaign: one(campaigns, { fields: [adActivations.campaignId], references: [campaigns.id] }),
 }));
 
+/* -------------------------------------------------------------------------- */
+/*  Live chat                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The station chat.
+ *
+ * One room per channel. Only a signed-in wallet can post, and the wallet that
+ * posted is the identity: there are no display names to impersonate and no
+ * anonymous messages. Text is stored exactly as the server sanitised it, never
+ * as the browser sent it, and it is rendered as text - the chat is not a place
+ * where markup can be introduced.
+ *
+ * Deletion is soft (`hiddenAt`) so a moderator can remove a message from the
+ * room without losing the record of it having existed.
+ */
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    channelId: text("channel_id").notNull(),
+    walletAddress: text("wallet_address").notNull(),
+    body: text("body").notNull(),
+    /** Server clock at insert, so ordering matches the broadcast clock. */
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+    hiddenBy: text("hidden_by"),
+  },
+  (t) => [
+    index("chat_channel_created_idx").on(t.channelId, t.createdAt),
+    index("chat_wallet_created_idx").on(t.walletAddress, t.createdAt),
+  ],
+);
+
 // Keep `sql` imported for consumers that build raw expressions from the schema module.
 export { sql };
 
@@ -626,6 +696,7 @@ export type ProgramBlock = typeof programBlocks.$inferSelect;
 export type LiveSource = typeof liveSources.$inferSelect;
 export type Placement = typeof placements.$inferSelect;
 export type NewPlacement = typeof placements.$inferInsert;
+export type NewCampaign = typeof campaigns.$inferInsert;
 export type Creative = typeof creatives.$inferSelect;
 export type Campaign = typeof campaigns.$inferSelect;
 export type Quote = typeof quotes.$inferSelect;
@@ -637,4 +708,5 @@ export type AdminUser = typeof adminUsers.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type TreasuryEntry = typeof treasuryEntries.$inferSelect;
 export type ShowcaseCreative = typeof showcaseCreatives.$inferSelect;
+export type ChatMessage = typeof chatMessages.$inferSelect;
 export type CampaignStatus = Campaign["status"];

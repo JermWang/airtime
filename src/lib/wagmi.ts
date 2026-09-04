@@ -4,7 +4,7 @@ import { createConfig, createConnector, http, type Config } from "wagmi";
 import { injected, walletConnect } from "wagmi/connectors";
 import { createPublicClient, createWalletClient, http as viemHttp, numberToHex, hexToBigInt, type Chain, type Hex, type EIP1193Parameters, type EIP1193RequestFn } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { activeChain, activeChainEnv } from "./chain/chains";
+import { activeChain, activeChainEnv, paymentChains } from "./chain/chains";
 
 /**
  * wagmi configuration.
@@ -135,10 +135,14 @@ export function getWagmiConfig(): Config {
       }),
     );
   }
+  // Every chain a buyer may pay on, the station's own first. A wallet can be on
+  // any of them; the purchase flow asks it to switch to the one the quote is for.
+  const chains = paymentChains();
+  const transports = Object.fromEntries(chains.map((c) => [c.id, http(c.id === chain.id ? browserRpcUrl(c) : c.rpcUrls.default.http[0], { batch: true })]));
   cached = createConfig({
-    chains: [chain],
+    chains: [chain, ...chains.filter((c) => c.id !== chain.id)] as [Chain, ...Chain[]],
     connectors,
-    transports: { [chain.id]: http(browserRpcUrl(chain), { batch: true }) },
+    transports,
     ssr: true,
   });
   return cached;

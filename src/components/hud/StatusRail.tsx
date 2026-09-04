@@ -6,6 +6,7 @@ import { useStation } from "@/lib/store";
 import { usePlayer } from "@/components/station/playerStore";
 import { Wordmark } from "./Wordmark";
 import { WalletButton } from "./WalletButton";
+import { SoundControl } from "./SoundControl";
 import { formatClock, cn } from "@/lib/format";
 
 /**
@@ -17,8 +18,6 @@ export function StatusRail({ channelId = "MAIN", compact = false }: { channelId?
   const now = useServerNow(500);
   const playing = usePlayer((s) => s.playing);
   const source = usePlayer((s) => s.source);
-  const muted = useStation((s) => s.muted);
-  const setMuted = useStation((s) => s.setMuted);
   const mode = useStation((s) => s.mode);
   const setMode = useStation((s) => s.setMode);
   const focusPlacement = useStation((s) => s.focusPlacement);
@@ -26,7 +25,10 @@ export function StatusRail({ channelId = "MAIN", compact = false }: { channelId?
 
   const nowBlock = data?.now;
   const isLive = nowBlock?.type === "LIVE_HLS";
-  const programTitle = source?.kind === "ad-video" || source?.kind === "ad-image" ? `${source.campaign.displayName} · commercial` : nowBlock?.title ?? "—";
+  const programTitle =
+    source?.kind === "campaign-video" || source?.kind === "campaign-image"
+      ? `${source.campaign.displayName}${source.slot === "ad" ? " · commercial" : ""}`
+      : nowBlock?.title ?? "—";
 
   return (
     <div className="glass-bar fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between gap-3 px-3 md:px-5">
@@ -45,9 +47,7 @@ export function StatusRail({ channelId = "MAIN", compact = false }: { channelId?
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-1 md:gap-2">
-        <button className="btn btn-ghost" onClick={() => setMuted(!muted)} aria-pressed={!muted} title={muted ? "Unmute" : "Mute"}>
-          {muted ? "Muted" : "Sound on"}
-        </button>
+        <SoundControl compact={compact} />
         <Link href="/treasury" className="btn btn-ghost hidden lg:inline-flex" title="Ad revenue and token tax buy Anduril pre-stock for holders">
           Treasury
         </Link>

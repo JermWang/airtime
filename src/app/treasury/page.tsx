@@ -2,7 +2,7 @@
 
 import { PageFrame } from "@/components/hud/PageFrame";
 import { useTreasury } from "@/lib/hooks";
-import { formatWei, formatDateTime, shortHash, cn } from "@/lib/format";
+import { formatWei, formatDateTime, formatPercentFromPpm, shortHash, cn } from "@/lib/format";
 import type { TreasuryLedgerRowDto } from "@/lib/api";
 
 const KIND_LABEL: Record<TreasuryLedgerRowDto["kind"], string> = {
@@ -26,13 +26,15 @@ export default function TreasuryPage() {
   const { data, isLoading } = useTreasury();
   const s = data?.summary;
   const allocationPct = s ? (s.allocationBps / 100).toFixed(s.allocationBps % 100 === 0 ? 0 : 2) : "100";
+  // Parts per million, so 0.005% survives the trip without a rounding story.
+  const holderCapPct = formatPercentFromPpm(s?.holderRewardCapPpm ?? 50);
 
   return (
     <PageFrame title="Treasury" wide>
       <p className="mb-5 max-w-3xl text-[13px] leading-relaxed text-ink-200">
-        {allocationPct}% of what this network earns is used to buy Anduril pre-stock, which is then distributed to holders. Airtime revenue is counted automatically
-        from payments the station verified on chain. Token tax, pre-stock purchases and distributions happen off this chain through a broker, so they are recorded by
-        the station operator and shown here as recorded figures with a reference where one exists.
+        {allocationPct}% of what this network earns is used to buy Anduril pre-stock, and every holder of the token is rewarded in pre-IPO shares — up to {holderCapPct}%
+        each. Airtime revenue is counted automatically from payments the station verified on chain. Token tax, pre-stock purchases and distributions happen off this
+        chain through a broker, so they are recorded by the station operator and shown here as recorded figures with a reference where one exists.
       </p>
 
       {isLoading && !s && <div className="label">Loading treasury…</div>}
@@ -46,7 +48,7 @@ export default function TreasuryPage() {
             <Figure label="Awaiting deployment" value={formatWei(s.awaitingDeploymentWei)} sub="earmarked, not yet spent" tone="muted" />
           </section>
 
-          <section className="mb-6 grid gap-3 md:grid-cols-3">
+          <section className="mb-6 grid gap-3 md:grid-cols-4">
             <Figure label="Spent on Anduril pre-stock" value={formatWei(s.deployedWei)} sub={`${s.purchases} purchase${s.purchases === 1 ? "" : "s"}`} tone="signal" />
             <Figure label="Pre-stock held" value={`${s.sharesHeld} sh`} sub={`${s.sharesAcquired} acquired · ${s.sharesDistributed} distributed`} tone="signal" />
             <Figure
@@ -54,6 +56,7 @@ export default function TreasuryPage() {
               value={`${s.sharesDistributed} sh`}
               sub={s.distributions ? `${s.distributions} distribution${s.distributions === 1 ? "" : "s"} · ${s.holdersReached} holder payouts` : "none yet"}
             />
+            <Figure label="Reward cap per holder" value={`${holderCapPct}%`} sub="of the Anduril pre-IPO allocation" tone="signal" />
           </section>
 
           <section className="glass rounded-lg p-3">

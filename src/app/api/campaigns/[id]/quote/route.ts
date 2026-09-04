@@ -6,16 +6,19 @@ import { requireWallet } from "@/server/auth/session";
 import { createQuote, getActiveQuoteForCampaign, toWire } from "@/server/ads/quotes";
 import { getOwnedCampaign } from "@/server/ads/campaigns";
 import { db, schema } from "@/server/db/client";
+import { treasuryAddress } from "@/server/chain/treasuryTransfer";
 
 export const dynamic = "force-dynamic";
 
 const body = z.object({
-  startsAt: z.string().datetime(),
-  durationSec: z.number().int().positive().max(86400),
+  /** Refuse the quote if the ask has moved above this, in wei. */
+  maxPriceWei: z.string().regex(/^\d+$/).optional(),
   paymentToken: z.string().regex(/^0x[0-9a-fA-F]{40}$/).optional(),
+  /** Network the buyer wants to pay from. Validated against the accepted list. */
+  chainId: z.coerce.number().int().positive().optional(),
 });
 
-/** Issue (or re-issue) an authoritative signed quote and hold the inventory. */
+/** Issue (or re-issue) a signed quote at the surface's current ask and hold it. */
 export const POST = route<Params<{ id: string }>>(async (req, { params }) => {
   rateLimit(req, "quote", { limit: 20, windowSec: 60 });
   assertSameOrigin(req);
@@ -25,9 +28,9 @@ export const POST = route<Params<{ id: string }>>(async (req, { params }) => {
   const result = await createQuote({
     campaignId: id,
     walletAddress: wallet.address,
-    startsAt: new Date(input.startsAt),
-    durationSec: input.durationSec,
+    maxPriceWei: input.maxPriceWei ? BigInt(input.maxPriceWei) : undefined,
     paymentToken: input.paymentToken as `0x${string}` | undefined,
+    chainId: input.chainId,
   });
   return json(result, { status: 201 });
 });
@@ -46,9 +49,14 @@ export const GET = route<Params<{ id: string }>>(async (_req, { params }) => {
     breakdown: quote.priceBreakdown,
     expiresAt: quote.expiresAt.toISOString(),
     startsAt: quote.startsAt.toISOString(),
-    endsAt: quote.endsAt.toISOString(),
+    guaranteedUntil: quote.endsAt.toISOString(),
+    guaranteedSeconds: Math.max(1, Math.round((quote.endsAt.getTime() - quote.startsAt.getTime()) / 1000)),
     campaignId: id,
     placementId: placement?.id ?? quote.placementId,
-    treasury: process.env.TREASURY_ADDRESS || null,
+    outbids: null,
+    treasury: treasuryAddress(),
+    settlement: quote.contractAddress.toLowerCase() === treasuryAddress().toLowerCase() ? "treasury" : "contract",
+    payTo: quote.contractAddress,
+    chainId: quote.chainId,
   });
 });

@@ -19,13 +19,19 @@ const EMPTY: Omit<PlacementDto, "sortOrder"> & { sortOrder: number } = {
   kind: "billboard",
   aspectRatio: "16:9",
   mediaTypes: ["IMAGE"],
-  minDurationSec: 300,
-  maxDurationSec: 3600,
-  durationOptionsSec: [300, 900, 1800, 3600],
-  basePriceWei: "1000000000000000",
-  priceMultiplierBps: 10000,
-  pricingRules: { mode: "FIXED", unitSeconds: 900, durationExponentBps: 10000, timeOfDay: [], premiumProgramMultiplierBps: 10000, demand: { enabled: false, maxMultiplierBps: 10000 }, proximity: [] },
-  availability: { inventoryMode: "CONTINUOUS", slotSeconds: 300, leadTimeSec: 120, horizonHours: 48, hoursUtc: null },
+  auction: {
+    openingPriceWei: "6000000000000000000",
+    floorPriceWei: "600000000000000000",
+    decaySeconds: 6 * 3600,
+    takeoverPremiumBps: 20000,
+    minIncrementBps: 500,
+    minHoldSeconds: 1800,
+    maxHoldSeconds: 0,
+  },
+  availability: { inventoryMode: "CONTINUOUS", hoursUtc: null },
+  lastClearingPriceWei: "0",
+  askResetAt: new Date(0).toISOString(),
+  currentCampaignId: null,
   lane: "",
   ownsMainStream: false,
   meshName: null,
@@ -33,6 +39,7 @@ const EMPTY: Omit<PlacementDto, "sortOrder"> & { sortOrder: number } = {
   material: { emissiveIntensity: 1, fit: "FILL", idleKind: "house" },
   maxWidth: 1920,
   maxHeight: 1080,
+  maxCreativeSec: 60,
   maxFileBytes: 8 * 1024 * 1024,
   allowsAudio: false,
   allowsClickThrough: false,
@@ -115,7 +122,7 @@ export default function PlacementsPage() {
                       {p.id} · {p.meshName ?? "transform"}
                     </div>
                   </div>
-                  <span className="mono text-[10px] text-ink-300">{formatWei(p.basePriceWei)}</span>
+                  <span className="mono text-[10px] text-ink-300">{formatWei(p.auction.openingPriceWei)}</span>
                 </button>
               </li>
             ))}
@@ -247,60 +254,39 @@ export default function PlacementsPage() {
                   <input className="field" type="number" step={0.1} value={form.material.emissiveIntensity} onChange={(e) => set("material", { ...form.material, emissiveIntensity: Number(e.target.value) })} />
                 </Field>
 
-                <Field label="Base price (wei)" hint={formatWei(form.basePriceWei || "0")}>
-                  <input className="field" value={form.basePriceWei} onChange={(e) => set("basePriceWei", e.target.value.replace(/\D/g, ""))} />
+                <Field label="Opening ask (wei)" hint={formatWei(form.auction.openingPriceWei || "0") + " — asked when the surface has never sold"}>
+                  <input className="field" value={form.auction.openingPriceWei} onChange={(e) => set("auction", { ...form.auction, openingPriceWei: e.target.value.replace(/D/g, "") })} />
                 </Field>
-                <Field label="Unit seconds">
-                  <input className="field" type="number" value={form.pricingRules.unitSeconds} onChange={(e) => set("pricingRules", { ...form.pricingRules, unitSeconds: Number(e.target.value) })} />
+                <Field label="Floor price (wei)" hint={formatWei(form.auction.floorPriceWei || "0") + " — the ask never decays below this"}>
+                  <input className="field" value={form.auction.floorPriceWei} onChange={(e) => set("auction", { ...form.auction, floorPriceWei: e.target.value.replace(/D/g, "") })} />
                 </Field>
-                <Field label="Pricing mode">
-                  <select className="field" value={form.pricingRules.mode} onChange={(e) => set("pricingRules", { ...form.pricingRules, mode: e.target.value as "FIXED" | "DYNAMIC" })}>
-                    <option>FIXED</option>
-                    <option>DYNAMIC</option>
-                  </select>
+                <Field label="Decay window (s)" hint="how long the ask takes to walk from the top of a descent to its floor">
+                  <input className="field" type="number" value={form.auction.decaySeconds} onChange={(e) => set("auction", { ...form.auction, decaySeconds: Number(e.target.value) })} />
                 </Field>
-                <Field label="Placement multiplier (bps)">
-                  <input className="field" type="number" value={form.priceMultiplierBps} onChange={(e) => set("priceMultiplierBps", Number(e.target.value))} />
+                <Field label="Takeover premium (bps)" hint="20000 = the ask restarts at 2× what the last buyer paid">
+                  <input className="field" type="number" value={form.auction.takeoverPremiumBps} onChange={(e) => set("auction", { ...form.auction, takeoverPremiumBps: Number(e.target.value) })} />
                 </Field>
-                <Field label="Premium program ×bps">
-                  <input className="field" type="number" value={form.pricingRules.premiumProgramMultiplierBps} onChange={(e) => set("pricingRules", { ...form.pricingRules, premiumProgramMultiplierBps: Number(e.target.value) })} />
+                <Field label="Minimum increment (bps)" hint="500 = a takeover must beat the occupant by at least 5%">
+                  <input className="field" type="number" value={form.auction.minIncrementBps} onChange={(e) => set("auction", { ...form.auction, minIncrementBps: Number(e.target.value) })} />
                 </Field>
-                <Field label="Demand max ×bps">
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" checked={form.pricingRules.demand.enabled} onChange={(e) => set("pricingRules", { ...form.pricingRules, demand: { ...form.pricingRules.demand, enabled: e.target.checked } })} />
-                    <input className="field" type="number" value={form.pricingRules.demand.maxMultiplierBps} onChange={(e) => set("pricingRules", { ...form.pricingRules, demand: { ...form.pricingRules.demand, maxMultiplierBps: Number(e.target.value) } })} />
-                  </div>
+                <Field label="Guaranteed runtime (s)" hint="a new buyer cannot be outbid during this">
+                  <input className="field" type="number" value={form.auction.minHoldSeconds} onChange={(e) => set("auction", { ...form.auction, minHoldSeconds: Number(e.target.value) })} />
                 </Field>
-                <Field label="Time of day (JSON)" hint='[{"fromHourUtc":13,"toHourUtc":21,"multiplierBps":12500}]'>
-                  <input className="field" defaultValue={JSON.stringify(form.pricingRules.timeOfDay)} onBlur={(e) => { try { set("pricingRules", { ...form.pricingRules, timeOfDay: JSON.parse(e.target.value) }); } catch { /* keep */ } }} />
-                </Field>
-                <Field label="Proximity (JSON)" hint='[{"withinMinutes":30,"multiplierBps":11000}]'>
-                  <input className="field" defaultValue={JSON.stringify(form.pricingRules.proximity)} onBlur={(e) => { try { set("pricingRules", { ...form.pricingRules, proximity: JSON.parse(e.target.value) }); } catch { /* keep */ } }} />
+                <Field label="Hard cap on a run (s)" hint="0 = runs until outbid, which is the point">
+                  <input className="field" type="number" value={form.auction.maxHoldSeconds} onChange={(e) => set("auction", { ...form.auction, maxHoldSeconds: Number(e.target.value) })} />
                 </Field>
 
-                <Field label="Inventory mode">
+                <Field label="Inventory mode" hint="AD_BREAK = owns the picture during every commercial break">
                   <select className="field" value={form.availability.inventoryMode} onChange={(e) => set("availability", { ...form.availability, inventoryMode: e.target.value as "CONTINUOUS" | "AD_BREAK" })}>
                     <option>CONTINUOUS</option>
                     <option>AD_BREAK</option>
                   </select>
                 </Field>
-                <Field label="Slot grid (s)">
-                  <input className="field" type="number" value={form.availability.slotSeconds} onChange={(e) => set("availability", { ...form.availability, slotSeconds: Number(e.target.value) })} />
+                <Field label="Daily window (JSON)" hint='null, or {"from":13,"to":21} in UTC hours'>
+                  <input className="field" defaultValue={JSON.stringify(form.availability.hoursUtc)} onBlur={(e) => { try { set("availability", { ...form.availability, hoursUtc: JSON.parse(e.target.value) }); } catch { /* keep */ } }} />
                 </Field>
-                <Field label="Lead time (s) / horizon (h)">
-                  <div className="flex gap-1">
-                    <input className="field" type="number" value={form.availability.leadTimeSec} onChange={(e) => set("availability", { ...form.availability, leadTimeSec: Number(e.target.value) })} />
-                    <input className="field" type="number" value={form.availability.horizonHours} onChange={(e) => set("availability", { ...form.availability, horizonHours: Number(e.target.value) })} />
-                  </div>
-                </Field>
-                <Field label="Duration min / max (s)">
-                  <div className="flex gap-1">
-                    <input className="field" type="number" value={form.minDurationSec} onChange={(e) => set("minDurationSec", Number(e.target.value))} />
-                    <input className="field" type="number" value={form.maxDurationSec} onChange={(e) => set("maxDurationSec", Number(e.target.value))} />
-                  </div>
-                </Field>
-                <Field label="Duration options (s, comma)">
-                  <input className="field" defaultValue={form.durationOptionsSec.join(",")} onBlur={(e) => set("durationOptionsSec", e.target.value.split(",").map((s) => Number(s.trim())).filter((n) => n > 0))} />
+                <Field label="Longest video creative (s)" hint="0 = no video; shorter clips loop for the whole run">
+                  <input className="field" type="number" value={form.maxCreativeSec} onChange={(e) => set("maxCreativeSec", Number(e.target.value))} />
                 </Field>
                 <Field label="Max creative (w×h / MB)">
                   <div className="flex gap-1">

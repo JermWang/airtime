@@ -32,10 +32,14 @@ afterAll(async () => {
   await closeDb();
 });
 
-async function paidCampaignDueNow() {
-  const [placement] = await db().select().from(schema.placements).where(eq(schema.placements.id, "STUDIO_RIGHT"));
-  const startsAt = addSeconds(serverNow(), 60);
-  const endsAt = addSeconds(startsAt, 300);
+/**
+ * A payment that was verified but whose run never started, e.g. the process died
+ * between recording the payment and taking the surface. The tick has to finish
+ * the job: the money is already on chain.
+ */
+async function strandedPaidCampaign(placementId = "SHOW") {
+  const [placement] = await db().select().from(schema.placements).where(eq(schema.placements.id, placementId));
+  const now = serverNow();
   const [campaign] = await db()
     .insert(schema.campaigns)
     .values({
@@ -43,29 +47,20 @@ async function paidCampaignDueNow() {
       channelId: placement.channelId,
       placementId: placement.id,
       displayName: "Cron driven",
-      status: "QUEUED",
-      startsAt,
-      endsAt,
-      durationSec: 300,
+      status: "PAID",
+      paidPriceWei: placement.auction.openingPriceWei,
+      guaranteedUntil: addSeconds(now, placement.auction.minHoldSeconds),
     })
     .returning();
   await db().insert(schema.reservations).values({
     placementId: placement.id,
     lane: placement.lane,
     campaignId: campaign.id,
-    startsAt,
-    endsAt,
+    startsAt: now,
+    endsAt: null,
     status: "CONFIRMED",
   });
-  await db().insert(schema.adActivations).values({
-    campaignId: campaign.id,
-    placementId: placement.id,
-    channelId: placement.channelId,
-    scheduledStart: startsAt,
-    scheduledEnd: endsAt,
-    status: "SCHEDULED",
-  });
-  return { campaign, startsAt, endsAt };
+  return { campaign, placement };
 }
 
 describe("scheduler driven by cron", () => {
@@ -77,28 +72,39 @@ describe("scheduler driven by cron", () => {
     expect(isServerless()).toBe(false);
   });
 
-  it("takes a queued campaign on and off air across separate tick calls", async () => {
-    const { campaign, startsAt, endsAt } = await paidCampaignDueNow();
-    expect((await getCampaignDetail(campaign.id))!.campaign.status).toBe("QUEUED");
-
-    // Nothing is due yet: a tick must not change anything.
+  it("finishes a payment whose run never started, and leaves it alone afterwards", async () => {
+    const { campaign } = await strandedPaidCampaign();
     await tickOnce();
-    expect((await getCampaignDetail(campaign.id))!.campaign.status).toBe("QUEUED");
+    const live = await getCampaignDetail(campaign.id);
+    expect(live!.campaign.status).toBe("AIRING");
+    expect(live!.campaign.startsAt).not.toBeNull();
+    // A run has no scheduled end: it lasts until somebody pays more.
+    expect(live!.campaign.endsAt).toBeNull();
 
-    // The reserved window arrives; the next cron call puts it on air.
-    setClockOffsetMs(startsAt.getTime() - Date.now() + 1000);
+    // Repeated ticks are idempotent; the run keeps going.
     await tickOnce();
-    expect((await getCampaignDetail(campaign.id))!.campaign.status).toBe("AIRING");
-
-    // Calling again inside the window is harmless.
     await tickOnce();
     expect((await getCampaignDetail(campaign.id))!.campaign.status).toBe("AIRING");
 
-    // Past the window it completes and the AirLog exists.
-    setClockOffsetMs(endsAt.getTime() - Date.now() + 1000);
+    // Even a long way into the future, nothing takes it off air on its own.
+    setClockOffsetMs(7 * 86_400_000);
+    await tickOnce();
+    expect((await getCampaignDetail(campaign.id))!.campaign.status).toBe("AIRING");
+    setClockOffsetMs(0);
+  });
+
+  it("ends a run that hits the operator's hard cap, with an AirLog", async () => {
+    // Surfaces default to "runs until outbid"; a cap is opt-in per surface.
+    await db().update(schema.placements).set({ auction: { ...(await placementRules("AD")), maxHoldSeconds: 3600 } }).where(eq(schema.placements.id, "AD"));
+    const { campaign } = await strandedPaidCampaign("AD");
+    await tickOnce();
+    expect((await getCampaignDetail(campaign.id))!.campaign.status).toBe("AIRING");
+
+    setClockOffsetMs(3700 * 1000);
     await tickOnce();
     const done = await getCampaignDetail(campaign.id);
     expect(done!.campaign.status).toBe("COMPLETED");
+    expect(done!.campaign.endedReason).toBe("CAP_REACHED");
     expect(done!.airLog).not.toBeNull();
     setClockOffsetMs(0);
   });
@@ -107,3 +113,8 @@ describe("scheduler driven by cron", () => {
     await expect(Promise.all([tickOnce(), tickOnce(), tickOnce()])).resolves.toBeDefined();
   });
 });
+
+async function placementRules(id: string) {
+  const [p] = await db().select().from(schema.placements).where(eq(schema.placements.id, id));
+  return p.auction;
+}

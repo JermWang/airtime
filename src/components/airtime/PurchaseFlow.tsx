@@ -4,30 +4,34 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { AnimatePresence, motion } from "motion/react";
-import { api, type CampaignDto, type CreativeDto, type PlacementDto, type QuoteDto, type SlotDto } from "@/lib/api";
-import { useServerNow } from "@/lib/hooks";
+import { api, type CampaignDto, type CreativeDto, type PlacementDto, type QuoteDto } from "@/lib/api";
+import { useServerNow, useSurface } from "@/lib/hooks";
 import { useStation } from "@/lib/store";
-import { formatWei, formatDurationSec, formatClock, formatDateTime, cn, shortHash } from "@/lib/format";
+import { paymentChains, chainLabel } from "@/lib/chain/chains";
+import { formatWei, formatDurationSec, formatDateTime, cn, shortHash } from "@/lib/format";
 import { CreativeUpload } from "./CreativeUpload";
-import { AirtimePicker } from "./AirtimePicker";
+import { AskTicker, useLiveAsk } from "./AskTicker";
 import { useWalletAuth } from "./useWalletAuth";
 import { usePurchase } from "./usePurchase";
 import { WalletButton } from "@/components/hud/WalletButton";
 import { placementKindCache } from "@/components/station/Overlays";
 
-type Step = "connect" | "creative" | "airtime" | "quote" | "done";
+type Step = "connect" | "creative" | "price" | "quote" | "done";
 
 interface Props {
   placement: PlacementDto;
   onClose?: () => void;
-  /** Called when the campaign is confirmed (e.g. to focus the queue). */
+  /** Called when the campaign goes live (e.g. to focus the board). */
   onConfirmed?: (c: CampaignDto) => void;
   compact?: boolean;
 }
 
 /**
  * The pay-to-broadcast mechanic, start to finish:
- * connect → creative → preview (live) → duration → airtime → quote → pay → queue.
+ * connect → creative → preview (live) → the current ask → pay → on air.
+ *
+ * There is no slot to choose and no duration to pick. You pay what the surface
+ * is asking and it is yours until somebody pays more.
  */
 export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props) {
   const { isConnected } = useAccount();
@@ -36,14 +40,18 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
   const now = useServerNow(500);
   const setPreview = useStation((s) => s.setPreview);
   const setShowSafeZones = useStation((s) => s.setShowSafeZones);
+  const { data: surface } = useSurface(placement.id);
+  const live = useLiveAsk(placement, surface);
 
   const [creative, setCreative] = useState<CreativeDto | null>(null);
   const [campaign, setCampaign] = useState<CampaignDto | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [fit, setFit] = useState<"FIT" | "FILL">(placement.material.fit);
-  const [durationSec, setDurationSec] = useState<number>(placement.durationOptionsSec[0] ?? placement.minDurationSec);
-  const [slot, setSlot] = useState<SlotDto | null>(null);
   const [quote, setQuote] = useState<QuoteDto | null>(null);
+  // Which network the buyer pays from. Both settle into the same treasury and
+  // are verified the same way; the choice is only about where their funds are.
+  const chains = paymentChains();
+  const [payChainId, setPayChainId] = useState<number>(chains[0].id);
   const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,10 +59,10 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
 
   const ready = isConnected && auth.signedIn && !auth.wrongChain;
   const step: Step = useMemo(() => {
-    if (campaign && ["PAID", "QUEUED", "AIRING", "COMPLETED"].includes(campaign.status)) return "done";
+    if (campaign && ["PAID", "AIRING", "COMPLETED"].includes(campaign.status)) return "done";
     if (!ready) return "connect";
     if (!creative || !campaign) return "creative";
-    if (!quote) return "airtime";
+    if (!quote) return "price";
     return "quote";
   }, [ready, creative, campaign, quote]);
 
@@ -77,7 +85,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
   useEffect(() => {
     if (quote && quoteSecondsLeft === 0 && purchase.state.phase === "idle") {
       setQuote(null);
-      setError("Quote expired – the hold on this airtime was released. Request a new quote.");
+      setError("The quote expired and the hold on this surface was released. The ask has moved on; take a new one.");
     }
   }, [quote, quoteSecondsLeft, purchase.state.phase]);
 
@@ -101,14 +109,16 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
   );
 
   const requestQuote = useCallback(async () => {
-    if (!campaign || !slot) return;
+    if (!campaign || !live) return;
     setQuoting(true);
     setError(null);
     try {
       if (displayName && displayName !== campaign.displayName) {
         await api(`/api/campaigns/${campaign.id}`, { method: "PATCH", json: { displayName, fit } });
       }
-      const q = await api<QuoteDto>(`/api/campaigns/${campaign.id}/quote`, { method: "POST", json: { startsAt: slot.startsAt, durationSec } });
+      // Never pay more than the number on screen: if somebody outbids between the
+      // click and the quote, the server refuses instead of quietly charging more.
+      const q = await api<QuoteDto>(`/api/campaigns/${campaign.id}/quote`, { method: "POST", json: { maxPriceWei: live.askWei.toString(), chainId: payChainId } });
       setQuote(q);
       purchase.reset();
     } catch (e) {
@@ -116,7 +126,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
     } finally {
       setQuoting(false);
     }
-  }, [campaign, slot, durationSec, displayName, fit, purchase]);
+  }, [campaign, live, displayName, fit, purchase]);
 
   const pay = useCallback(async () => {
     if (!quote) return;
@@ -124,7 +134,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
     const result = await purchase.pay(quote);
     if (result) {
       setCampaign(result);
-      if (["PAID", "QUEUED", "AIRING"].includes(result.status)) onConfirmed?.(result);
+      if (["PAID", "AIRING"].includes(result.status)) onConfirmed?.(result);
     }
   }, [quote, purchase, onConfirmed]);
 
@@ -134,7 +144,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
     const t = setInterval(async () => {
       try {
         const c = await api<CampaignDto>(`/api/campaigns/${campaign.id}`);
-        if (["PAID", "QUEUED", "AIRING", "COMPLETED"].includes(c.status)) {
+        if (["PAID", "AIRING", "COMPLETED"].includes(c.status)) {
           setCampaign(c);
           onConfirmed?.(c);
         }
@@ -149,9 +159,9 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
     const steps: Array<[Step, string]> = [
       ["connect", "Wallet"],
       ["creative", "Creative"],
-      ["airtime", "Airtime"],
+      ["price", "Price"],
       ["quote", "Pay"],
-      ["done", "On queue"],
+      ["done", "On air"],
     ];
     const idx = steps.findIndex(([s]) => s === step);
     return (
@@ -170,7 +180,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
     <div className="flex flex-col" data-testid="purchase-flow" data-step={step}>
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <div className="label mb-1">{placement.type === "ENVIRONMENT" ? "Studio surface" : placement.type === "FULLSCREEN" ? "Main broadcast" : placement.type}</div>
+          <div className="label mb-1">{placement.availability.inventoryMode === "AD_BREAK" ? "A spot in the break" : "The screen"}</div>
           <div className="text-[15px] font-medium tracking-tight text-ink-50">{placement.name}</div>
           {!compact && placement.description && <div className="mt-1 text-[11.5px] leading-relaxed text-ink-300">{placement.description}</div>}
         </div>
@@ -186,7 +196,11 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
         <motion.div key={step} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
           {step === "connect" && (
             <div className="flex flex-col gap-3">
-              <p className="text-[12px] leading-relaxed text-ink-200">Connect a wallet to buy this surface. Payment settles on Robinhood Chain; the creative you upload is hashed into the quote so exactly what you approve is what airs.</p>
+              <AskTicker placement={placement} surface={surface} />
+              <p className="text-[12px] leading-relaxed text-ink-200">
+                Connect a wallet to take the screen. You pay the asking price once and stay on air until somebody pays more than you did. Whatever you submit is
+                hashed into the quote, so exactly what you approve is what airs.
+              </p>
               {!isConnected ? (
                 <WalletButton prominent className="self-start" />
               ) : auth.wrongChain ? (
@@ -204,7 +218,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
 
           {step === "creative" && (
             <div className="flex flex-col gap-3">
-              <input className="field" placeholder="Brand or campaign name (shown in the public broadcast log)" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={60} data-testid="display-name" />
+              <input className="field" placeholder="Brand or campaign name (shown on the board)" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={60} data-testid="display-name" />
               <CreativeUpload placement={placement} onCreative={onCreative} current={creative} />
               {creative && creative.type !== "TEXT" && placement.type !== "OVERLAY" && (
                 <div className="flex items-center gap-2">
@@ -219,13 +233,13 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
               )}
               {creative && campaign && (
                 <div className="rounded-md border border-signal/40 bg-signal-soft px-3 py-2 text-[11.5px] text-signal" data-testid="creative-ready">
-                  Creative validated · previewing on the surface. Choose airtime next.
+                  Creative validated · previewing on the surface. The price is next.
                 </div>
               )}
             </div>
           )}
 
-          {(step === "airtime" || step === "quote") && creative && campaign && (
+          {(step === "price" || step === "quote") && creative && campaign && (
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 rounded-md border border-white/10 bg-black/30 p-2">
                 <div className="h-9 w-16 shrink-0 overflow-hidden rounded-sm bg-black">
@@ -244,27 +258,46 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                     hash {shortHash(creative.creativeHash)}
                   </div>
                 </div>
-                {step === "airtime" && (
+                {step === "price" && (
                   <button className="btn btn-ghost btn-sm" onClick={() => { setCreative(null); setQuote(null); }}>
                     Change
                   </button>
                 )}
               </div>
 
-              {step === "airtime" && (
+              {step === "price" && (
                 <>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="label mr-1">Duration</span>
-                    {(placement.durationOptionsSec.length ? placement.durationOptionsSec : [placement.minDurationSec]).map((d) => (
-                      <button key={d} className={cn("btn btn-sm", durationSec === d && "border-signal text-signal")} onClick={() => { setDurationSec(d); setSlot(null); }} data-testid={`duration-${d}`}>
-                        {formatDurationSec(d)}
-                      </button>
-                    ))}
-                  </div>
-                  <AirtimePicker placement={placement} durationSec={durationSec} selected={slot?.startsAt ?? null} onSelect={setSlot} hours={Math.min(24, placement.availability.horizonHours)} />
-                  <button className="btn btn-primary" disabled={!slot || quoting} onClick={() => void requestQuote()} data-testid="get-quote">
-                    {quoting ? "Pricing…" : slot ? `Get quote · ${formatClock(slot.startsAt, false)} UTC · ${formatDurationSec(durationSec)}` : "Select airtime"}
+                  <AskTicker placement={placement} surface={surface} />
+                  {chains.length > 1 && (
+                    <div>
+                      <div className="label mb-1.5">Pay from</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {chains.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className={cn("btn btn-sm", payChainId === c.id ? "border-signal text-signal" : "btn-ghost")}
+                            onClick={() => setPayChainId(c.id)}
+                            aria-pressed={payChainId === c.id}
+                          >
+                            {chainLabel(c.id)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    className="btn btn-primary"
+                    disabled={!live || quoting || !surface?.forSale}
+                    onClick={() => void requestQuote()}
+                    data-testid="get-quote"
+                  >
+                    {quoting ? "Locking the price…" : !surface?.forSale ? surface?.reason ?? "Not for sale right now" : live ? `Take it for ${formatWei(live.askWei)}` : "Reading the market…"}
                   </button>
+                  <p className="mono text-[9.5px] uppercase leading-relaxed tracking-[0.12em] text-ink-500">
+                    Guaranteed {formatDurationSec(placement.auction.minHoldSeconds)} of runtime, then it runs on until outbid. No refunds when you are outbid: the
+                    runtime you paid for was delivered.
+                  </p>
                 </>
               )}
 
@@ -272,30 +305,35 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                 <div className="flex flex-col gap-3" data-testid="quote">
                   <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                     <div className="flex items-baseline justify-between">
-                      <span className="label">Total</span>
+                      <span className="label">Locked price</span>
                       <span className="mono text-[20px] tracking-tight text-ink-50" data-testid="quote-amount">
                         {formatWei(quote.amountWei)}
                       </span>
                     </div>
                     <div className="mono mt-1 text-[10px] uppercase tracking-[0.12em] text-ink-400">
-                      {formatDateTime(quote.startsAt)} · {formatDurationSec(durationSec)}
+                      On air the moment it confirms · guaranteed {formatDurationSec(quote.guaranteedSeconds)}, then until outbid
                     </div>
+                    {quote.outbids && (
+                      <div className="mono mt-1.5 text-[10px] uppercase tracking-[0.12em] text-amber">
+                        Takes the surface from {quote.outbids.displayName} · they paid {formatWei(quote.outbids.pricePaidWei)}
+                      </div>
+                    )}
                     <details className="mt-2">
-                      <summary className="label cursor-pointer">Price breakdown</summary>
+                      <summary className="label cursor-pointer">How this price was reached</summary>
                       <ul className="mt-1 flex flex-col gap-0.5">
                         {quote.breakdown.map((l, i) => (
-                          <li key={i} className="mono flex justify-between text-[10.5px] text-ink-300">
-                            <span>
+                          <li key={i} className="mono flex justify-between gap-3 text-[10.5px] text-ink-300">
+                            <span className="truncate">
                               {l.label}
                               {l.multiplierBps ? ` ×${(l.multiplierBps / 10000).toFixed(2)}` : ""}
                             </span>
-                            <span>{formatWei(l.amountWei)}</span>
+                            <span className="shrink-0">{formatWei(l.amountWei)}</span>
                           </li>
                         ))}
                       </ul>
                     </details>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="mono text-[10px] text-ink-400">Inventory held for</span>
+                      <span className="mono text-[10px] text-ink-400">Price held for</span>
                       <span className={cn("mono text-[11px]", quoteSecondsLeft < 30 ? "text-live" : "text-ink-100")} suppressHydrationWarning>
                         {Math.floor(quoteSecondsLeft / 60)}:{String(quoteSecondsLeft % 60).padStart(2, "0")}
                       </span>
@@ -308,7 +346,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                         Back
                       </button>
                       <button className="btn btn-primary flex-1" onClick={() => void pay()} data-testid="pay">
-                        Pay {formatWei(quote.amountWei)} on Robinhood Chain
+                        Pay {formatWei(quote.amountWei)} on {chainLabel(quote.chainId)}
                       </button>
                     </div>
                   ) : (
@@ -320,7 +358,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                           {purchase.state.phase === "pending" && "Transaction submitted · waiting for the block…"}
                           {purchase.state.phase === "verifying" && "Mined · station is verifying the on-chain event…"}
                           {purchase.state.phase === "confirming" && `Waiting for confirmation (${purchase.state.outcome})`}
-                          {purchase.state.phase === "confirmed" && "Payment verified · campaign queued"}
+                          {purchase.state.phase === "confirmed" && "Payment verified · you have the surface"}
                         </span>
                       </div>
                       {purchase.state.txHash && <div className="mono mt-1 text-[10px] text-ink-400">tx {shortHash(purchase.state.txHash)}</div>}
@@ -335,10 +373,11 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
           {step === "done" && campaign && (
             <div className="flex flex-col gap-3" data-testid="purchase-done">
               <div className="rounded-lg border border-signal/40 bg-signal-soft p-3">
-                <div className="label-strong text-signal">{campaign.status === "AIRING" ? "On air now" : campaign.status === "COMPLETED" ? "Aired" : "Queued"}</div>
+                <div className="label-strong text-signal">{campaign.status === "AIRING" ? "On air now" : campaign.status === "COMPLETED" ? "Run finished" : "Taking the surface…"}</div>
                 <div className="mt-1 text-[13px] text-ink-50">{campaign.displayName}</div>
                 <div className="mono mt-1 text-[10px] uppercase tracking-[0.12em] text-ink-300">
-                  {placement.name} · {campaign.startsAt ? formatDateTime(campaign.startsAt) : ""} · {campaign.durationSec ? formatDurationSec(campaign.durationSec) : ""}
+                  {placement.name} · since {campaign.startsAt ? formatDateTime(campaign.startsAt) : "—"}
+                  {campaign.status === "AIRING" && " · runs until outbid"}
                 </div>
                 {campaign.payment && (
                   <div className="mono mt-2 text-[10px] text-ink-400">

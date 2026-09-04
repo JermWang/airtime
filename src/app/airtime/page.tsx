@@ -14,7 +14,7 @@ export default function AirtimePage() {
       <div className="grid gap-6 md:grid-cols-[1fr_360px]">
         <div>
           <p className="mb-4 max-w-2xl text-[12.5px] leading-relaxed text-ink-300">
-            Every surface in the studio is programmable inventory: full-screen spots in commercial breaks, overlays on the live picture, and architectural billboards in the room. Pick one to upload a creative, preview it where it will appear, choose airtime and pay on Robinhood Chain.
+            Every surface in the studio is programmable inventory: the picture during commercial breaks, overlays on the live feed, and architectural billboards in the room. You are not buying a thirty-second spot. Each surface asks a price that falls until somebody takes it, and whoever takes it runs there until another buyer pays more.
           </p>
           <div className="glass rounded-lg p-3">
             <InventoryList linkMode />
@@ -33,10 +33,10 @@ export default function AirtimePage() {
                       <div className="min-w-0">
                         <div className="truncate text-[12.5px] text-ink-50">{c.displayName}</div>
                         <div className="mono truncate text-[10px] uppercase tracking-[0.12em] text-ink-400">
-                          {c.placement.name} · {c.startsAt ? formatDateTime(c.startsAt) : "no airtime yet"}
+                          {c.placement.name} · {c.startsAt ? (c.endsAt ? `ran until ${formatDateTime(c.endsAt)}` : `on air since ${formatDateTime(c.startsAt)}`) : "not on air yet"}
                         </div>
                       </div>
-                      <span className={cn("chip", c.status === "AIRING" ? "chip-live" : ["QUEUED", "PAID", "COMPLETED"].includes(c.status) ? "chip-signal" : "")}>{statusLabel(c.status)}</span>
+                      <span className={cn("chip", c.status === "AIRING" ? "chip-live" : ["PAID", "COMPLETED"].includes(c.status) ? "chip-signal" : "")}>{statusLabel(c.status)}</span>
                     </Link>
                   </li>
                 ))}

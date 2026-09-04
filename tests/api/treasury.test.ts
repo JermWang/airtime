@@ -82,7 +82,7 @@ describe("treasury", () => {
       .from(schema.campaigns)
       .limit(1);
     // Insert a confirmed payment directly; this mirrors what the payment verifier writes.
-    const [placement] = await db().select().from(schema.placements).where(eq(schema.placements.id, "STUDIO_LEFT"));
+    const [placement] = await db().select().from(schema.placements).where(eq(schema.placements.id, "SHOW"));
     const [created] = campaign
       ? [campaign]
       : await db()

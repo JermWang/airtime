@@ -6,7 +6,7 @@ import { api, type PlacementDto, type ProgramBlockDto, type CampaignDto, type Br
 export interface OverviewDto {
   serverTime: number;
   simulatedOffsetMs: number;
-  settings: { purchasesPaused: boolean; clockOffsetMs: number; quoteHoldSeconds: number; defaultChannelId: string; treasuryAllocationBps: number };
+  settings: { purchasesPaused: boolean; clockOffsetMs: number; quoteHoldSeconds: number; defaultChannelId: string; treasuryAllocationBps: number; holderRewardCapPpm: number };
   chain: { id: number; name: string; contract: string | null; contractUrl: string | null; quoteSigner: string };
   channels: BroadcastStateDto[];
   counts: { queued: number; airing: number; awaiting: number; completed: number; pendingModeration: number };

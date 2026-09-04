@@ -1,10 +1,9 @@
 /**
- * Builds public/models/studio.glb – the AIRTIME broadcast studio.
+ * Builds public/models/studio.glb – the AIRTIME auditorium.
  *
- * The studio is authored procedurally (no external DCC asset) but exported as a
- * real, standard glTF binary so the runtime is purely GLTF-driven: meshes are
- * addressed by name (Screen_Main, Billboard_Left, Monitor_Rear, LED_Ribbon …)
- * and any of them can be mapped to a placement from the control room.
+ * The room is authored procedurally (no external DCC asset) but exported as a
+ * real, standard glTF binary, so the runtime is purely GLTF-driven: meshes are
+ * addressed by name and Screen_Main is the single sellable surface.
  *
  * Coordinate system: metres, Y up, stage centre at origin, audience at +Z.
  */
@@ -35,16 +34,13 @@ interface MeshDef {
 }
 
 const materials: MaterialDef[] = [
-  { name: "Graphite", color: [0.075, 0.08, 0.088], metallic: 0.15, roughness: 0.62 },
-  { name: "GraphitePanel", color: [0.105, 0.112, 0.122], metallic: 0.28, roughness: 0.5 },
-  { name: "Anodized", color: [0.055, 0.058, 0.063], metallic: 0.92, roughness: 0.3 },
-  { name: "BrushedMetal", color: [0.28, 0.29, 0.3], metallic: 0.95, roughness: 0.42 },
-  { name: "Floor", color: [0.05, 0.052, 0.056], metallic: 0.35, roughness: 0.22 },
-  { name: "Screen", color: [0.01, 0.01, 0.012], metallic: 0.0, roughness: 0.35, emissive: [0, 0, 0] },
-  { name: "Glass", color: [0.6, 0.7, 0.75], metallic: 0.0, roughness: 0.05, alpha: 0.18, doubleSided: true },
-  { name: "Cove", color: [1, 1, 1], metallic: 0, roughness: 1, emissive: [0.78, 0.83, 0.9] },
-  { name: "Signal", color: [0.80, 1.0, 0.0], metallic: 0, roughness: 1, emissive: [0.80, 1.0, 0.0] },
-  { name: "Lamp", color: [1, 0.97, 0.9], metallic: 0, roughness: 1, emissive: [0.95, 0.92, 0.85] },
+  { name: "Marble", color: [0.06, 0.062, 0.068], metallic: 0.05, roughness: 0.14 },
+  { name: "MetalPanel", color: [0.085, 0.09, 0.098], metallic: 0.85, roughness: 0.38 },
+  { name: "Ceiling", color: [0.035, 0.037, 0.041], metallic: 0.1, roughness: 0.85 },
+  { name: "Anodized", color: [0.045, 0.047, 0.052], metallic: 0.95, roughness: 0.28 },
+  { name: "BrushedMetal", color: [0.22, 0.23, 0.24], metallic: 0.95, roughness: 0.36 },
+  { name: "Screen", color: [0.008, 0.008, 0.01], metallic: 0.0, roughness: 0.28, emissive: [0, 0, 0] },
+  { name: "Cove", color: [1, 1, 1], metallic: 0, roughness: 1, emissive: [0.28, 0.31, 0.36] },
 ];
 
 const meshes: MeshDef[] = [];
@@ -57,125 +53,70 @@ function add(def: MeshDef) {
 }
 
 /* --------------------------------------------------------------------- */
-/*  Architecture                                                          */
+/*  The auditorium                                                        */
 /* --------------------------------------------------------------------- */
+
+/*
+ * A theatre, not an office.
+ *
+ * One picture, centred on the back wall, with a display panel either side of it
+ * at the same eye line. Everything else is material — polished marble underfoot,
+ * brushed metal panels, a machined bezel around each screen and a cove washing
+ * the wall behind them.
+ *
+ * Three meshes are inventory: Screen_Main (the show and the commercial break)
+ * and Panel_Left / Panel_Right (spots only). The textures are generated at
+ * runtime from the `role` extras below, so this file stays pure geometry.
+ */
 
 const ROOM_W = 30;
+const ROOM_H = 13;
 const ROOM_D = 22;
-const ROOM_H = 10;
-const BACK_Z = -8;
+const BACK_Z = -5.5;
 
-add({ name: "Floor", geometry: plane(ROOM_W, ROOM_D), material: "Floor", position: [0, 0, -1], rotation: [-Math.PI / 2, 0, 0], extras: { role: "floor" } });
-add({ name: "Ceiling", geometry: plane(ROOM_W, ROOM_D), material: "Graphite", position: [0, ROOM_H, -1], rotation: [Math.PI / 2, 0, 0] });
-add({ name: "Wall_Back", geometry: plane(ROOM_W, ROOM_H), material: "GraphitePanel", position: [0, ROOM_H / 2, BACK_Z], extras: { role: "wall" } });
-add({ name: "Wall_Left", geometry: plane(ROOM_D, ROOM_H), material: "GraphitePanel", position: [-ROOM_W / 2, ROOM_H / 2, -1], rotation: [0, Math.PI / 2, 0] });
-add({ name: "Wall_Right", geometry: plane(ROOM_D, ROOM_H), material: "GraphitePanel", position: [ROOM_W / 2, ROOM_H / 2, -1], rotation: [0, -Math.PI / 2, 0] });
-
-// Vertical pilasters on the back wall give the architecture rhythm and catch light.
-for (let i = -6; i <= 6; i++) {
-  if (Math.abs(i) < 2) continue;
-  add({ name: `Pilaster_${i + 6}`, geometry: box(0.22, ROOM_H, 0.35), material: "Anodized", position: [i * 2.2, ROOM_H / 2, BACK_Z + 0.18] });
-}
-
-// Recessed ceiling coves (emissive strips) – the studio's key architectural light.
-for (let i = 0; i < 5; i++) {
-  const z = -7 + i * 3;
-  add({ name: `Cove_${i}`, geometry: box(18, 0.04, 0.16), material: "Cove", position: [0, ROOM_H - 0.05, z], extras: { role: "light", intensity: 1.2 } });
-}
-// Signal-green accent line along the side walls.
-add({ name: "Accent_Left", geometry: box(0.02, 0.03, ROOM_D - 4), material: "Signal", position: [-ROOM_W / 2 + 0.02, 6.4, -1], extras: { role: "accent" } });
-add({ name: "Accent_Right", geometry: box(0.02, 0.03, ROOM_D - 4), material: "Signal", position: [ROOM_W / 2 - 0.02, 6.4, -1], extras: { role: "accent" } });
+add({ name: "Floor", geometry: plane(ROOM_W, ROOM_D), material: "Marble", position: [0, 0, BACK_Z + ROOM_D / 2], rotation: [-Math.PI / 2, 0, 0], extras: { role: "floor" } });
+add({ name: "Ceiling", geometry: plane(ROOM_W, ROOM_D), material: "Ceiling", position: [0, ROOM_H, BACK_Z + ROOM_D / 2], rotation: [Math.PI / 2, 0, 0], extras: { role: "ceiling" } });
+add({ name: "Wall_Back", geometry: plane(ROOM_W, ROOM_H), material: "MetalPanel", position: [0, ROOM_H / 2, BACK_Z], extras: { role: "wall" } });
+add({ name: "Wall_Left", geometry: plane(ROOM_D, ROOM_H), material: "MetalPanel", position: [-ROOM_W / 2, ROOM_H / 2, BACK_Z + ROOM_D / 2], rotation: [0, Math.PI / 2, 0], extras: { role: "wall" } });
+add({ name: "Wall_Right", geometry: plane(ROOM_D, ROOM_H), material: "MetalPanel", position: [ROOM_W / 2, ROOM_H / 2, BACK_Z + ROOM_D / 2], rotation: [0, -Math.PI / 2, 0], extras: { role: "wall" } });
 
 /* --------------------------------------------------------------------- */
-/*  Rear LED wall (REAR_MONITOR) – full-width backdrop behind the desk      */
+/*  The picture                                                            */
 /* --------------------------------------------------------------------- */
 
-const WALL_W = 19.2;
-const WALL_H = 5.4;
-add({ name: "Frame_Rear", geometry: box(WALL_W + 0.3, WALL_H + 0.3, 0.22), material: "Anodized", position: [0, 3.4, BACK_Z + 0.15] });
-add({ name: "Monitor_Rear", geometry: plane(WALL_W, WALL_H), material: "Screen", position: [0, 3.4, BACK_Z + 0.27], extras: { surface: true, aspect: "32:9" } });
+/* Dead centre of the back wall, horizontally and vertically. */
+const MAIN_W = 16;
+const MAIN_H = MAIN_W * (9 / 16);
+const MAIN_Y = ROOM_H / 2;
+const MAIN_Z = BACK_Z + 0.3;
+
+add({ name: "Bezel_Main", geometry: box(MAIN_W + 0.24, MAIN_H + 0.24, 0.3), material: "Anodized", position: [0, MAIN_Y, MAIN_Z - 0.16], extras: { role: "metal" } });
+add({ name: "Screen_Main", geometry: plane(MAIN_W, MAIN_H), material: "Screen", position: [0, MAIN_Y, MAIN_Z], extras: { surface: true, aspect: "16:9", main: true } });
 
 /* --------------------------------------------------------------------- */
-/*  Main broadcast display – suspended in front of the LED wall            */
+/*  Display panels either side - spots only                                */
 /* --------------------------------------------------------------------- */
 
-const MAIN_W = 9.6;
-const MAIN_H = 5.4;
-const MAIN_Z = -6.4;
-add({ name: "Frame_Main", geometry: box(MAIN_W + 0.24, MAIN_H + 0.24, 0.3), material: "Anodized", position: [0, 3.65, MAIN_Z - 0.16] });
-add({ name: "Screen_Main", geometry: plane(MAIN_W, MAIN_H), material: "Screen", position: [0, 3.65, MAIN_Z], extras: { surface: true, aspect: "16:9", main: true } });
-// Suspension rods
-add({ name: "Rod_Main_L", geometry: box(0.05, ROOM_H - 6.4, 0.05), material: "BrushedMetal", position: [-3.2, (ROOM_H + 6.35) / 2, MAIN_Z - 0.16] });
-add({ name: "Rod_Main_R", geometry: box(0.05, ROOM_H - 6.4, 0.05), material: "BrushedMetal", position: [3.2, (ROOM_H + 6.35) / 2, MAIN_Z - 0.16] });
-// LED ticker ribbon under the main display
-add({ name: "Frame_Ribbon", geometry: box(MAIN_W + 0.24, 0.5, 0.2), material: "Anodized", position: [0, 0.6, MAIN_Z - 0.12] });
-add({ name: "LED_Ribbon", geometry: plane(MAIN_W, 0.3), material: "Screen", position: [0, 0.6, MAIN_Z], extras: { surface: true, aspect: "32:1" } });
+/* Same eye line as the picture, turned a few degrees inward so they read as
+ * part of the room rather than as posters stuck on the wall. */
+const PANEL_W = 3.9;
+const PANEL_H = PANEL_W * (9 / 16);
+const PANEL_X = MAIN_W / 2 + 0.8 + PANEL_W / 2;
 
-/* --------------------------------------------------------------------- */
-/*  Side billboards on angled wing walls                                   */
-/* --------------------------------------------------------------------- */
-
-const BB_W = 5.6;
-const BB_H = 3.15;
-const wing = (side: -1 | 1) => {
+for (const side of [-1, 1] as const) {
   const name = side < 0 ? "Left" : "Right";
-  const x = side * 10.4;
-  const z = -3.6;
-  const rot: Vec3 = [0, -side * 0.62, 0];
-  add({ name: `Wing_${name}`, geometry: box(7.2, ROOM_H - 0.4, 0.4), material: "GraphitePanel", position: [x, (ROOM_H - 0.4) / 2, z - 0.25], rotation: rot });
-  add({ name: `Frame_${name}`, geometry: box(BB_W + 0.24, BB_H + 0.24, 0.16), material: "Anodized", position: [x, 3.3, z - 0.02], rotation: rot });
-  add({ name: `Billboard_${name}`, geometry: plane(BB_W, BB_H), material: "Screen", position: [x, 3.3, z + 0.08], rotation: rot, extras: { surface: true, aspect: "16:9" } });
-  // Small studio monitors stacked under each billboard
-  for (let i = 0; i < 3; i++) {
-    const t = -1.15 + i * 1.15;
-    add({ name: `Monitor_${name}_${i + 1}`, geometry: plane(1.0, 0.5625), material: "Screen", position: [x + t * Math.cos(rot[1]), 1.05, z + 0.08 - t * Math.sin(rot[1])], rotation: rot, extras: { surface: true, aspect: "16:9", monitor: true } });
-  }
-};
-wing(-1);
-wing(1);
-
-/* --------------------------------------------------------------------- */
-/*  Anchor desk                                                            */
-/* --------------------------------------------------------------------- */
-
-const DESK_Z = -2.4;
-add({ name: "Desk_Body", geometry: box(4.6, 1.05, 1.2), material: "Anodized", position: [0, 0.525, DESK_Z] });
-add({ name: "Desk_Top", geometry: box(4.9, 0.06, 1.4), material: "BrushedMetal", position: [0, 1.08, DESK_Z] });
-add({ name: "Desk_Display", geometry: plane(2.1, 0.9), material: "Screen", position: [0, 0.56, DESK_Z + 0.61], extras: { surface: true, aspect: "21:9" } });
-add({ name: "Desk_Glass", geometry: plane(4.4, 0.7), material: "Glass", position: [0, 0.56, DESK_Z + 0.62], extras: { role: "glass" } });
-// Desk monitors facing the anchor
-for (let i = -1; i <= 1; i++) {
-  add({ name: `Monitor_Desk_${i + 2}`, geometry: plane(0.6, 0.34), material: "Screen", position: [i * 0.75, 1.32, DESK_Z - 0.3], rotation: [-0.25, 0, 0], extras: { surface: true, aspect: "16:9", monitor: true } });
+  const x = side * PANEL_X;
+  const rot: Vec3 = [0, -side * 0.13, 0];
+  add({ name: `Bezel_${name}`, geometry: box(PANEL_W + 0.16, PANEL_H + 0.16, 0.22), material: "Anodized", position: [x, MAIN_Y, MAIN_Z - 0.12], rotation: rot, extras: { role: "metal" } });
+  add({ name: `Panel_${name}`, geometry: plane(PANEL_W, PANEL_H), material: "Screen", position: [x, MAIN_Y, MAIN_Z], rotation: rot, extras: { surface: true, aspect: "16:9" } });
 }
 
-/* --------------------------------------------------------------------- */
-/*  Control-room console (front left) – decorative, but every monitor is  */
-/*  a named mesh an operator can map inventory onto.                       */
-/* --------------------------------------------------------------------- */
+/* A low plinth under the whole wall so the screens stand on something. */
+add({ name: "Plinth", geometry: box(ROOM_W - 4, 0.55, 0.9), material: "BrushedMetal", position: [0, 0.275, BACK_Z + 0.45], extras: { role: "metal" } });
 
-add({ name: "Console_Body", geometry: box(4.2, 0.9, 0.9), material: "Anodized", position: [-7.4, 0.45, 2.6], rotation: [0, 0.55, 0] });
-for (let i = 0; i < 4; i++) {
-  const t = (i - 1.5) * 1.0;
-  add({ name: `Monitor_CR_${i + 1}`, geometry: plane(0.86, 0.484), material: "Screen", position: [-7.4 + t * Math.cos(0.55), 1.25, 2.6 - t * Math.sin(0.55) - 0.35], rotation: [-0.2, 0.55, 0], extras: { surface: true, aspect: "16:9", monitor: true } });
-}
-
-/* --------------------------------------------------------------------- */
-/*  Lighting truss and lamp heads (visual)                                 */
-/* --------------------------------------------------------------------- */
-
-add({ name: "Truss_Front", geometry: box(20, 0.12, 0.12), material: "BrushedMetal", position: [0, 8.2, 1.5] });
-add({ name: "Truss_Mid", geometry: box(20, 0.12, 0.12), material: "BrushedMetal", position: [0, 8.2, -3.5] });
-for (let i = -3; i <= 3; i++) {
-  add({ name: `Lamp_F_${i + 3}`, geometry: new THREE.CylinderGeometry(0.16, 0.22, 0.34, 16), material: "Anodized", position: [i * 2.8, 7.9, 1.5], rotation: [0.6, 0, 0] });
-  add({ name: `LampFace_F_${i + 3}`, geometry: new THREE.CircleGeometry(0.15, 16), material: "Lamp", position: [i * 2.8, 7.74, 1.4], rotation: [-Math.PI / 2 + 0.6, 0, 0], extras: { role: "lamp" } });
-}
-
-/* --------------------------------------------------------------------- */
-/*  Floating glass product pedestal (right-front)                          */
-/* --------------------------------------------------------------------- */
-
-add({ name: "Pedestal", geometry: new THREE.CylinderGeometry(0.55, 0.6, 1.1, 32), material: "Anodized", position: [5.8, 0.55, 0.8] });
-add({ name: "Pedestal_Glass", geometry: new THREE.CylinderGeometry(0.52, 0.52, 0.9, 32, 1, true), material: "Glass", position: [5.8, 1.6, 0.8], extras: { role: "glass" } });
+/* Cove light behind the top of the picture: the wall glows, the fixture never
+ * appears in shot. */
+add({ name: "Cove_Back", geometry: box(ROOM_W - 8, 0.05, 0.14), material: "Cove", position: [0, MAIN_Y + MAIN_H / 2 + 0.9, BACK_Z + 0.1], extras: { role: "light", intensity: 1 } });
 
 /* --------------------------------------------------------------------- */
 /*  GLB writer                                                             */

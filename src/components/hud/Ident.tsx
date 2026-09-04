@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Wordmark } from "./Wordmark";
 import { usePrefersReducedMotion } from "@/lib/hooks";
+import { useStation } from "@/lib/store";
 
 /**
  * Station ident shown for ~1.4 s on first load: black, a single carrier bar
@@ -11,17 +12,20 @@ import { usePrefersReducedMotion } from "@/lib/hooks";
  */
 export function Ident({ onDone }: { onDone?: () => void }) {
   const reduced = usePrefersReducedMotion();
+  const startIntro = useStation((s) => s.startIntro);
   const [show, setShow] = useState(true);
   useEffect(() => {
     const t = setTimeout(
       () => {
         setShow(false);
         onDone?.();
+        // The camera's reveal begins as the ident lifts, not when the canvas mounts.
+        startIntro();
       },
       reduced ? 300 : 1500,
     );
     return () => clearTimeout(t);
-  }, [onDone, reduced]);
+  }, [onDone, reduced, startIntro]);
   return (
     <AnimatePresence>
       {show && (

@@ -10,6 +10,7 @@ import type { SurfaceInfo } from "./surfaceRegistry";
 import { textureFromVideoElement, loadImageTexture, createSlateTexture, type SurfaceTexture } from "./textures";
 import { InteractiveMesh } from "./InteractiveMesh";
 import { PlacementHighlight } from "./PlacementHighlight";
+import { attentionFor, ATTENTION_LAMBDA } from "./attention";
 
 interface Props {
   surface: SurfaceInfo;
@@ -38,6 +39,7 @@ export function BroadcastScreen({ surface, placements, active, mainPlacement }: 
   const safeZones = useStation((s) => s.showSafeZones);
 
   const material = useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.25, metalness: 0, emissive: "#ffffff", emissiveIntensity: 1.35, toneMapped: true }), []);
+  const attention = useRef(1);
   const videoTex = useRef<THREE.VideoTexture | null>(null);
   const altTex = useRef<SurfaceTexture | null>(null);
 
@@ -57,7 +59,7 @@ export function BroadcastScreen({ surface, placements, active, mainPlacement }: 
 
   // Full-screen preview / image ads / slates render through a canvas texture.
   const mainPreview = mainPlacement && focused === mainPlacement.id ? preview : null;
-  const altKey = mainPreview?.url ? `preview:${mainPreview.url}:${mainPreview.fit}` : source?.kind === "ad-image" ? `img:${source.url}:${source.campaign.fit}` : source?.kind === "slate" ? `slate:${source.title}:${source.subtitle}` : holding ? "slate:Stand by:AIRTIME" : error ? `slate:${error}:AIRTIME` : "video";
+  const altKey = mainPreview?.url ? `preview:${mainPreview.url}:${mainPreview.fit}` : source?.kind === "campaign-image" ? `img:${source.url}:${source.campaign.fit}` : source?.kind === "slate" ? `slate:${source.title}:${source.subtitle}` : holding ? "slate:Stand by:AIRTIME" : error ? `slate:${error}:AIRTIME` : "video";
 
   useEffect(() => {
     let cancelled = false;
@@ -87,7 +89,7 @@ export function BroadcastScreen({ surface, placements, active, mainPlacement }: 
       } else {
         void loadImageTexture(mainPreview.url, "16:9", mainPreview.fit).then(swap).catch(() => swap(null));
       }
-    } else if (source?.kind === "ad-image") {
+    } else if (source?.kind === "campaign-image") {
       void loadImageTexture(source.url, "16:9", source.campaign.fit).then(swap).catch(() => swap(createSlateTexture("AIRTIME", "Stand by")));
     } else {
       const [, title, subtitle] = altKey.split(":");
@@ -99,15 +101,18 @@ export function BroadcastScreen({ surface, placements, active, mainPlacement }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [altKey]);
 
-  useFrame(() => {
+  useFrame((_, dt) => {
     const tex = altTex.current?.texture ?? videoTex.current;
     if (tex && material.map !== tex) {
       material.map = tex;
       material.emissiveMap = tex;
       material.needsUpdate = true;
     }
-    const isMainFocused = mainPlacement && focused === mainPlacement.id;
-    material.emissiveIntensity = isMainFocused || (mainPlacement && hovered === mainPlacement.id) ? 1.5 : 1.3;
+    // The picture is the subject while watching, and steps back when the viewer
+    // is looking at a different surface.
+    const self = { focused: Boolean(mainPlacement && focused === mainPlacement.id), hovered: Boolean(mainPlacement && hovered === mainPlacement.id) };
+    attention.current = THREE.MathUtils.damp(attention.current, attentionFor(mode, "main", self), ATTENTION_LAMBDA, dt);
+    material.emissiveIntensity = 1.3 * attention.current;
   });
 
   // Overlay planes in front of the screen, sized from the surface.

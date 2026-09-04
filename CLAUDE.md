@@ -2,11 +2,15 @@
 
 Browser-native linear TV network where every display surface is data-driven advertising inventory, paid on Robinhood Chain. See `README.md` for the full architecture.
 
+**Nobody buys a fixed-length spot here.** Each surface runs a continuous descending auction: it asks a price that falls linearly toward a floor, a buyer takes it at the current ask and stays on air until somebody pays more. A sale ratchets the ask to `takeoverPremiumBps` of what was paid and restarts the descent; while a surface is occupied the ask can never fall to or below what the occupant paid, so a takeover is always a higher bid. The curve lives in `src/lib/auction.ts` and is shared verbatim by the server and the browser.
+
 ## Ground rules for changes here
 
 - **Money is bigint wei.** Never introduce a float into a monetary path. Multipliers are integer basis points (10000 = 1.0x).
 - **The browser never decides that something is paid.** A tx hash from the client is only a lookup key; the server reads the `AirtimePurchased` event from its own RPC and re-checks every field against the quote it signed.
 - **Inventory is data.** No placement, price or surface may be hardcoded in a React component. Add placements through the control room or `BASE_PLACEMENTS` in `src/server/db/seed.ts`.
+- **A run has no scheduled end.** `campaigns.endsAt` is null while a campaign is on air and only gets a value when it is outbid, withdrawn or pulled. Never write code that assumes a booked window, and never reintroduce a queue: a surface has exactly one occupant.
+- **The price curve is one function.** `computeAsk` in `src/lib/auction.ts` is the only place a price is derived. The server signs quotes from it and the browser draws the ticking number from it, so they cannot drift apart.
 - **Advertiser content is hostile.** No HTML/JS/iframe creatives, ever. Uploads are sniffed by magic bytes, decoded, re-encoded and hashed server-side.
 - **Never fabricate metrics.** No invented viewer counts. Payment facts (chain) and delivery analytics (application) are always presented separately.
 - **Treasury numbers keep their provenance.** Airtime revenue is derived from verified payments and can never be entered by hand; token tax, pre-stock purchases and distributions are operator-recorded and must always be labelled as such.

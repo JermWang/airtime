@@ -416,3 +416,270 @@ table.data tr:hover td {
   background: rgba(255, 255, 255, 0.025);
 }
 }
+
+@layer components {
+
+/* ---- logo row ---------------------------------------------------------- */
+
+/*
+ * A full-bleed scrolling row with no container. The track holds the list twice
+ * and translates by exactly half its width, so the loop never shows a seam.
+ */
+.marquee {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll var(--marquee-duration, 52s) linear infinite;
+  will-change: transform;
+}
+.marquee:hover .marquee-track,
+.marquee:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* ---- editorial pages --------------------------------------------------- */
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-signal);
+}
+
+.rule {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02));
+  border: 0;
+}
+
+.display {
+  font-size: clamp(30px, 5.4vw, 54px);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+  font-weight: 500;
+  color: var(--color-ink-50);
+}
+
+.section-title {
+  font-size: clamp(20px, 2.6vw, 27px);
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  font-weight: 500;
+  color: var(--color-ink-50);
+}
+
+.lede {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--color-ink-200);
+}
+
+.body-copy {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--color-ink-200);
+}
+
+.card {
+  border: 1px solid var(--color-line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.008));
+  border-radius: 10px;
+  transition:
+    border-color 200ms ease,
+    background 200ms ease;
+}
+.card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Numbered step with a hairline spine. */
+.step-index {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--color-signal);
+}
+
+code.inline {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--color-line);
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--color-ink-100);
+  white-space: nowrap;
+}
+
+pre.block {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.75;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-line);
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--color-ink-200);
+  overflow-x: auto;
+}
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Never scroll the logo row; let it be read (and panned) as a static strip. */
+  .marquee {
+    overflow-x: auto;
+  }
+  .marquee-track {
+    animation-name: none !important;
+  }
+}
+
+@layer components {
+
+/* ---- glass portrait ---------------------------------------------------- */
+
+.glass-portrait {
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+
+.glass-portrait-halo {
+  position: absolute;
+  inset: -18%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, rgba(204, 255, 0, 0.16) 0%, rgba(204, 255, 0, 0.05) 38%, rgba(0, 0, 0, 0) 68%);
+  filter: blur(14px);
+  z-index: 0;
+}
+
+.glass-portrait-ring {
+  position: absolute;
+  inset: -6%;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: conic-gradient(
+    from 210deg,
+    rgba(255, 255, 255, 0.14),
+    rgba(255, 255, 255, 0) 22%,
+    rgba(204, 255, 0, 0.22) 48%,
+    rgba(255, 255, 255, 0) 74%,
+    rgba(255, 255, 255, 0.12)
+  );
+  mask: radial-gradient(circle, transparent 0 58%, #000 60%);
+  -webkit-mask: radial-gradient(circle, transparent 0 58%, #000 60%);
+  will-change: transform;
+  z-index: 1;
+}
+
+.glass-portrait-disc {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02));
+  backdrop-filter: blur(6px) saturate(130%);
+  -webkit-backdrop-filter: blur(6px) saturate(130%);
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.55);
+  transform-style: preserve-3d;
+  will-change: transform;
+  z-index: 2;
+}
+
+.glass-portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 18%;
+  border-radius: 50%;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: contrast(1.04) saturate(0.96);
+}
+
+/* Inner rim: the thickness of the glass. */
+.glass-portrait-rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -18px 40px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.glass-portrait-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.06) 34%, rgba(255, 255, 255, 0) 62%);
+}
+
+/* ---- volume slider ----------------------------------------------------- */
+
+.volume {
+  width: 72px;
+  height: 18px;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.volume::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.volume::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.volume::-webkit-slider-thumb {
+  appearance: none;
+  margin-top: -4.5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-signal);
+  box-shadow: 0 0 10px rgba(204, 255, 0, 0.5);
+}
+.volume::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-signal);
+}
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-portrait-ring,
+  .glass-portrait-disc {
+    transform: none !important;
+  }
+}

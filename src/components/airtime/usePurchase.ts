@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useWriteContract, usePublicClient, useAccount } from "wagmi";
+import { useWriteContract, usePublicClient, useAccount, useSendTransaction } from "wagmi";
 import { BaseError, ContractFunctionRevertedError, type Hex } from "viem";
 import { airtimePaymentsAbi, quoteStructFromWire } from "@/lib/chain/airtimePayments";
 import { api, type QuoteDto, type CampaignDto } from "@/lib/api";
@@ -50,11 +50,54 @@ function describeError(e: unknown): string {
  */
 export function usePurchase() {
   const { writeContractAsync } = useWriteContract();
+  const { sendTransactionAsync } = useSendTransaction();
   const client = usePublicClient();
   const { address } = useAccount();
   const [state, setState] = useState<PurchaseState>({ phase: "idle", txHash: null, error: null, outcome: null });
 
   const reset = useCallback(() => setState({ phase: "idle", txHash: null, error: null, outcome: null }), []);
+
+  /** Wait for the receipt, then let the server verify and mark the campaign paid. */
+  const settle = useCallback(
+    async (hash: Hex, campaignId: string): Promise<CampaignDto | null> => {
+        if (!client) return null;
+        setState({ phase: "pending", txHash: hash, error: null, outcome: null });
+        try {
+          const receipt = await client.waitForTransactionReceipt({ hash, confirmations: 1 });
+          if (receipt.status !== "success") {
+            setState({ phase: "error", txHash: hash, error: "Transaction reverted on chain", outcome: null });
+            return null;
+          }
+        } catch (e) {
+          setState({ phase: "error", txHash: hash, error: describeError(e), outcome: null });
+          return null;
+        }
+        setState({ phase: "verifying", txHash: hash, error: null, outcome: null });
+
+        // Ask the backend to verify the event. It may need a moment for confirmations.
+        for (let attempt = 0; attempt < 30; attempt++) {
+          try {
+            const res = await api<{ outcome: { status: string; reason?: string }; campaign: CampaignDto }>(`/api/campaigns/${campaignId}/confirm`, { method: "POST", json: { txHash: hash } });
+            if (res.outcome.status === "confirmed" || ["PAID", "QUEUED", "AIRING", "COMPLETED"].includes(res.campaign.status)) {
+              setState({ phase: "confirmed", txHash: hash, error: null, outcome: "confirmed" });
+              return res.campaign;
+            }
+            if (res.outcome.status === "mismatch") {
+              setState({ phase: "error", txHash: hash, error: `Payment could not be matched to the quote: ${res.outcome.reason}`, outcome: "mismatch" });
+              return res.campaign;
+            }
+            setState({ phase: "confirming", txHash: hash, error: null, outcome: res.outcome.reason ?? "pending" });
+          } catch (e) {
+            setState({ phase: "confirming", txHash: hash, error: null, outcome: (e as Error).message });
+          }
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+        setState({ phase: "confirming", txHash: hash, error: null, outcome: "Still waiting for confirmation. The station keeps watching the chain; this page updates automatically." });
+        return null;
+
+    },
+    [client],
+  );
 
   const pay = useCallback(
     async (quote: QuoteDto): Promise<CampaignDto | null> => {
@@ -66,6 +109,25 @@ export function usePurchase() {
       }
       setState({ phase: "wallet", txHash: null, error: null, outcome: null });
       let hash: Hex;
+
+      if (quote.settlement === "treasury") {
+        // No payment contract on this chain: pay the treasury directly. The quote
+        // id travels in the transaction's calldata, which is what lets the server
+        // tie an ordinary transfer to this quote and nothing else.
+        try {
+          hash = await sendTransactionAsync({
+            to: quote.payTo as `0x${string}`,
+            value: q.amount,
+            data: quote.quote.quoteId,
+            chainId: quote.chainId,
+          });
+        } catch (e) {
+          setState({ phase: "error", txHash: null, error: describeError(e), outcome: null });
+          return null;
+        }
+        return await settle(hash, quote.campaignId);
+      }
+
       try {
         // Simulate first so wallet users get a readable error instead of a failed tx.
         await client.simulateContract({
@@ -88,39 +150,7 @@ export function usePurchase() {
         setState({ phase: "error", txHash: null, error: describeError(e), outcome: null });
         return null;
       }
-      setState({ phase: "pending", txHash: hash, error: null, outcome: null });
-      try {
-        const receipt = await client.waitForTransactionReceipt({ hash, confirmations: 1 });
-        if (receipt.status !== "success") {
-          setState({ phase: "error", txHash: hash, error: "Transaction reverted on chain", outcome: null });
-          return null;
-        }
-      } catch (e) {
-        setState({ phase: "error", txHash: hash, error: describeError(e), outcome: null });
-        return null;
-      }
-      setState({ phase: "verifying", txHash: hash, error: null, outcome: null });
-
-      // Ask the backend to verify the event. It may need a moment for confirmations.
-      for (let attempt = 0; attempt < 30; attempt++) {
-        try {
-          const res = await api<{ outcome: { status: string; reason?: string }; campaign: CampaignDto }>(`/api/campaigns/${quote.campaignId}/confirm`, { method: "POST", json: { txHash: hash } });
-          if (res.outcome.status === "confirmed" || ["PAID", "QUEUED", "AIRING", "COMPLETED"].includes(res.campaign.status)) {
-            setState({ phase: "confirmed", txHash: hash, error: null, outcome: "confirmed" });
-            return res.campaign;
-          }
-          if (res.outcome.status === "mismatch") {
-            setState({ phase: "error", txHash: hash, error: `Payment could not be matched to the quote: ${res.outcome.reason}`, outcome: "mismatch" });
-            return res.campaign;
-          }
-          setState({ phase: "confirming", txHash: hash, error: null, outcome: res.outcome.reason ?? "pending" });
-        } catch (e) {
-          setState({ phase: "confirming", txHash: hash, error: null, outcome: (e as Error).message });
-        }
-        await new Promise((r) => setTimeout(r, 2000));
-      }
-      setState({ phase: "confirming", txHash: hash, error: null, outcome: "Still waiting for confirmation. The station keeps watching the chain; this page updates automatically." });
-      return null;
+      return await settle(hash, quote.campaignId);
     },
     [client, writeContractAsync, address],
   );

@@ -1,9 +1,9 @@
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db, schema } from "./client";
 import { env, devDataAllowed, isProduction } from "../env";
 import { ensureScheduleHorizon } from "../broadcast/schedule";
-import type { NewPlacement, PlacementPricingRules, PlacementAvailabilityRules } from "./schema";
+import type { NewPlacement, PlacementAuctionRules, PlacementAvailabilityRules } from "./schema";
 
 /**
  * Seed data.
@@ -15,161 +15,108 @@ import type { NewPlacement, PlacementPricingRules, PlacementAvailabilityRules } 
  */
 
 const ETH = 10n ** 18n;
-const milliEth = (n: number) => ((ETH * BigInt(Math.round(n * 1000))) / 1000n).toString();
+const continuous = (hoursUtc: { from: number; to: number } | null = null): PlacementAvailabilityRules => ({ inventoryMode: "CONTINUOUS", hoursUtc });
+const adBreak = (): PlacementAvailabilityRules => ({ inventoryMode: "AD_BREAK", hoursUtc: null });
 
-const fixedPricing = (unitSeconds: number): PlacementPricingRules => ({
-  mode: "FIXED",
-  unitSeconds,
-  durationExponentBps: 10_000,
-  timeOfDay: [],
-  premiumProgramMultiplierBps: 10_000,
-  demand: { enabled: false, maxMultiplierBps: 10_000 },
-  proximity: [],
+/** ETH as a decimal with three places, returned as integer wei. eth(2.5) = 2.5 ETH. */
+const eth = (n: number) => ((ETH * BigInt(Math.round(n * 1000))) / 1000n).toString();
+
+/**
+ * Auction rules.
+ *
+ * Everything opens at 0.01 ETH and stays there until somebody buys it. A sale
+ * is what moves the price: the ask jumps to `takeoverPremiumBps` of whatever
+ * was paid and then walks back down over `decayHours`, never below what the
+ * current holder paid plus 5%. Demand is the only thing that raises a price
+ * here, and time is the only thing that lowers one.
+ */
+const auction = (opts: { opening?: number; floor?: number; decayHours: number; minHoldMinutes: number; takeoverPremiumBps?: number; minIncrementBps?: number; maxHoldSeconds?: number }): PlacementAuctionRules => ({
+  openingPriceWei: eth(opts.opening ?? 0.01),
+  floorPriceWei: eth(opts.floor ?? 0.01),
+  decaySeconds: Math.round(opts.decayHours * 3600),
+  takeoverPremiumBps: opts.takeoverPremiumBps ?? 20_000,
+  minIncrementBps: opts.minIncrementBps ?? 500,
+  minHoldSeconds: Math.round(opts.minHoldMinutes * 60),
+  maxHoldSeconds: opts.maxHoldSeconds ?? 0,
 });
 
-const dynamicPricing = (unitSeconds: number): PlacementPricingRules => ({
-  mode: "DYNAMIC",
-  unitSeconds,
-  durationExponentBps: 9_000, // slight volume discount
-  timeOfDay: [
-    { fromHourUtc: 13, toHourUtc: 21, multiplierBps: 12_500 }, // US market hours
-    { fromHourUtc: 0, toHourUtc: 6, multiplierBps: 7_500 },
-  ],
-  premiumProgramMultiplierBps: 15_000,
-  demand: { enabled: true, maxMultiplierBps: 20_000 },
-  proximity: [{ withinMinutes: 30, multiplierBps: 11_000 }],
-});
-
-const continuous = (slotSeconds: number, leadTimeSec = 120, horizonHours = 48): PlacementAvailabilityRules => ({
-  inventoryMode: "CONTINUOUS",
-  slotSeconds,
-  leadTimeSec,
-  horizonHours,
-  hoursUtc: null,
-});
-
-const adBreak = (slotSeconds: number): PlacementAvailabilityRules => ({
-  inventoryMode: "AD_BREAK",
-  slotSeconds,
-  leadTimeSec: 120,
-  horizonHours: 24,
-  hoursUtc: null,
-});
+/** Longest submission accepted, and so the longest guaranteed run. */
+export const SHOW_MAX_SECONDS = 30 * 60;
+export const AD_MAX_SECONDS = 30;
 
 export const BASE_PLACEMENTS: NewPlacement[] = [
   {
-    id: "MAIN_COMMERCIAL_30",
+    id: "SHOW",
     channelId: "MAIN",
-    name: "30-second commercial",
-    description: "Full-screen spot inside a scheduled commercial break on the main broadcast.",
+    name: "Runtime",
+    description: "The screen itself. Your show plays to the room, in sync for everyone watching, from the moment you take it until somebody pays more. Up to 30 minutes, uploaded or linked.",
     type: "FULLSCREEN",
-    kind: "commercial",
+    kind: "show",
     aspectRatio: "16:9",
-    mediaTypes: ["VIDEO", "IMAGE"],
-    minDurationSec: 30,
-    maxDurationSec: 30,
-    durationOptionsSec: [30],
-    basePriceWei: milliEth(10),
-    priceMultiplierBps: 10_000,
-    pricingRules: dynamicPricing(30),
-    availability: adBreak(15),
-    lane: "main_stream",
+    mediaTypes: ["VIDEO"],
+    auction: auction({ decayHours: 3, minHoldMinutes: 30 }),
+    availability: continuous(),
+    lane: "show",
     ownsMainStream: true,
     meshName: "Screen_Main",
     transform: null,
-    material: { emissiveIntensity: 1.4, fit: "FIT", idleKind: "house" },
-    maxWidth: 1920,
-    maxHeight: 1080,
-    maxFileBytes: 40 * 1024 * 1024,
+    material: { emissiveIntensity: 1.5, fit: "FIT", idleKind: "house" },
+    maxWidth: 3840,
+    maxHeight: 2160,
+    maxCreativeSec: SHOW_MAX_SECONDS,
+    maxFileBytes: 512 * 1024 * 1024,
     allowsAudio: true,
     allowsClickThrough: false,
-    requiresModeration: true,
+    requiresModeration: false,
     isActive: true,
     sortOrder: 1,
   },
   {
-    id: "MAIN_COMMERCIAL_15",
+    id: "AD",
     channelId: "MAIN",
-    name: "15-second commercial",
-    description: "Full-screen spot inside a scheduled commercial break on the main broadcast.",
+    name: "Commercial",
+    description: "A spot in the break. Plays before and between shows, every break, for as long as you hold it. Up to 30 seconds, uploaded or linked.",
     type: "FULLSCREEN",
-    kind: "commercial",
+    kind: "ad",
     aspectRatio: "16:9",
     mediaTypes: ["VIDEO", "IMAGE"],
-    minDurationSec: 15,
-    maxDurationSec: 15,
-    durationOptionsSec: [15],
-    basePriceWei: milliEth(6),
-    priceMultiplierBps: 10_000,
-    pricingRules: dynamicPricing(15),
-    availability: adBreak(15),
-    lane: "main_stream",
+    auction: auction({ decayHours: 2, minHoldMinutes: 15 }),
+    availability: adBreak(),
+    lane: "ad",
     ownsMainStream: true,
     meshName: "Screen_Main",
     transform: null,
-    material: { emissiveIntensity: 1.4, fit: "FIT", idleKind: "house" },
-    maxWidth: 1920,
-    maxHeight: 1080,
-    maxFileBytes: 25 * 1024 * 1024,
+    material: { emissiveIntensity: 1.5, fit: "FIT", idleKind: "house" },
+    maxWidth: 3840,
+    maxHeight: 2160,
+    maxCreativeSec: AD_MAX_SECONDS,
+    maxFileBytes: 96 * 1024 * 1024,
     allowsAudio: true,
     allowsClickThrough: false,
-    requiresModeration: true,
+    requiresModeration: false,
     isActive: true,
     sortOrder: 2,
   },
   {
-    id: "STATION_ID_BUMPER",
+    id: "PANEL_LEFT",
     channelId: "MAIN",
-    name: "Station identification bumper",
-    description: "Ten-second sponsored station ID that takes the whole picture at the top of a commercial break.",
-    type: "SPONSORSHIP",
-    kind: "station_id",
+    name: "Left display panel",
+    description: "The left-hand panel beside the picture. Your spot sits there the whole time, through the show and through the breaks, until somebody pays more. Up to 30 seconds, uploaded or linked.",
+    type: "ENVIRONMENT",
+    kind: "panel",
     aspectRatio: "16:9",
-    mediaTypes: ["VIDEO", "IMAGE"],
-    minDurationSec: 10,
-    maxDurationSec: 10,
-    durationOptionsSec: [10],
-    basePriceWei: milliEth(8),
-    priceMultiplierBps: 10_000,
-    pricingRules: dynamicPricing(10),
-    availability: adBreak(15),
-    lane: "main_stream",
-    ownsMainStream: true,
-    meshName: "Screen_Main",
+    mediaTypes: ["IMAGE", "VIDEO"],
+    auction: auction({ decayHours: 4, minHoldMinutes: 20 }),
+    availability: continuous(),
+    lane: "panel_left",
+    ownsMainStream: false,
+    meshName: "Panel_Left",
     transform: null,
-    material: { emissiveIntensity: 1.4, fit: "FIT", idleKind: "house" },
+    material: { emissiveIntensity: 1.2, fit: "FILL", idleKind: "house" },
     maxWidth: 1920,
     maxHeight: 1080,
-    maxFileBytes: 20 * 1024 * 1024,
-    allowsAudio: true,
-    allowsClickThrough: false,
-    requiresModeration: true,
-    isActive: true,
-    sortOrder: 3,
-  },
-  {
-    id: "LOWER_THIRD",
-    channelId: "MAIN",
-    name: "Lower third",
-    description: "Branded lower-third overlay on the live picture while programming continues.",
-    type: "OVERLAY",
-    kind: "lower_third",
-    aspectRatio: "8:1",
-    mediaTypes: ["IMAGE"],
-    minDurationSec: 60,
-    maxDurationSec: 600,
-    durationOptionsSec: [60, 120, 300, 600],
-    basePriceWei: milliEth(3),
-    priceMultiplierBps: 10_000,
-    pricingRules: dynamicPricing(300),
-    availability: continuous(60),
-    lane: "overlay_lower",
-    meshName: null,
-    transform: null,
-    material: { emissiveIntensity: 1, fit: "FIT" },
-    maxWidth: 1600,
-    maxHeight: 200,
-    maxFileBytes: 4 * 1024 * 1024,
+    maxCreativeSec: AD_MAX_SECONDS,
+    maxFileBytes: 48 * 1024 * 1024,
     allowsAudio: false,
     allowsClickThrough: true,
     requiresModeration: false,
@@ -177,208 +124,53 @@ export const BASE_PLACEMENTS: NewPlacement[] = [
     sortOrder: 3,
   },
   {
-    id: "TICKER",
+    id: "PANEL_RIGHT",
     channelId: "MAIN",
-    name: "Ticker",
-    description: "Text message on the bottom ticker of the broadcast and the 3D LED ribbon.",
-    type: "OVERLAY",
-    kind: "ticker",
-    aspectRatio: "32:1",
-    mediaTypes: ["TEXT"],
-    minDurationSec: 300,
-    maxDurationSec: 3600,
-    durationOptionsSec: [300, 900, 1800, 3600],
-    basePriceWei: milliEth(2),
-    priceMultiplierBps: 10_000,
-    pricingRules: fixedPricing(300),
-    availability: continuous(300),
-    lane: "overlay_ticker",
-    meshName: "LED_Ribbon",
+    name: "Right display panel",
+    description: "The right-hand panel beside the picture. Your spot sits there the whole time, through the show and through the breaks, until somebody pays more. Up to 30 seconds, uploaded or linked.",
+    type: "ENVIRONMENT",
+    kind: "panel",
+    aspectRatio: "16:9",
+    mediaTypes: ["IMAGE", "VIDEO"],
+    auction: auction({ decayHours: 4, minHoldMinutes: 20 }),
+    availability: continuous(),
+    lane: "panel_right",
+    ownsMainStream: false,
+    meshName: "Panel_Right",
     transform: null,
-    material: { emissiveIntensity: 2.2, fit: "FIT" },
-    maxWidth: 0,
-    maxHeight: 0,
-    maxFileBytes: 4096,
+    material: { emissiveIntensity: 1.2, fit: "FILL", idleKind: "house" },
+    maxWidth: 1920,
+    maxHeight: 1080,
+    maxCreativeSec: AD_MAX_SECONDS,
+    maxFileBytes: 48 * 1024 * 1024,
     allowsAudio: false,
-    allowsClickThrough: false,
+    allowsClickThrough: true,
     requiresModeration: false,
     isActive: true,
     sortOrder: 4,
   },
-  {
-    id: "SPONSOR_BUG",
-    channelId: "MAIN",
-    name: "Sponsor bug",
-    description: "Small persistent logo in the corner of the broadcast picture.",
-    type: "OVERLAY",
-    kind: "sponsor_bug",
-    aspectRatio: "1:1",
-    mediaTypes: ["LOGO", "IMAGE"],
-    minDurationSec: 900,
-    maxDurationSec: 7200,
-    durationOptionsSec: [900, 1800, 3600, 7200],
-    basePriceWei: milliEth(4),
-    priceMultiplierBps: 10_000,
-    pricingRules: fixedPricing(900),
-    availability: continuous(300),
-    lane: "overlay_bug",
-    meshName: null,
-    transform: null,
-    material: { emissiveIntensity: 1, fit: "FIT" },
-    maxWidth: 512,
-    maxHeight: 512,
-    maxFileBytes: 2 * 1024 * 1024,
-    allowsAudio: false,
-    allowsClickThrough: true,
-    requiresModeration: false,
-    isActive: true,
-    sortOrder: 5,
-  },
-  {
-    id: "STUDIO_LEFT",
-    channelId: "MAIN",
-    name: "Left studio billboard",
-    description: "Large architectural billboard on the left wall of the broadcast studio.",
-    type: "ENVIRONMENT",
-    kind: "billboard",
-    aspectRatio: "16:9",
-    mediaTypes: ["IMAGE", "VIDEO"],
-    minDurationSec: 300,
-    maxDurationSec: 3600,
-    durationOptionsSec: [300, 900, 1800, 3600],
-    basePriceWei: milliEth(2),
-    priceMultiplierBps: 10_000,
-    pricingRules: dynamicPricing(900),
-    availability: continuous(300),
-    lane: "studio_left",
-    meshName: "Billboard_Left",
-    transform: null,
-    material: { emissiveIntensity: 1.1, fit: "FILL", idleKind: "house" },
-    maxWidth: 1920,
-    maxHeight: 1080,
-    maxFileBytes: 12 * 1024 * 1024,
-    allowsAudio: false,
-    allowsClickThrough: true,
-    requiresModeration: false,
-    isActive: true,
-    sortOrder: 6,
-  },
-  {
-    id: "STUDIO_RIGHT",
-    channelId: "MAIN",
-    name: "Right studio billboard",
-    description: "Large architectural billboard on the right wall of the broadcast studio.",
-    type: "ENVIRONMENT",
-    kind: "billboard",
-    aspectRatio: "16:9",
-    mediaTypes: ["IMAGE", "VIDEO"],
-    minDurationSec: 300,
-    maxDurationSec: 3600,
-    durationOptionsSec: [300, 900, 1800, 3600],
-    basePriceWei: milliEth(2),
-    priceMultiplierBps: 10_000,
-    pricingRules: dynamicPricing(900),
-    availability: continuous(300),
-    lane: "studio_right",
-    meshName: "Billboard_Right",
-    transform: null,
-    material: { emissiveIntensity: 1.1, fit: "FILL", idleKind: "house" },
-    maxWidth: 1920,
-    maxHeight: 1080,
-    maxFileBytes: 12 * 1024 * 1024,
-    allowsAudio: false,
-    allowsClickThrough: true,
-    requiresModeration: false,
-    isActive: true,
-    sortOrder: 7,
-  },
-  {
-    id: "REAR_MONITOR",
-    channelId: "MAIN",
-    name: "Rear video wall",
-    description: "Wide LED wall behind the anchor desk. The main display hangs in front of its centre, so the creative reads on the left and right wings.",
-    type: "ENVIRONMENT",
-    kind: "video_wall",
-    aspectRatio: "32:9",
-    mediaTypes: ["IMAGE", "VIDEO"],
-    minDurationSec: 300,
-    maxDurationSec: 3600,
-    durationOptionsSec: [300, 900, 1800, 3600],
-    basePriceWei: milliEth(1.5),
-    priceMultiplierBps: 10_000,
-    pricingRules: dynamicPricing(900),
-    availability: continuous(300),
-    lane: "rear_wall",
-    meshName: "Monitor_Rear",
-    transform: null,
-    material: { emissiveIntensity: 0.9, fit: "FILL", idleKind: "house" },
-    maxWidth: 2560,
-    maxHeight: 720,
-    maxFileBytes: 12 * 1024 * 1024,
-    allowsAudio: false,
-    allowsClickThrough: false,
-    requiresModeration: false,
-    isActive: true,
-    sortOrder: 8,
-  },
-  {
-    id: "DESK_DISPLAY",
-    channelId: "MAIN",
-    name: "Desk display",
-    description: "Glass display embedded in the front of the anchor desk.",
-    type: "ENVIRONMENT",
-    kind: "desk_display",
-    aspectRatio: "21:9",
-    mediaTypes: ["IMAGE"],
-    minDurationSec: 300,
-    maxDurationSec: 3600,
-    durationOptionsSec: [300, 900, 1800, 3600],
-    basePriceWei: milliEth(1),
-    priceMultiplierBps: 10_000,
-    pricingRules: fixedPricing(900),
-    availability: continuous(300),
-    lane: "desk",
-    meshName: "Desk_Display",
-    transform: null,
-    material: { emissiveIntensity: 0.8, fit: "FILL", idleKind: "house" },
-    maxWidth: 1680,
-    maxHeight: 720,
-    maxFileBytes: 6 * 1024 * 1024,
-    allowsAudio: false,
-    allowsClickThrough: false,
-    requiresModeration: false,
-    isActive: true,
-    sortOrder: 9,
-  },
-  {
-    id: "FLOATING_PANEL",
-    channelId: "MAIN",
-    name: "Floating glass panel",
-    description: "Transform-positioned glass panel hovering right of the main display (no mesh; placed by the visual editor).",
-    type: "ENVIRONMENT",
-    kind: "glass_panel",
-    aspectRatio: "9:16",
-    mediaTypes: ["IMAGE"],
-    minDurationSec: 300,
-    maxDurationSec: 3600,
-    durationOptionsSec: [300, 900, 1800, 3600],
-    basePriceWei: milliEth(1.2),
-    priceMultiplierBps: 10_000,
-    pricingRules: fixedPricing(900),
-    availability: continuous(300),
-    lane: "floating_panel",
-    meshName: null,
-    transform: { position: [6.2, 2.4, -3.2], rotation: [0, -0.55, 0], scale: [1.35, 2.4, 1] },
-    material: { emissiveIntensity: 0.9, fit: "FILL", idleKind: "house" },
-    maxWidth: 1080,
-    maxHeight: 1920,
-    maxFileBytes: 6 * 1024 * 1024,
-    allowsAudio: false,
-    allowsClickThrough: true,
-    requiresModeration: false,
-    isActive: true,
-    sortOrder: 10,
-  },
+];
+
+/**
+ * Surfaces from earlier layouts of the room. The auditorium has one screen and
+ * two products on it; anything else is switched off rather than deleted, so
+ * historic campaigns, payments and AirLogs still resolve.
+ */
+export const RETIRED_PLACEMENT_IDS = [
+  "MAIN_COMMERCIAL",
+  "STUDIO_LEFT",
+  "STUDIO_RIGHT",
+  "MAIN_COMMERCIAL_30",
+  "MAIN_COMMERCIAL_15",
+  "STATION_ID_BUMPER",
+  "LOWER_THIRD",
+  "TICKER",
+  "SPONSOR_BUG",
+  "STUDIO_LEFT",
+  "STUDIO_RIGHT",
+  "REAR_MONITOR",
+  "DESK_DISPLAY",
+  "FLOATING_PANEL",
 ];
 
 /**
@@ -387,40 +179,15 @@ export const BASE_PLACEMENTS: NewPlacement[] = [
  * They exist so an empty network still demonstrates what the billboards do, and
  * so the treasury mechanic is visible in the room. They are never presented as
  * paid campaigns: they do not appear in the public queue and produce no AirLog.
- * Two surfaces are deliberately left bare so real availability is obvious.
  */
 export const SHOWCASE_CARDS: Array<typeof schema.showcaseCreatives.$inferInsert> = [
   {
-    placementId: "STUDIO_LEFT",
+    placementId: "PANEL_LEFT",
     label: "AIRTIME",
-    headline: "Every fee buys Anduril pre-stock",
-    sublabel: "Ad revenue and token tax · distributed to holders",
+    headline: "Buy the screen",
+    sublabel: "Runtime from 0.01 ETH · every fee buys Anduril pre-stock",
     accent: "#ccff00",
     sortOrder: 1,
-  },
-  {
-    placementId: "STUDIO_RIGHT",
-    label: "Example",
-    headline: "Your token on the wall",
-    sublabel: "Robinhood Chain assets · from 2 ETH / 15m",
-    accent: "#8ecbff",
-    sortOrder: 2,
-  },
-  {
-    placementId: "REAR_MONITOR",
-    label: "Example",
-    headline: "Tokenized equities · trading 24/5",
-    sublabel: "Placeholder card · this wall is available",
-    accent: "#ffb547",
-    sortOrder: 3,
-  },
-  {
-    placementId: "DESK_DISPLAY",
-    label: "Example",
-    headline: "Launch day, on air",
-    sublabel: "Placeholder card · desk display available",
-    accent: "#c9a7ff",
-    sortOrder: 4,
   },
 ];
 
@@ -439,9 +206,21 @@ export async function ensureBaseline(): Promise<{ adminPassword: string | null }
     ]);
   }
 
+  // Insert placements that do not exist yet, by id. Adding a surface to
+  // BASE_PLACEMENTS therefore ships it on the next deploy, and an operator's
+  // edits to an existing surface are never overwritten.
   const existingPlacements = await database.select({ id: schema.placements.id }).from(schema.placements);
-  if (existingPlacements.length === 0) {
-    await database.insert(schema.placements).values(BASE_PLACEMENTS);
+  const known = new Set(existingPlacements.map((p) => p.id));
+  const missing = BASE_PLACEMENTS.filter((p) => !known.has(p.id));
+  if (missing.length) {
+    await database.insert(schema.placements).values(missing).onConflictDoNothing({ target: schema.placements.id });
+  }
+
+  // Switch off surfaces that no longer exist in the studio. Deactivating keeps
+  // their campaigns, payments and AirLogs resolvable; deleting would not.
+  const retired = existingPlacements.filter((p) => RETIRED_PLACEMENT_IDS.includes(p.id)).map((p) => p.id);
+  if (retired.length) {
+    await database.update(schema.placements).set({ isActive: false }).where(inArray(schema.placements.id, retired));
   }
 
   const existingShowcase = await database.select({ id: schema.showcaseCreatives.id }).from(schema.showcaseCreatives);

@@ -14,6 +14,7 @@ const body = z.object({
   quoteHoldSeconds: z.number().int().min(30).max(1800).optional(),
   defaultChannelId: z.string().min(1).max(32).optional(),
   treasuryAllocationBps: z.number().int().min(0).max(10_000).optional(),
+  holderRewardCapPpm: z.number().int().min(0).max(1_000_000).optional(),
 });
 
 export const GET = route(async () => {

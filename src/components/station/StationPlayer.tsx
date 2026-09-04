@@ -5,7 +5,7 @@ import type Hls from "hls.js";
 import { useBroadcastState, useActivations } from "@/lib/hooks";
 import { useClock, useStation } from "@/lib/store";
 import { usePlayer } from "./playerStore";
-import { driftCorrection, resolveMainSource, sourceKey, targetOffsetSec, type MainSource } from "./playerEngine";
+import { driftCorrection, resolveMainSource, sourceKey, syncOffsetSec, targetOffsetSec, type MainSource } from "./playerEngine";
 import { Overlays } from "./Overlays";
 import { useAdAnalytics } from "./analytics";
 import { Wordmark } from "@/components/hud/Wordmark";
@@ -39,6 +39,9 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
   const { data: activations } = useActivations(channelId);
   const now = useClock((s) => s.now);
   const muted = useStation((s) => s.muted);
+  const volume = useStation((s) => s.volume);
+  const setSoundBlocked = useStation((s) => s.setSoundBlocked);
+  const restoreSoundPreference = useStation((s) => s.restoreSoundPreference);
   const { setVideoEl, setSource, setPlaying, setError, setHolding, setDrift } = usePlayer();
   const source = usePlayer((s) => s.source);
   const holding = usePlayer((s) => s.holding);
@@ -90,17 +93,29 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
       hlsRef.current = null;
     }
 
+    // Browsers refuse to start audio without a gesture. If that happens the
+    // picture must never stall: fall back to muted playback and tell the UI to
+    // ask for a click, rather than leaving a paused black screen.
     const attemptPlay = () => {
       const p = video.play();
-      if (p) p.catch(() => {/* autoplay policy: stays paused until user gesture */});
+      if (!p) return;
+      p.catch(() => {
+        if (video.muted) return;
+        video.muted = true;
+        setSoundBlocked(true);
+        const retry = video.play();
+        if (retry) retry.catch(() => {});
+      });
     };
 
-    if (resolved.kind === "vod" || resolved.kind === "ad-video") {
-      video.loop = false;
+    if (resolved.kind === "vod" || (resolved.kind === "campaign-video" && !resolved.hls)) {
+      // Submitted media loops: a spot repeats through its break, a show repeats
+      // for as long as its buyer holds the screen.
+      video.loop = resolved.kind === "campaign-video";
       video.src = resolved.url;
       video.load();
       const onMeta = () => {
-        const target = resolved.kind === "vod" ? targetOffsetSec(resolved.block, now()) : Math.max(0, (now() - new Date(resolved.campaign.startsAt!).getTime()) / 1000);
+        const target = resolved.kind === "vod" ? targetOffsetSec(resolved.block, now()) : syncOffsetSec(resolved.sync, now());
         if (Number.isFinite(video.duration) && target >= video.duration - 0.25) {
           setHolding(true);
         } else {
@@ -112,11 +127,12 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
       return () => video.removeEventListener("loadedmetadata", onMeta);
     }
 
-    if (resolved.kind === "hls") {
+    if (resolved.kind === "hls" || (resolved.kind === "campaign-video" && resolved.hls)) {
       video.loop = false;
+      const live = resolved.kind === "hls" && resolved.live;
       const seekVod = () => {
-        if (!resolved.live) {
-          const target = targetOffsetSec(resolved.block, now());
+        if (!live) {
+          const target = resolved.kind === "hls" ? targetOffsetSec(resolved.block, now()) : syncOffsetSec(resolved.sync, now());
           if (Number.isFinite(video.duration) && target >= video.duration - 0.25) setHolding(true);
           else video.currentTime = target;
         }
@@ -162,9 +178,9 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
     if (!video) return;
     const t = setInterval(() => {
       const src = usePlayer.getState().source;
-      if (!src || (src.kind !== "vod" && src.kind !== "ad-video" && !(src.kind === "hls" && !src.live))) return;
+      if (!src || (src.kind !== "vod" && src.kind !== "campaign-video" && !(src.kind === "hls" && !src.live))) return;
       if (video.readyState < 1 || usePlayer.getState().holding) return;
-      const target = src.kind === "ad-video" ? Math.max(0, (now() - new Date(src.campaign.startsAt!).getTime()) / 1000) : targetOffsetSec(src.block, now());
+      const target = src.kind === "campaign-video" ? syncOffsetSec(src.sync, now()) : targetOffsetSec(src.block, now());
       if (Number.isFinite(video.duration) && target >= video.duration - 0.25) {
         setHolding(true);
         video.pause();
@@ -203,12 +219,29 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
   }, [setPlaying, setError]);
 
   useEffect(() => {
-    if (videoRef.current) videoRef.current.muted = muted;
-  }, [muted]);
+    restoreSoundPreference();
+  }, [restoreSoundPreference]);
+
+  // The single media element carries the audio for the programme and for any
+  // commercial a buyer has placed on the main picture. The 3D screen samples the
+  // same element, so what you see and what you hear can never disagree.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = muted;
+    video.volume = volume;
+    if (!muted) {
+      setSoundBlocked(false);
+      // Unmuting is itself the user gesture, so this is the moment audio is
+      // allowed to start if the autoplay policy had paused it.
+      const p = video.play();
+      if (p) p.catch(() => setSoundBlocked(true));
+    }
+  }, [muted, volume, setSoundBlocked]);
 
   useEffect(() => () => hlsRef.current?.destroy(), []);
 
-  const showVideo = source && (source.kind === "vod" || source.kind === "hls" || source.kind === "ad-video") && !holding && !error;
+  const showVideo = source && (source.kind === "vod" || source.kind === "hls" || source.kind === "campaign-video") && !holding && !error;
   const slate = source?.kind === "slate" ? source : null;
 
   return (
@@ -217,13 +250,13 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
         ref={videoRef}
         className={cn("h-full w-full object-contain", showVideo ? "opacity-100" : "opacity-0")}
         playsInline
-        muted
+        muted={muted}
         autoPlay
         crossOrigin="anonymous"
         preload="auto"
         aria-hidden={!visible}
       />
-      {visible && source?.kind === "ad-image" && (
+      {visible && source?.kind === "campaign-image" && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={source.url} alt="" className={cn("absolute inset-0 h-full w-full", source.campaign.fit === "FILL" ? "object-cover" : "object-contain")} />
       )}

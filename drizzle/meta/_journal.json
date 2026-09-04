@@ -22,6 +22,27 @@
       "when": 1788545406441,
       "tag": "0002_treasury_and_showcase",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788556087735,
+      "tag": "0003_drop_slot_pricing",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788556096871,
+      "tag": "0004_continuous_auction",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788557778587,
+      "tag": "0005_chat_messages",
+      "breakpoints": true
     }
   ]
 }

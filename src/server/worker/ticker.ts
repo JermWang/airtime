@@ -3,7 +3,7 @@ import { db, schema } from "../db/client";
 import { serverNow } from "../time/clock";
 import { blockAt, ensureScheduleHorizon } from "../broadcast/schedule";
 import { expireQuotes } from "../ads/quotes";
-import { activateDueCampaigns, completeDueCampaigns, reconcileMissedCampaigns } from "../ads/activation";
+import { activatePaidCampaigns, releaseCappedRuns } from "../ads/activation";
 import { pollAwaitingPayments } from "../chain/paymentVerifier";
 import { publish } from "../realtime/bus";
 
@@ -13,8 +13,9 @@ import { publish } from "../realtime/bus";
  * there or as the dedicated `pnpm worker` process.
  *
  * Every tick (1s):
- *   - expire quotes / release held inventory
- *   - activate & complete campaigns whose reserved window starts/ends
+ *   - expire quote holds so a surface can be bought again
+ *   - start any paid run that has not taken its surface yet, and end runs that
+ *     hit an operator hard cap
  *   - detect program boundaries and broadcast NOW/NEXT changes
  * Every 4s: scan the chain for payments of open quotes.
  * Every 60s: extend the programming horizon.
@@ -36,9 +37,8 @@ export async function tickOnce(): Promise<void> {
   try {
     const now = serverNow();
     await safe("expireQuotes", () => expireQuotes(now));
-    await safe("reconcileMissed", () => reconcileMissedCampaigns(now));
-    await safe("activate", () => activateDueCampaigns(now));
-    await safe("complete", () => completeDueCampaigns(now));
+    await safe("activate", () => activatePaidCampaigns(now));
+    await safe("releaseCapped", () => releaseCappedRuns(now));
 
     if (Date.now() - lastPaymentPoll > 4000) {
       lastPaymentPoll = Date.now();

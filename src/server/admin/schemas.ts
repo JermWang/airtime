@@ -2,21 +2,20 @@ import { z } from "zod";
 
 const bps = z.number().int().min(0).max(1_000_000);
 
-export const pricingRulesSchema = z.object({
-  mode: z.enum(["FIXED", "DYNAMIC"]),
-  unitSeconds: z.number().int().positive(),
-  durationExponentBps: bps.default(10_000),
-  timeOfDay: z.array(z.object({ fromHourUtc: z.number().int().min(0).max(24), toHourUtc: z.number().int().min(0).max(24), multiplierBps: bps })).default([]),
-  premiumProgramMultiplierBps: bps.default(10_000),
-  demand: z.object({ enabled: z.boolean(), maxMultiplierBps: bps }).default({ enabled: false, maxMultiplierBps: 10_000 }),
-  proximity: z.array(z.object({ withinMinutes: z.number().int().positive(), multiplierBps: bps })).default([]),
+const weiString = z.string().regex(/^\d+$/, "Amounts are integer wei");
+
+export const auctionSchema = z.object({
+  openingPriceWei: weiString,
+  floorPriceWei: weiString,
+  decaySeconds: z.number().int().min(60).max(30 * 24 * 3600),
+  takeoverPremiumBps: z.number().int().min(10_000).max(1_000_000),
+  minIncrementBps: z.number().int().min(0).max(1_000_000),
+  minHoldSeconds: z.number().int().min(0).max(30 * 24 * 3600),
+  maxHoldSeconds: z.number().int().min(0).max(365 * 24 * 3600).default(0),
 });
 
 export const availabilitySchema = z.object({
   inventoryMode: z.enum(["CONTINUOUS", "AD_BREAK"]),
-  slotSeconds: z.number().int().min(5).max(86400),
-  leadTimeSec: z.number().int().min(0).max(86400),
-  horizonHours: z.number().int().min(1).max(24 * 30),
   hoursUtc: z.object({ from: z.number().min(0).max(24), to: z.number().min(0).max(24) }).nullable().default(null),
 });
 
@@ -40,12 +39,7 @@ export const placementInputSchema = z.object({
   kind: z.string().min(1).max(40),
   aspectRatio: z.string().regex(/^\d+(\.\d+)?:\d+(\.\d+)?$/),
   mediaTypes: z.array(z.enum(["IMAGE", "VIDEO", "TEXT", "LOGO"])).min(1),
-  minDurationSec: z.number().int().positive(),
-  maxDurationSec: z.number().int().positive(),
-  durationOptionsSec: z.array(z.number().int().positive()).default([]),
-  basePriceWei: z.string().regex(/^\d+$/),
-  priceMultiplierBps: bps.default(10_000),
-  pricingRules: pricingRulesSchema,
+  auction: auctionSchema,
   availability: availabilitySchema,
   lane: z.string().min(1).max(40),
   ownsMainStream: z.boolean().default(false),
@@ -54,6 +48,7 @@ export const placementInputSchema = z.object({
   material: materialSchema,
   maxWidth: z.number().int().min(0).max(8192),
   maxHeight: z.number().int().min(0).max(8192),
+  maxCreativeSec: z.number().int().min(0).max(24 * 3600).default(60),
   maxFileBytes: z.number().int().min(0).max(512 * 1024 * 1024),
   allowsAudio: z.boolean().default(false),
   allowsClickThrough: z.boolean().default(false),

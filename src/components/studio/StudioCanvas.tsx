@@ -48,7 +48,7 @@ export function StudioCanvas({ channelId = "MAIN" }: { channelId?: string }) {
       dpr={[1, cfg.maxDpr]}
       gl={gl}
       shadows={cfg.shadows ? { type: THREE.PCFSoftShadowMap } : false}
-      camera={{ fov: mobile ? 58 : 42, near: 0.1, far: 80, position: [0, 3.4, 15] }}
+      camera={{ fov: mobile ? 58 : 42, near: 0.1, far: 80, position: [0, 3.6, 6.2] }}
       frameloop="always"
       className="!fixed inset-0"
       style={{ background: "#050607" }}
@@ -59,7 +59,7 @@ export function StudioCanvas({ channelId = "MAIN" }: { channelId?: string }) {
       eventPrefix="client"
     >
       <color attach="background" args={["#050607"]} />
-      <fog attach="fog" args={["#060709", 14, 46]} />
+      <fog attach="fog" args={["#060709", 15, 34]} />
       <PerformanceMonitor onDecline={() => degrade()} flipflops={2} factor={0.5} />
       {tier !== "low" && <AdaptiveDpr pixelated={false} />}
       <Suspense fallback={null}>

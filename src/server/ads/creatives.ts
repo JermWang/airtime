@@ -5,6 +5,7 @@ import { db, schema } from "../db/client";
 import { validateCreativeFile, validateTextCreative, validateClickUrl } from "../media/validate";
 import { mediaProvider } from "../media/provider";
 import { sanitizeFilename } from "../media/storage";
+import { probeMediaLink } from "../media/link";
 import { HttpError } from "../http";
 import type { Creative, Placement } from "../db/schema";
 
@@ -150,4 +151,47 @@ export function publicCreative(c: Creative | null | undefined) {
     warnings: (c.metadata as { warnings?: string[] }).warnings ?? [],
     createdAt: c.createdAt,
   };
+}
+
+/**
+ * A show or spot that lives on somebody else's server.
+ *
+ * The URL is what gets hashed into the quote and emitted on chain, so the buyer
+ * is committing to that exact address. What sits behind it can change later —
+ * unlike an upload, whose bytes we hold — and the station says so on the
+ * receipt rather than pretending otherwise.
+ */
+export async function createLinkCreative(input: { walletAddress: `0x${string}`; placementId: string; url: string }): Promise<Creative> {
+  const placement = await loadActivePlacement(input.placementId);
+  if (!placement.mediaTypes.includes("VIDEO")) throw new HttpError(400, "This surface does not accept video");
+  const maxDurationSec = placement.maxCreativeSec > 0 ? placement.maxCreativeSec : 30;
+  const result = await probeMediaLink(input.url, { maxDurationSec, label: placement.name });
+  if (!result.ok) throw new HttpError(400, result.errors.join(" "), result.errors);
+
+  const { probe } = result;
+  const canonical = Buffer.from(probe.url, "utf8");
+  const [row] = await db()
+    .insert(schema.creatives)
+    .values({
+      walletAddress: input.walletAddress,
+      type: "VIDEO",
+      status: "VALID",
+      url: probe.url,
+      storageKey: null,
+      mimeType: probe.mimeType,
+      extension: probe.kind === "HLS" ? "m3u8" : "mp4",
+      sizeBytes: probe.sizeBytes,
+      width: probe.width,
+      height: probe.height,
+      durationSec: probe.durationSec !== null ? probe.durationSec.toString() : null,
+      hasAudio: probe.hasAudio,
+      codec: probe.codec,
+      // The link itself is the thing being committed to on chain.
+      contentHash: createHash("sha256").update(canonical).digest("hex"),
+      creativeHash: keccak256(toHex(canonical)),
+      validationErrors: [],
+      metadata: { placementId: placement.id, source: "link", kind: probe.kind, cors: probe.cors, warnings: probe.warnings },
+    })
+    .returning();
+  return row;
 }

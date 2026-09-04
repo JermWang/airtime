@@ -6,7 +6,7 @@ import { PageFrame } from "@/components/hud/PageFrame";
 import { useCampaign } from "@/lib/hooks";
 import { formatDateTime, formatDurationSec, formatWei, shortHash, statusLabel, cn } from "@/lib/format";
 
-const STEPS = ["DRAFT", "READY_TO_PURCHASE", "AWAITING_PAYMENT", "PAID", "QUEUED", "AIRING", "COMPLETED"];
+const STEPS = ["DRAFT", "READY_TO_PURCHASE", "AWAITING_PAYMENT", "PAID", "AIRING", "COMPLETED"];
 
 export default function CampaignPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -22,11 +22,17 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
             <div className="glass rounded-lg p-4">
               <div className="mb-1 flex items-center gap-3">
                 <span className="label">Campaign</span>
-                <span className={cn("chip", c.status === "AIRING" ? "chip-live" : ["QUEUED", "PAID", "COMPLETED"].includes(c.status) ? "chip-signal" : ["REJECTED", "CANCELLED", "REFUNDED"].includes(c.status) ? "chip-amber" : "")}>{statusLabel(c.status)}</span>
+                <span className={cn("chip", c.status === "AIRING" ? "chip-live" : ["PAID", "COMPLETED"].includes(c.status) ? "chip-signal" : ["REJECTED", "CANCELLED", "REFUNDED"].includes(c.status) ? "chip-amber" : "")}>{statusLabel(c.status)}</span>
               </div>
               <h1 className="text-[22px] font-medium tracking-tight text-ink-50">{c.displayName}</h1>
               <div className="mono mt-1 text-[10.5px] uppercase tracking-[0.12em] text-ink-300">
-                {c.placement.name} · {c.durationSec ? formatDurationSec(c.durationSec) : "—"} · {c.startsAt ? formatDateTime(c.startsAt) : "no airtime reserved"}
+                {c.placement.name} ·{" "}
+                {c.startsAt
+                  ? c.endsAt
+                    ? `ran ${formatDurationSec(c.durationSec ?? 0)} from ${formatDateTime(c.startsAt)}`
+                    : `on air since ${formatDateTime(c.startsAt)} · until outbid`
+                  : "not on a surface yet"}
+                {c.pricePaidWei ? ` · paid ${formatWei(c.pricePaidWei)}` : ""}
               </div>
               {c.rejectionReason && <div className="mt-2 text-[11.5px] text-amber">{c.rejectionReason}</div>}
               <ol className="mt-4 flex flex-wrap items-center gap-1.5">

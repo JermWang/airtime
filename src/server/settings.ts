@@ -16,6 +16,13 @@ export interface StationSettings {
   defaultChannelId: string;
   /** Share of network income earmarked for Anduril pre-stock, in basis points. */
   treasuryAllocationBps: number;
+  /**
+   * The most any single token holder is rewarded with, as a share of the Anduril
+   * pre-IPO allocation, in parts per million. 50 ppm = 0.005%. Basis points are
+   * too coarse for a number this small, and it must stay an integer: it is a
+   * share of an asset, never a float.
+   */
+  holderRewardCapPpm: number;
 }
 
 export const DEFAULT_SETTINGS: StationSettings = {
@@ -24,6 +31,7 @@ export const DEFAULT_SETTINGS: StationSettings = {
   quoteHoldSeconds: 180,
   defaultChannelId: "MAIN",
   treasuryAllocationBps: 10_000,
+  holderRewardCapPpm: 50,
 };
 
 let cache: { value: StationSettings; at: number } | null = null;

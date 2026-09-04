@@ -17,6 +17,6 @@ export const POST = route(async (req) => {
   const placement = await loadActivePlacement(placementId);
   return json({
     ticket: issueUploadTicket(wallet.address, placement.id),
-    limits: { maxFileBytes: placement.maxFileBytes, maxWidth: placement.maxWidth, maxHeight: placement.maxHeight, mediaTypes: placement.mediaTypes, maxDurationSec: placement.maxDurationSec },
+    limits: { maxFileBytes: placement.maxFileBytes, maxWidth: placement.maxWidth, maxHeight: placement.maxHeight, mediaTypes: placement.mediaTypes, maxCreativeSec: placement.maxCreativeSec },
   });
 });

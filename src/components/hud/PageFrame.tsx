@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Wordmark } from "./Wordmark";
 import { WalletButton } from "./WalletButton";
 import { MobileDock } from "./MobileDock";
+import { SiteFooter } from "./SiteFooter";
 import { cn } from "@/lib/format";
 
 const NAV = [
@@ -13,6 +14,8 @@ const NAV = [
   { href: "/queue", label: "Broadcast log" },
   { href: "/airtime", label: "Inventory" },
   { href: "/treasury", label: "Treasury" },
+  { href: "/info", label: "Info" },
+  { href: "/docs", label: "Docs" },
 ];
 
 /** Chrome for the non-immersive routes: quiet header, wallet, mobile dock. */
@@ -41,9 +44,7 @@ export function PageFrame({ children, title, wide = false }: { children: React.R
         {title && <h1 className="mb-5 text-[22px] font-medium tracking-tight text-ink-50">{title}</h1>}
         {children}
       </main>
-      <footer className={cn("mx-auto px-4 pt-8", wide ? "max-w-[1400px]" : "max-w-5xl")}>
-        <div className="mono text-[9.5px] uppercase tracking-[0.16em] text-ink-500">Built on Robinhood Chain</div>
-      </footer>
+      <SiteFooter wide={wide} />
       <MobileDock />
     </div>
   );

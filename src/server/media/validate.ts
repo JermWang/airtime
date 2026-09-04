@@ -106,7 +106,7 @@ export async function validateCreativeFile(bytes: Buffer, claimedName: string, p
     if (!info.width || !info.height) errors.push("Video has no visual track");
     if (info.width > placement.maxWidth || info.height > placement.maxHeight) errors.push(`Video is ${info.width}×${info.height}; maximum is ${placement.maxWidth}×${placement.maxHeight}`);
     if (info.durationSec <= 0.5) errors.push("Video is too short");
-    if (info.durationSec > placement.maxDurationSec + 0.5) errors.push(`Video is ${info.durationSec.toFixed(1)}s; this placement allows up to ${placement.maxDurationSec}s`);
+    if (placement.maxCreativeSec > 0 && info.durationSec > placement.maxCreativeSec + 0.5) errors.push(`Video is ${info.durationSec.toFixed(1)}s; this surface accepts clips up to ${placement.maxCreativeSec}s, looped for as long as you hold it`);
     if (info.hasAudio && !placement.allowsAudio) warnings.push("This placement plays muted; the audio track will be ignored");
     if (errors.length) return { ok: false, errors };
     return {

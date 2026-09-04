@@ -17,7 +17,11 @@ const schema = z.object({
   NEXT_PUBLIC_AIRTIME_PAYMENT_CONTRACT: z.string().optional().default(""),
   AIRTIME_PAYMENT_CONTRACT_DEPLOY_BLOCK: z.coerce.number().int().nonnegative().default(0),
   AIRTIME_PAYMENT_CONFIRMATIONS: z.coerce.number().int().min(0).max(64).default(1),
+  /** The AIRTIME treasury. Every airtime payment is sent here and confirmed from it. */
+  NEXT_PUBLIC_TREASURY_ADDRESS: z.string().optional().default("0xaF259a8Daf123Db203Fe5eA39fc9BE1b98048601"),
   TREASURY_ADDRESS: z.string().optional().default(""),
+  /** RPC for Ethereum mainnet, the second chain a buyer may pay from. */
+  ETHEREUM_RPC_URL: z.string().optional().default(""),
   AIRTIME_SESSION_SECRET: z.string().optional().default(""),
   AIRTIME_UPLOAD_SECRET: z.string().optional().default(""),
   ADMIN_EMAIL: z.string().default("admin@airtime.local"),

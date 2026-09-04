@@ -6,9 +6,10 @@ import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLigh
 import { TIERS, type Tier } from "./perf";
 
 /**
- * Studio lighting: soft key from the truss, screen spill from the main display
- * and LED wall, restrained green accent from the side walls, one shadow-casting
- * spot for grounding. Everything else comes from the procedural environment map.
+ * Screening-room lighting: the picture is the brightest thing in the room and
+ * most of what you see on the walls and floor is its own spill. A soft key from
+ * the truss keeps the space readable, and a restrained lime accent runs along
+ * the side walls. Everything else comes from the procedural environment map.
  */
 export function EnvironmentalLights({ tier }: { tier: Tier }) {
   const cfg = TIERS[tier];
@@ -17,41 +18,31 @@ export function EnvironmentalLights({ tier }: { tier: Tier }) {
   }, []);
   return (
     <>
-      <hemisphereLight args={["#3d4650", "#0b0d10", 1.15]} />
-      <ambientLight intensity={0.35} color="#aeb8c4" />
+      <hemisphereLight args={["#3d4854", "#0b0e12", 1.15]} />
+      <ambientLight intensity={0.34} color="#aeb8c4" />
       <spotLight
-        position={[0, 8.4, 3.5]}
-        angle={0.62}
-        penumbra={0.9}
-        intensity={140}
-        distance={30}
+        position={[0, 11.6, 3.2]}
+        angle={0.7}
+        penumbra={0.95}
+        intensity={110}
+        distance={26}
         decay={2}
         color="#e9eef2"
         castShadow={cfg.shadows}
         shadow-mapSize={[cfg.shadowMapSize, cfg.shadowMapSize]}
         shadow-bias={-0.0004}
         shadow-normalBias={0.02}
-        target-position={[0, 0.8, -2]}
+        target-position={[0, 1, -3]}
       />
-      <spotLight position={[-8, 7.8, 2]} angle={0.7} penumbra={1} intensity={70} distance={34} decay={2} color="#d6dde3" />
-      <spotLight position={[8, 7.8, 2]} angle={0.7} penumbra={1} intensity={70} distance={34} decay={2} color="#d6dde3" />
-      {/* Screen spill */}
-      <rectAreaLight position={[0, 3.65, -6.2]} width={9.6} height={5.4} intensity={3.2} color="#cfd8e3" rotation={[0, 0, 0]} />
-      <rectAreaLight position={[0, 3.4, -7.6]} width={19} height={5.4} intensity={1.5} color="#9fb0c0" rotation={[0, 0, 0]} />
-      {/* Accent */}
-      <pointLight position={[-14.4, 6.4, -1]} intensity={9} distance={11} decay={2} color="#ccff00" />
-      <pointLight position={[14.4, 6.4, -1]} intensity={9} distance={11} decay={2} color="#ccff00" />
-      <RectTargets />
+      <spotLight position={[-9, 11, 3.2]} angle={0.72} penumbra={1} intensity={45} distance={28} decay={2} color="#d6dde3" />
+      <spotLight position={[9, 11, 3.2]} angle={0.72} penumbra={1} intensity={45} distance={28} decay={2} color="#d6dde3" />
+      {/* Spill from the picture itself, sized to the screen. */}
+      <rectAreaLight position={[0, 6.4, -5.1]} width={17.8} height={10} intensity={5.6} color="#cfd8e3" rotation={[0, 0, 0]} />
+      {/* Signal-green hairlines high on the side walls. */}
+      <pointLight position={[-12.6, 10.5, 2]} intensity={9} distance={14} decay={2} color="#ccff00" />
+      <pointLight position={[12.6, 10.5, 2]} intensity={9} distance={14} decay={2} color="#ccff00" />
     </>
   );
-}
-
-/** rectAreaLights look down their -Z; rotate them to face the room. */
-function RectTargets() {
-  useEffect(() => {
-    // no-op; rectAreaLights above are authored facing +Z (toward the audience).
-  }, []);
-  return null;
 }
 
 export const LIGHT_HELPER = THREE;

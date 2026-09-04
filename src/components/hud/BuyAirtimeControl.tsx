@@ -5,6 +5,8 @@ import { useStation } from "@/lib/store";
 import { InventoryList } from "./InventoryDrawer";
 import { BroadcastLog } from "./BroadcastLog";
 import { ProgramGuide } from "./ProgramGuide";
+import { StationChat } from "./StationChat";
+import { ProductChooser } from "@/components/airtime/ProductChooser";
 import { cn } from "@/lib/format";
 
 /**
@@ -35,9 +37,9 @@ export function BuyAirtimeControl() {
             >
               <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                 <div className="flex gap-1">
-                  {(["inventory", "queue", "guide"] as const).map((d) => (
+                  {(["chat", "inventory", "queue", "guide"] as const).map((d) => (
                     <button key={d} className={cn("btn btn-ghost btn-sm", drawer === d && "bg-white/10")} onClick={() => setDrawer(d)}>
-                      {d === "inventory" ? "Inventory" : d === "queue" ? "Broadcast log" : "Guide"}
+                      {d === "chat" ? "Chat" : d === "inventory" ? "Inventory" : d === "queue" ? "Broadcast log" : "Guide"}
                     </button>
                   ))}
                 </div>
@@ -57,12 +59,16 @@ export function BuyAirtimeControl() {
                 )}
                 {drawer === "queue" && <BroadcastLog className="max-h-[46vh]" />}
                 {drawer === "guide" && <ProgramGuide className="max-h-[46vh]" hours={6} />}
+                {drawer === "chat" && <StationChat className="h-[46vh]" />}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         <div className="glass specular pointer-events-auto flex items-center gap-1 rounded-lg p-1">
+          <button className={cn("btn btn-ghost btn-sm", drawer === "chat" && "bg-white/10")} onClick={() => setDrawer(drawer === "chat" ? "none" : "chat")}>
+            Chat
+          </button>
           <button className={cn("btn btn-ghost btn-sm", drawer === "guide" && "bg-white/10")} onClick={() => setDrawer(drawer === "guide" ? "none" : "guide")}>
             Guide
           </button>
@@ -70,7 +76,7 @@ export function BuyAirtimeControl() {
             Log
           </button>
           <button className={cn("btn btn-ghost btn-sm", drawer === "inventory" && "bg-white/10")} onClick={() => setDrawer(drawer === "inventory" ? "none" : "inventory")}>
-            Browse all inventory
+            Prices
           </button>
           <span className="mx-1 h-4 w-px bg-white/15" />
           <button
@@ -90,12 +96,9 @@ export function BuyAirtimeControl() {
       </div>
       <AnimatePresence>
         {mode === "browse" && !focused && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="pointer-events-none fixed bottom-6 left-1/2 z-30 hidden -translate-x-1/2 md:block">
-            <div className="glass rounded-md px-4 py-2 text-center">
-              <div className="label-strong">Click any illuminated surface to buy it</div>
-              <div className="mt-0.5 text-[11px] text-ink-300">or browse all inventory from the control on the right</div>
-            </div>
-          </motion.div>
+          <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 flex justify-center px-3 md:bottom-24">
+            <ProductChooser />
+          </div>
         )}
       </AnimatePresence>
     </>

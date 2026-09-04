@@ -58,8 +58,14 @@ export interface QueueEntryDto {
   placementType: "FULLSCREEN" | "OVERLAY" | "ENVIRONMENT" | "SPONSORSHIP";
   placementKind: string;
   ownsMainStream: boolean;
+  /** CONTINUOUS = the show; AD_BREAK = the commercial that plays in the breaks. */
+  inventoryMode: "CONTINUOUS" | "AD_BREAK";
   startsAt: string | null;
   endsAt: string | null;
+  guaranteedUntil: string | null;
+  pricePaidWei: string | null;
+  endedReason: string | null;
+  runtimeSec: number | null;
   durationSec: number | null;
   wallet: string;
   txHash: string | null;
@@ -72,15 +78,12 @@ export interface QueueEntryDto {
 export interface QueueDto {
   serverTime: number;
   onAir: QueueEntryDto[];
-  upNext: QueueEntryDto[];
-  later: QueueEntryDto[];
   recent: QueueEntryDto[];
 }
 
 export interface ActivationsDto {
   serverTime: number;
   active: QueueEntryDto[];
-  upcoming: QueueEntryDto[];
 }
 
 export interface PlacementDto {
@@ -92,21 +95,11 @@ export interface PlacementDto {
   kind: string;
   aspectRatio: string;
   mediaTypes: Array<"IMAGE" | "VIDEO" | "TEXT" | "LOGO">;
-  minDurationSec: number;
-  maxDurationSec: number;
-  durationOptionsSec: number[];
-  basePriceWei: string;
-  priceMultiplierBps: number;
-  pricingRules: {
-    mode: "FIXED" | "DYNAMIC";
-    unitSeconds: number;
-    durationExponentBps: number;
-    timeOfDay: Array<{ fromHourUtc: number; toHourUtc: number; multiplierBps: number }>;
-    premiumProgramMultiplierBps: number;
-    demand: { enabled: boolean; maxMultiplierBps: number };
-    proximity: Array<{ withinMinutes: number; multiplierBps: number }>;
-  };
-  availability: { inventoryMode: "CONTINUOUS" | "AD_BREAK"; slotSeconds: number; leadTimeSec: number; horizonHours: number; hoursUtc: { from: number; to: number } | null };
+  auction: AuctionRulesDto;
+  availability: { inventoryMode: "CONTINUOUS" | "AD_BREAK"; hoursUtc: { from: number; to: number } | null };
+  lastClearingPriceWei: string;
+  askResetAt: string;
+  currentCampaignId: string | null;
   lane: string;
   ownsMainStream: boolean;
   meshName: string | null;
@@ -114,6 +107,7 @@ export interface PlacementDto {
   material: { emissiveIntensity: number; fit: "FIT" | "FILL"; idleUrl?: string; idleKind?: "image" | "video" | "house" };
   maxWidth: number;
   maxHeight: number;
+  maxCreativeSec: number;
   maxFileBytes: number;
   allowsAudio: boolean;
   allowsClickThrough: boolean;
@@ -122,22 +116,55 @@ export interface PlacementDto {
   sortOrder: number;
 }
 
-export interface SlotDto {
-  startsAt: string;
-  endsAt: string;
-  status: "AVAILABLE" | "RESERVED" | "SOLD_OUT" | "UNAVAILABLE";
-  blockId?: string;
-  blockTitle?: string;
-  context?: string;
+export interface AuctionRulesDto {
+  openingPriceWei: string;
+  floorPriceWei: string;
+  decaySeconds: number;
+  takeoverPremiumBps: number;
+  minIncrementBps: number;
+  minHoldSeconds: number;
+  maxHoldSeconds: number;
 }
 
-export interface AvailabilityDto {
+export interface SurfaceOccupantDto {
+  campaignId: string;
+  displayName: string;
+  wallet: string;
+  pricePaidWei: string;
+  since: string;
+  guaranteedUntil: string | null;
+  runtimeSec: number;
+}
+
+/** The live state of one surface: what it costs to take it right now. */
+export interface SurfaceDto {
   placementId: string;
-  durationSec: number;
   serverTime: number;
-  from: string;
-  to: string;
-  slots: SlotDto[];
+  status: "OPEN" | "PROTECTED" | "HELD" | "CLOSED";
+  forSale: boolean;
+  reason: string | null;
+  askWei: string;
+  anchorWei: string;
+  floorWei: string;
+  decaySeconds: number;
+  secondsToFloor: number;
+  askResetAt: string;
+  lastClearingPriceWei: string;
+  minHoldSeconds: number;
+  maxHoldSeconds: number;
+  occupant: SurfaceOccupantDto | null;
+  heldUntil: string | null;
+}
+
+export interface BoardRowDto {
+  placement: PlacementDto;
+  surface: SurfaceDto;
+  occupant: QueueEntryDto | null;
+}
+
+export interface BoardDto {
+  serverTime: number;
+  rows: BoardRowDto[];
 }
 
 export interface PriceLineDto {
@@ -150,12 +177,20 @@ export interface QuoteDto {
   quote: SignedQuoteWire;
   amountWei: string;
   breakdown: PriceLineDto[];
+  /** How long the signed quote can still be paid. */
   expiresAt: string;
+  /** When the run starts (immediately on payment). */
   startsAt: string;
-  endsAt: string;
+  /** Runtime the buyer cannot be outbid before. */
+  guaranteedUntil: string;
+  guaranteedSeconds: number;
   campaignId: string;
   placementId: string;
+  outbids: { displayName: string; pricePaidWei: string } | null;
   treasury: string | null;
+  settlement: "contract" | "treasury";
+  payTo: string;
+  chainId: number;
 }
 
 export interface CampaignDto {
@@ -166,6 +201,9 @@ export interface CampaignDto {
   creative: CreativeDto | null;
   startsAt: string | null;
   endsAt: string | null;
+  guaranteedUntil: string | null;
+  pricePaidWei: string | null;
+  endedReason: string | null;
   durationSec: number | null;
   fit: "FIT" | "FILL";
   clickUrl: string | null;
@@ -191,6 +229,8 @@ export interface ShowcaseDto {
 
 export interface TreasurySummaryDto {
   allocationBps: number;
+  /** Cap on what a single holder receives, in parts per million. 50 = 0.005%. */
+  holderRewardCapPpm: number;
   airtimeRevenueWei: string;
   airtimePayments: number;
   taxInflowWei: string;

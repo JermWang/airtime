@@ -1,5 +1,5 @@
 import { defineChain, type Chain } from "viem";
-import { foundry } from "viem/chains";
+import { foundry, mainnet, sepolia } from "viem/chains";
 
 /**
  * Robinhood Chain network definitions.
@@ -56,6 +56,54 @@ export function activeChainEnv(): ChainEnv {
   if (v === "mainnet" || v === "testnet" || v === "local") return v;
   return "local";
 }
+
+/**
+ * Where a buyer may pay from.
+ *
+ * AIRTIME settles on Robinhood Chain, and accepts payment on Ethereum mainnet
+ * as well: both are ordinary EVM transfers into the same treasury address, and
+ * both are verified the same way, by the server reading the transaction from
+ * its own RPC. The first entry is the network the app prefers and the one a
+ * wallet is asked to switch to when nothing is chosen.
+ *
+ * Override the list with NEXT_PUBLIC_PAYMENT_CHAIN_IDS (comma separated).
+ */
+export function paymentChains(): Chain[] {
+  const byEnv: Record<ChainEnv, Chain[]> = {
+    mainnet: [robinhoodChain, mainnet],
+    testnet: [robinhoodChainTestnet, sepolia],
+    local: [localChain],
+  };
+  const all = byEnv[activeChainEnv()];
+  const configured = process.env.NEXT_PUBLIC_PAYMENT_CHAIN_IDS;
+  if (!configured) return all;
+  const wanted = configured
+    .split(",")
+    .map((v) => Number(v.trim()))
+    .filter((n) => Number.isInteger(n));
+  const known = [robinhoodChain, robinhoodChainTestnet, mainnet, sepolia, localChain];
+  const picked = wanted.map((id) => known.find((c) => c.id === id)).filter((c): c is Chain => Boolean(c));
+  return picked.length ? picked : all;
+}
+
+export function isPaymentChain(chainId: number): boolean {
+  return paymentChains().some((c) => c.id === chainId);
+}
+
+export function chainById(chainId: number): Chain | null {
+  return paymentChains().find((c) => c.id === chainId) ?? null;
+}
+
+/** Short label for the interface: "Robinhood Chain", "Ethereum", … */
+export function chainLabel(chainId: number): string {
+  const c = chainById(chainId);
+  if (!c) return `Chain ${chainId}`;
+  if (c.id === mainnet.id) return "Ethereum";
+  if (c.id === sepolia.id) return "Sepolia";
+  return c.name;
+}
+
+export { mainnet as ethereumMainnet, sepolia as ethereumSepolia };
 
 export function activeChain(): Chain {
   return chainForEnv(activeChainEnv());

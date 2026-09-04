@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useQueue, useServerNow } from "@/lib/hooks";
 import { useStation } from "@/lib/store";
 import type { QueueEntryDto } from "@/lib/api";
-import { formatClock, formatDurationSec, formatRelative, cn, shortHash } from "@/lib/format";
+import { formatClock, formatDurationSec, formatWei, cn, shortHash } from "@/lib/format";
 
 /**
- * Public broadcast log: ON AIR / UP NEXT / LATER. Every entry is a real paid
- * campaign; clicking one highlights or focuses its physical placement.
+ * Public broadcast log: who is standing on which surface, and who was outbid off
+ * one recently. Every entry is a real paid run; clicking one highlights or
+ * focuses its physical placement. There is no "up next" — a surface has one
+ * occupant and they hold it until somebody pays more.
  */
 export function BroadcastLog({ channelId = "MAIN", className, compact = false }: { channelId?: string; className?: string; compact?: boolean }) {
   const { data, isLoading } = useQueue(channelId);
@@ -25,7 +27,7 @@ export function BroadcastLog({ channelId = "MAIN", className, compact = false }:
         <span className="label text-ink-500">{entries.length}</span>
       </div>
       {entries.length === 0 ? (
-        <div className="rounded-md border border-dashed border-white/10 px-3 py-2 text-[11px] text-ink-400">{tone === "live" ? "No sponsored surfaces on air right now." : "Open inventory."}</div>
+        <div className="rounded-md border border-dashed border-white/10 px-3 py-2 text-[11px] text-ink-400">{tone === "live" ? "No sponsored surfaces on air right now. Every one of them is open." : "Nothing yet."}</div>
       ) : (
         <ul className="flex flex-col gap-1">
           {entries.map((e) => (
@@ -54,13 +56,15 @@ export function BroadcastLog({ channelId = "MAIN", className, compact = false }:
                   <div className="truncate text-[12.5px] text-ink-50">{e.displayName}</div>
                   <div className="mono truncate text-[10px] uppercase tracking-[0.12em] text-ink-300">
                     {e.placementName}
-                    {e.durationSec ? ` · ${formatDurationSec(e.durationSec)}` : ""}
+                    {e.pricePaidWei ? ` · paid ${formatWei(e.pricePaidWei)}` : ""}
                   </div>
                 </div>
                 <div className="mono shrink-0 text-right text-[10px] tracking-[0.08em] text-ink-300">
-                  <div suppressHydrationWarning>{e.startsAt ? (tone === "live" ? `ends ${formatRelative(e.endsAt!, now)}` : formatRelative(e.startsAt, now)) : "—"}</div>
+                  <div suppressHydrationWarning>
+                    {e.startsAt ? (e.endsAt ? `ran ${formatDurationSec(e.runtimeSec ?? 0)}` : `on air ${formatDurationSec(Math.max(0, Math.floor((now - new Date(e.startsAt).getTime()) / 1000)))}`) : "—"}
+                  </div>
                   <div className="text-ink-500" suppressHydrationWarning>
-                    {e.startsAt ? formatClock(e.startsAt, false) : ""} · {e.wallet}
+                    {e.endedReason ? e.endedReason.toLowerCase().replace("_", " ") : e.startsAt ? `since ${formatClock(e.startsAt, false)}` : ""} · {e.wallet}
                   </div>
                 </div>
                 {!compact && e.txUrl && (
@@ -83,11 +87,9 @@ export function BroadcastLog({ channelId = "MAIN", className, compact = false }:
       ) : (
         <>
           <Section title="On air" entries={data?.onAir ?? []} tone="live" />
-          <Section title="Up next" entries={data?.upNext ?? []} tone="next" />
-          <Section title="Later" entries={data?.later ?? []} tone="later" />
           {!compact && (data?.recent.length ?? 0) > 0 && (
             <div>
-              <div className="label mb-1.5">Recently aired</div>
+              <div className="label mb-1.5">Came off air</div>
               <ul className="flex flex-col gap-1">
                 {data!.recent.map((e) => (
                   <li key={e.id} className="flex items-center justify-between px-2 py-1 text-[11px]">

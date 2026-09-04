@@ -54,8 +54,13 @@ function buildCsp(nonce: string): string {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob: ${media} ${storage} https://*.walletconnect.com https://*.walletconnect.org https://*.reown.com https://storage.googleapis.com`,
-    `media-src 'self' blob: data: ${media} ${storage}`,
-    `connect-src 'self' ${rpcOrigins()} ${media} ${storage} ${WALLETCONNECT}${dev ? " ws://localhost:* http://localhost:*" : ""}`,
+    // Shows and spots may be submitted as links to media hosted anywhere, so the
+    // picture can come off any https origin. `connect-src` has to follow it
+    // because an HLS playlist and its segments are fetched by hls.js rather than
+    // by the video element. Neither widens what code can run: script-src stays
+    // nonce-locked and no advertiser markup exists to abuse the reach.
+    `media-src 'self' blob: data: https:`,
+    `connect-src 'self' https: ${rpcOrigins()} ${media} ${storage} ${WALLETCONNECT}${dev ? " ws://localhost:* http://localhost:* ws://127.0.0.1:*" : ""}`,
     "font-src 'self' data:",
     `frame-src 'self' https://verify.walletconnect.com https://verify.walletconnect.org https://*.reown.com`,
     "worker-src 'self' blob:",

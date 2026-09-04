@@ -454,6 +454,106 @@ export function createShowcaseTexture(card: ShowcaseCard, aspect: string): Surfa
   return { texture, aspect: sa, kind: "canvas", dispose: () => texture.dispose() };
 }
 
+/**
+ * Quiet house graphic for a studio monitor no placement has claimed.
+ *
+ * These are 0.6 m panels seen from ten metres: any real text on them is
+ * unreadable noise that reads as clutter, so they carry abstract broadcast
+ * furniture instead - levels, a waveform, a status grid - in graphite with a
+ * single lime accent. They stay obviously AIRTIME's own graphics and never
+ * imitate an advertisement.
+ */
+export function createStudioGraphicTexture(aspect: string, seed = 0): SurfaceTexture {
+  const sa = parseAspect(aspect);
+  const W = 512;
+  const H = Math.max(64, Math.round(W / sa));
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#0b0e12");
+  g.addColorStop(1, "#070a0d");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // Deterministic per-monitor variation: the wall of monitors should not be a
+  // wall of identical frames.
+  let n = (seed * 2654435761) % 2147483647;
+  const rand = () => ((n = (n * 48271) % 2147483647) / 2147483647);
+
+  const pad = Math.round(W * 0.08);
+  const inner = W - pad * 2;
+  const top = pad * 0.8;
+
+  // Header rule: a lime tick and a hairline, the station's own furniture.
+  ctx.fillStyle = "rgba(204,255,0,0.85)";
+  ctx.fillRect(pad, top, Math.round(W * 0.05), Math.max(2, Math.round(H * 0.018)));
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  ctx.fillRect(pad + Math.round(W * 0.07), top, inner - Math.round(W * 0.07), 1);
+
+  const bodyTop = top + H * 0.16;
+  const bodyH = H - bodyTop - pad * 0.9;
+  const variant = Math.floor(rand() * 3);
+
+  if (variant === 0) {
+    // Levels.
+    const bars = 11;
+    const gap = inner / bars;
+    for (let i = 0; i < bars; i += 1) {
+      const h = bodyH * (0.18 + rand() * 0.82);
+      const x = pad + i * gap;
+      const w = gap * 0.62;
+      ctx.fillStyle = "rgba(255,255,255,0.10)";
+      ctx.fillRect(x, bodyTop, w, bodyH);
+      ctx.fillStyle = i % 5 === 2 ? "rgba(204,255,0,0.55)" : "rgba(185,193,204,0.34)";
+      ctx.fillRect(x, bodyTop + bodyH - h, w, h);
+    }
+  } else if (variant === 1) {
+    // Waveform.
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 4; i += 1) {
+      const y = bodyTop + (bodyH / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(pad, y);
+      ctx.lineTo(W - pad, y);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = "rgba(204,255,0,0.62)";
+    ctx.lineWidth = Math.max(1.5, H * 0.012);
+    ctx.beginPath();
+    const steps = 48;
+    for (let i = 0; i <= steps; i += 1) {
+      const t = i / steps;
+      const y = bodyTop + bodyH / 2 + Math.sin(t * Math.PI * 4 + seed) * bodyH * 0.3 * (0.4 + rand() * 0.6);
+      const x = pad + inner * t;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  } else {
+    // Status grid.
+    const cols = 6;
+    const rows = Math.max(2, Math.round((bodyH / inner) * cols));
+    const cw = inner / cols;
+    const ch = bodyH / rows;
+    for (let r = 0; r < rows; r += 1) {
+      for (let c = 0; c < cols; c += 1) {
+        const on = rand();
+        ctx.fillStyle = on > 0.88 ? "rgba(204,255,0,0.5)" : on > 0.55 ? "rgba(185,193,204,0.22)" : "rgba(255,255,255,0.07)";
+        ctx.fillRect(pad + c * cw, bodyTop + r * ch, cw * 0.82, ch * 0.62);
+      }
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return { texture, aspect: sa, kind: "canvas", dispose: () => texture.dispose() };
+}
+
 export function createSlateTexture(title: string, subtitle: string): SurfaceTexture {
   return createHouseTexture({ label: title, sublabel: subtitle, aspect: "16:9", variant: "slate" });
 }

@@ -31,41 +31,110 @@ export function driftCorrection(currentTimeSec: number, targetSec: number): Drif
 }
 
 /**
- * The campaign that owns the main broadcast picture at `nowMs`, if any.
- * Ownership is declared by the placement (`ownsMainStream`), so commercials,
- * channel takeovers and station-ID bumpers all work without special cases.
+ * Which product a campaign bought. A surface that owns the picture is either the
+ * show (it runs whenever a break is not on) or the commercial (it runs in the
+ * breaks); the placement's inventory mode is what says which.
  */
-export function fullscreenCampaignAt(entries: QueueEntryDto[], nowMs: number): QueueEntryDto | null {
+export type Slot = "show" | "ad";
+
+export function slotOf(entry: QueueEntryDto): Slot | null {
+  if (!entry.ownsMainStream) return null;
+  return entry.inventoryMode === "AD_BREAK" ? "ad" : "show";
+}
+
+/**
+ * The campaign holding a slot at `nowMs`.
+ *
+ * A run has no scheduled end: it owns its slot from the moment it took the
+ * screen until somebody outbids it, which is when `endsAt` finally gets a value.
+ */
+export function campaignForSlot(entries: QueueEntryDto[], slot: Slot, nowMs: number): QueueEntryDto | null {
   for (const e of entries) {
-    if (!e.ownsMainStream || !e.startsAt || !e.endsAt) continue;
-    const s = new Date(e.startsAt).getTime();
-    const en = new Date(e.endsAt).getTime();
-    if (s <= nowMs && nowMs < en) return e;
+    if (slotOf(e) !== slot || !e.startsAt) continue;
+    if (new Date(e.startsAt).getTime() > nowMs) continue;
+    if (e.endsAt && new Date(e.endsAt).getTime() <= nowMs) continue;
+    return e;
   }
   return null;
+}
+
+/** Kept for the station HUD: whatever owns the picture right now, either product. */
+export function fullscreenCampaignAt(entries: QueueEntryDto[], nowMs: number): QueueEntryDto | null {
+  return campaignForSlot(entries, "ad", nowMs) ?? campaignForSlot(entries, "show", nowMs);
+}
+
+/**
+ * Where a piece of submitted media should be at `nowMs`.
+ *
+ * `anchorMs` is the instant the loop is measured from — the start of the break
+ * for a commercial, so it plays from the top of every break, and the start of
+ * the run for a show, so a thirty-minute show plays through and repeats. Every
+ * viewer derives the same number from server time, which is what keeps the room
+ * watching the same frame.
+ */
+export interface PlaybackSync {
+  anchorMs: number;
+  durationSec: number | null;
+}
+
+export function syncOffsetSec(sync: PlaybackSync, nowMs: number): number {
+  const elapsed = Math.max(0, (nowMs - sync.anchorMs) / 1000);
+  return sync.durationSec && sync.durationSec > 0.5 ? elapsed % sync.durationSec : elapsed;
+}
+
+function isHls(url: string): boolean {
+  return url.toLowerCase().split("?")[0].endsWith(".m3u8");
 }
 
 export type MainSource =
   | { kind: "vod"; url: string; block: ProgramBlockDto; offsetSec: number }
   | { kind: "hls"; url: string; block: ProgramBlockDto; live: boolean; offsetSec: number }
-  | { kind: "ad-video"; url: string; campaign: QueueEntryDto; offsetSec: number }
-  | { kind: "ad-image"; url: string; campaign: QueueEntryDto }
+  | { kind: "campaign-video"; url: string; hls: boolean; campaign: QueueEntryDto; slot: Slot; sync: PlaybackSync; offsetSec: number }
+  | { kind: "campaign-image"; url: string; campaign: QueueEntryDto; slot: Slot }
   | { kind: "slate"; title: string; subtitle: string; block: ProgramBlockDto | null };
 
-/** Decide what the main stream should show right now. */
+function campaignSource(campaign: QueueEntryDto, slot: Slot, anchorMs: number, nowMs: number): MainSource | null {
+  const creative = campaign.creative;
+  if (!creative?.url) return null;
+  if (creative.type === "VIDEO") {
+    const sync: PlaybackSync = { anchorMs, durationSec: creative.durationSec ?? null };
+    return { kind: "campaign-video", url: creative.url, hls: isHls(creative.url), campaign, slot, sync, offsetSec: syncOffsetSec(sync, nowMs) };
+  }
+  return { kind: "campaign-image", url: creative.url, campaign, slot };
+}
+
+/**
+ * Decide what the screen should show right now.
+ *
+ * During a commercial break the spot plays, if anybody holds it. The rest of the
+ * time the show plays, if anybody holds it. When nobody has bought either, the
+ * station's own programming fills the room — and an unsold break never becomes
+ * dead air, because the show simply keeps running through it.
+ */
 export function resolveMainSource(block: ProgramBlockDto | null, next: ProgramBlockDto | null, campaigns: QueueEntryDto[], nowMs: number): MainSource {
   if (!block) return { kind: "slate", title: "AIRTIME", subtitle: "Stand by", block: null };
+
+  const show = campaignForSlot(campaigns, "show", nowMs);
+
   if (block.type === "AD_BREAK") {
-    const c = fullscreenCampaignAt(campaigns, nowMs);
-    if (c?.creative?.url) {
-      if (c.creative.type === "VIDEO") {
-        const offsetSec = Math.max(0, (nowMs - new Date(c.startsAt!).getTime()) / 1000);
-        return { kind: "ad-video", url: c.creative.url, campaign: c, offsetSec };
-      }
-      return { kind: "ad-image", url: c.creative.url, campaign: c };
+    const ad = campaignForSlot(campaigns, "ad", nowMs);
+    if (ad) {
+      const source = campaignSource(ad, "ad", new Date(block.startsAt).getTime(), nowMs);
+      if (source) return source;
+    }
+    // Nobody bought the break: hand the room back to the show rather than cut to black.
+    if (show) {
+      const source = campaignSource(show, "show", new Date(show.startsAt!).getTime(), nowMs);
+      if (source) return source;
     }
     return { kind: "slate", title: "We'll be right back", subtitle: next ? `Up next · ${next.title}` : "AIRTIME", block };
   }
+
+  if (show) {
+    const source = campaignSource(show, "show", new Date(show.startsAt!).getTime(), nowMs);
+    if (source) return source;
+  }
+
   if (block.type === "BUMPER") {
     if (block.mediaUrl) return { kind: "vod", url: block.mediaUrl, block, offsetSec: targetOffsetSec(block, nowMs) };
     return { kind: "slate", title: "AIRTIME", subtitle: block.title, block };
@@ -76,7 +145,7 @@ export function resolveMainSource(block: ProgramBlockDto | null, next: ProgramBl
   }
   if (!block.mediaUrl) return { kind: "slate", title: "AIRTIME", subtitle: block.title, block };
   // VOD delivered over HLS (e.g. a hosted media provider) still synchronises by offset.
-  if (block.mediaUrl.toLowerCase().split("?")[0].endsWith(".m3u8")) return { kind: "hls", url: block.mediaUrl, block, live: false, offsetSec: targetOffsetSec(block, nowMs) };
+  if (isHls(block.mediaUrl)) return { kind: "hls", url: block.mediaUrl, block, live: false, offsetSec: targetOffsetSec(block, nowMs) };
   return { kind: "vod", url: block.mediaUrl, block, offsetSec: targetOffsetSec(block, nowMs) };
 }
 
@@ -86,10 +155,12 @@ export function sourceKey(src: MainSource): string {
       return `vod:${src.block.id}`;
     case "hls":
       return `hls:${src.block.id}`;
-    case "ad-video":
-      return `adv:${src.campaign.id}`;
-    case "ad-image":
-      return `adi:${src.campaign.id}`;
+    case "campaign-video":
+      // A show keeps its identity across program boundaries so it plays through;
+      // a commercial reloads with each break so it starts from the top.
+      return src.slot === "show" ? `show:${src.campaign.id}` : `ad:${src.campaign.id}:${Math.floor(src.sync.anchorMs / 1000)}`;
+    case "campaign-image":
+      return `img:${src.campaign.id}`;
     default:
       return `slate:${src.block?.id ?? "none"}:${src.title}`;
   }

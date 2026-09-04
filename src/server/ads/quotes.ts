@@ -5,13 +5,12 @@ import { db, schema, type Tx } from "../db/client";
 import { serverNow, addSeconds } from "../time/clock";
 import { getSettings } from "../settings";
 import { HttpError } from "../http";
-import { findConflicts, validateWindow, laneOccupancy } from "./availability";
-import { computePrice } from "./pricing";
+import { activeHold, describeSurface, currentOccupant, askBreakdown } from "./auction";
 import { creativeSellable } from "./creatives";
-import { blocksInRange } from "../broadcast/schedule";
 import { signQuote, placementIdHash } from "../chain/quoteSigner";
 import { paymentContractAddress, publicClient } from "../chain/client";
-import { activeChain, paymentAssets, NATIVE_TOKEN } from "@/lib/chain/chains";
+import { activeChain, paymentAssets, paymentChains, chainById, NATIVE_TOKEN } from "@/lib/chain/chains";
+import { treasuryAddress } from "../chain/treasuryTransfer";
 import type { SignedQuoteWire, QuoteStruct } from "@/lib/chain/airtimePayments";
 import { publish } from "../realtime/bus";
 import { audit } from "../audit";
@@ -20,23 +19,30 @@ import type { Quote, PriceBreakdownLine } from "../db/schema";
 /**
  * Authoritative quote engine.
  *
- * A quote is created inside a single database transaction that:
- *   1. locks the placement row (serialises all bookings for that inventory)
- *   2. re-validates the campaign, creative and requested window
- *   3. checks the lane for overlapping HELD/CONFIRMED reservations
- *   4. prices the window
- *   5. writes a HELD reservation that expires with the quote (~3 minutes)
+ * A quote is a signed promise to sell one surface at the ask that stood when it
+ * was issued. It is created inside a single transaction that:
+ *   1. locks the placement row (all purchases of that surface serialise here)
+ *   2. re-validates the campaign and creative
+ *   3. refuses if another buyer already holds this surface mid-purchase, or if
+ *      the occupant's guaranteed runtime has not run out yet
+ *   4. reads the ask off the descending clock
+ *   5. writes a HELD reservation that expires with the quote (~3 minutes), so
+ *      two buyers cannot pay the same ask for the same surface
  *   6. signs the EIP-712 quote with the backend signer
  *
- * Expired quotes release their inventory in `expireQuotes()`, called by the ticker.
+ * `startAt`/`endAt` on the signed quote are the run's *guaranteed* window: the
+ * buyer goes live at `startAt` and cannot be outbid before `endAt`. The run
+ * itself continues past `endAt` until somebody pays more.
  */
 
 export interface CreateQuoteInput {
   campaignId: string;
   walletAddress: `0x${string}`;
-  startsAt: Date;
-  durationSec: number;
   paymentToken?: Address;
+  /** Refuse to quote above this, in wei: protects a buyer from a takeover mid-click. */
+  maxPriceWei?: bigint;
+  /** Chain the buyer wants to pay on. Defaults to the station's own chain. */
+  chainId?: number;
 }
 
 export interface QuoteResponse {
@@ -44,11 +50,29 @@ export interface QuoteResponse {
   amountWei: string;
   breakdown: PriceBreakdownLine[];
   expiresAt: string;
+  /** When the run starts (immediately) and the end of the guaranteed runtime. */
   startsAt: string;
-  endsAt: string;
+  guaranteedUntil: string;
+  guaranteedSeconds: number;
   campaignId: string;
   placementId: string;
+  /** The occupant this purchase would displace, if any. */
+  outbids: { displayName: string; pricePaidWei: string } | null;
   treasury: string | null;
+  /** How this quote is paid: through the payment contract, or by a transfer to the treasury. */
+  settlement: "contract" | "treasury";
+  /** Address the transaction must be sent to. */
+  payTo: string;
+  chainId: number;
+}
+
+
+/** The chain a quote will be settled on, validated against the accepted list. */
+function paymentChainFor(chainId?: number) {
+  if (chainId === undefined) return paymentChains()[0];
+  const chain = chainById(chainId);
+  if (!chain) throw new HttpError(400, "That network is not accepted for payment");
+  return chain;
 }
 
 export function toWire(q: Quote): SignedQuoteWire {
@@ -84,8 +108,14 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRespons
   const settings = await getSettings();
   if (settings.purchasesPaused) throw new HttpError(503, "Purchases are temporarily paused by the station");
 
+  // A buyer may pay on any accepted chain. Where a payment contract is
+  // deployed for that chain the quote is settled through it; otherwise the quote
+  // is settled by a native transfer into the treasury, which the server verifies
+  // from that chain's own RPC (see server/chain/treasuryTransfer.ts).
+  const payChain = paymentChainFor(input.chainId);
   const contract = paymentContractAddress();
-  if (!contract) throw new HttpError(503, "Payment contract is not configured");
+  const settlement: "contract" | "treasury" = contract && payChain.id === activeChain().id ? "contract" : "treasury";
+  const payTo = settlement === "contract" ? (contract as Address) : treasuryAddress();
 
   const paymentToken = (input.paymentToken ?? NATIVE_TOKEN).toLowerCase() as Address;
   const asset = paymentAssets().find((a) => a.address.toLowerCase() === paymentToken);
@@ -96,7 +126,6 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRespons
   }
 
   const now = serverNow();
-  const endsAt = addSeconds(input.startsAt, input.durationSec);
 
   // Best effort chain height so the payment watcher only scans recent blocks.
   let issuedAtBlock: bigint | null = null;
@@ -117,7 +146,7 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRespons
     }
     if (!campaign.creativeId) throw new HttpError(400, "Attach a creative before requesting a quote");
 
-    // Lock the placement: all quotes for this inventory serialise here.
+    // Lock the surface: every purchase of this inventory serialises here.
     const [placement] = await tx.select().from(schema.placements).where(eq(schema.placements.id, campaign.placementId)).for("update");
     if (!placement || !placement.isActive) throw new HttpError(404, "Placement is not available");
 
@@ -126,26 +155,33 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRespons
     const sellable = creativeSellable(creative, placement);
     if (!sellable.ok) throw new HttpError(409, sellable.reason);
 
-    const window = await validateWindow(placement, input.startsAt, endsAt, tx);
-    if (!window.ok) throw new HttpError(400, window.reason);
-
     await releaseCampaignHolds(tx, campaign.id);
 
-    const conflicts = await findConflicts(placement.lane, input.startsAt, endsAt, now, tx, campaign.id);
-    if (conflicts.length) {
-      const sold = conflicts.some((c) => c.status === "CONFIRMED");
-      throw new HttpError(409, sold ? "This airtime is sold out" : "This airtime is currently reserved by another buyer", { status: sold ? "SOLD_OUT" : "RESERVED" });
+    const occupant = await currentOccupant(placement.id, tx);
+    if (occupant && occupant.id === campaign.id) throw new HttpError(409, "This campaign is already on the surface");
+    const hold = await activeHold(placement.lane, now, tx, campaign.id);
+    const surface = describeSurface(placement, occupant, hold, now);
+
+    if (!surface.forSale) {
+      throw new HttpError(409, surface.reason ?? "This surface cannot be bought right now", {
+        status: surface.status,
+        heldUntil: surface.heldUntil,
+        askWei: surface.askWei,
+      });
     }
 
-    const occupancyRatio = await laneOccupancy(placement, input.startsAt, tx);
-    const overlapping = await blocksInRange(placement.channelId, input.startsAt, endsAt, tx);
-    const overlapsPremiumProgram = overlapping.some((b) => Boolean((b.metadata as { isPremium?: boolean }).isPremium));
-    const price = computePrice({ placement, startsAt: input.startsAt, endsAt, now, occupancyRatio, overlapsPremiumProgram });
+    const amountWei = BigInt(surface.askWei);
+    if (input.maxPriceWei !== undefined && amountWei > input.maxPriceWei) {
+      throw new HttpError(409, "The ask moved above your limit before the quote was issued", { askWei: surface.askWei });
+    }
+    if (amountWei <= 0n) throw new HttpError(500, "Surface is misconfigured: the ask is zero");
 
+    const guaranteedSeconds = Math.max(1, placement.auction.minHoldSeconds);
+    const guaranteedUntil = addSeconds(now, guaranteedSeconds);
     const quoteId = `0x${randomBytes(32).toString("hex")}` as Hex;
     const nonce = hexToBigInt(`0x${randomBytes(16).toString("hex")}`);
     const expiresAt = addSeconds(now, settings.quoteHoldSeconds);
-    const chainId = activeChain().id;
+    const chainId = payChain.id;
     const pHash = placementIdHash(placement.id);
 
     const struct: QuoteStruct = {
@@ -153,14 +189,14 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRespons
       buyer: input.walletAddress,
       placementId: pHash,
       creativeHash: creative.creativeHash as Hex,
-      startAt: BigInt(Math.floor(input.startsAt.getTime() / 1000)),
-      endAt: BigInt(Math.floor(endsAt.getTime() / 1000)),
+      startAt: BigInt(Math.floor(now.getTime() / 1000)),
+      endAt: BigInt(Math.floor(guaranteedUntil.getTime() / 1000)),
       paymentToken,
-      amount: price.amountWei,
+      amount: amountWei,
       expiresAt: BigInt(Math.floor(expiresAt.getTime() / 1000)),
       nonce,
     };
-    const signature = await signQuote(struct, contract, chainId);
+    const signature = await signQuote(struct, payTo, chainId);
 
     const [quote] = await tx
       .insert(schema.quotes)
@@ -171,16 +207,16 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRespons
         placementId: placement.id,
         placementIdHash: pHash,
         creativeHash: creative.creativeHash,
-        startsAt: input.startsAt,
-        endsAt,
+        startsAt: now,
+        endsAt: guaranteedUntil,
         paymentToken,
-        amountWei: price.amountWei.toString(),
+        amountWei: amountWei.toString(),
         expiresAt,
         nonce: nonce.toString(),
         chainId,
-        contractAddress: contract,
+        contractAddress: payTo,
         signature,
-        priceBreakdown: price.breakdown,
+        priceBreakdown: askBreakdown(placement, surface, now),
         status: "ACTIVE",
         issuedAtBlock,
       })
@@ -191,37 +227,42 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRespons
       lane: placement.lane,
       campaignId: campaign.id,
       quoteId,
-      startsAt: input.startsAt,
-      endsAt,
+      startsAt: now,
+      endsAt: expiresAt,
       status: "HELD",
       expiresAt,
     });
 
     await tx
       .update(schema.campaigns)
-      .set({ status: "AWAITING_PAYMENT", startsAt: input.startsAt, endsAt, durationSec: input.durationSec, activeQuoteId: quoteId, updatedAt: now })
+      .set({ status: "AWAITING_PAYMENT", activeQuoteId: quoteId, updatedAt: now })
       .where(eq(schema.campaigns.id, campaign.id));
 
-    await audit({ type: "WALLET", id: input.walletAddress }, "quote.created", { type: "campaign", id: campaign.id }, { quoteId, amountWei: price.amountWei.toString(), startsAt: input.startsAt.toISOString(), endsAt: endsAt.toISOString() }, tx);
+    await audit({ type: "WALLET", id: input.walletAddress }, "quote.created", { type: "campaign", id: campaign.id }, { quoteId, amountWei: amountWei.toString(), outbids: occupant?.id ?? null }, tx);
 
     publish({ type: "campaign.updated", campaignId: campaign.id, status: "AWAITING_PAYMENT", placementId: placement.id });
+    publish({ type: "placement.updated", placementId: placement.id });
 
-    const treasury = process.env.TREASURY_ADDRESS || null;
     return {
       quote: toWire(quote),
-      amountWei: price.amountWei.toString(),
-      breakdown: price.breakdown,
+      amountWei: amountWei.toString(),
+      breakdown: quote.priceBreakdown,
       expiresAt: expiresAt.toISOString(),
-      startsAt: input.startsAt.toISOString(),
-      endsAt: endsAt.toISOString(),
+      startsAt: now.toISOString(),
+      guaranteedUntil: guaranteedUntil.toISOString(),
+      guaranteedSeconds,
       campaignId: campaign.id,
       placementId: placement.id,
-      treasury,
+      outbids: occupant ? { displayName: occupant.displayName, pricePaidWei: occupant.paidPriceWei ?? "0" } : null,
+      treasury: treasuryAddress(),
+      settlement,
+      payTo,
+      chainId: payChain.id,
     };
   });
 }
 
-/** Release inventory held by quotes whose hold window has passed. */
+/** Release surfaces held by quotes whose hold window has passed. */
 export async function expireQuotes(now = serverNow()): Promise<number> {
   return db().transaction(async (tx) => {
     const expired = await tx
@@ -244,6 +285,7 @@ export async function expireQuotes(now = serverNow()): Promise<number> {
           .where(eq(schema.campaigns.id, campaign.id));
         publish({ type: "campaign.updated", campaignId: campaign.id, status: "READY_TO_PURCHASE", placementId: campaign.placementId });
       }
+      publish({ type: "placement.updated", placementId: q.placementId });
     }
     return expired.length;
   });

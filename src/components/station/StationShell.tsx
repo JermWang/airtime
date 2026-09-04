@@ -13,9 +13,13 @@ import { BuyAirtimeControl } from "@/components/hud/BuyAirtimeControl";
 import { PlacementPanel } from "@/components/hud/PlacementPanel";
 import { MobileDock } from "@/components/hud/MobileDock";
 import { Ident } from "@/components/hud/Ident";
+import { SoundBlockedPrompt } from "@/components/hud/SoundControl";
+import { ContentNotice } from "@/components/hud/ContentNotice";
+import { AddressChip, TokenContractChip } from "@/components/hud/AddressChip";
 import { BroadcastLog } from "@/components/hud/BroadcastLog";
 import { InventoryList } from "@/components/hud/InventoryDrawer";
 import { ProgramGuide } from "@/components/hud/ProgramGuide";
+import { StationChat } from "@/components/hud/StationChat";
 import { cn } from "@/lib/format";
 
 const StudioCanvas = dynamic(() => import("@/components/studio/StudioCanvas").then((m) => m.StudioCanvas), { ssr: false, loading: () => null });
@@ -29,7 +33,6 @@ const StudioCanvas = dynamic(() => import("@/components/studio/StudioCanvas").th
 export function StationShell({ channelId = "MAIN" }: { channelId?: string }) {
   const webgl = useStation((s) => s.webglAvailable);
   const setWebgl = useStation((s) => s.setWebgl);
-  const sceneReady = useStation((s) => s.sceneReady);
   const focused = useStation((s) => s.focusedPlacementId);
   const focusPlacement = useStation((s) => s.focusPlacement);
   const drawer = useStation((s) => s.drawer);
@@ -54,8 +57,11 @@ export function StationShell({ channelId = "MAIN" }: { channelId?: string }) {
   }, [focusPlacement, setDrawer]);
 
   const use3d = webgl === true;
-  // 2D picture stays visible until the studio is ready (desktop) or always (mobile / no WebGL).
-  const show2d = !use3d || !sceneReady || mobile;
+  // The 2D picture is the fallback, not an overlay. When the studio is running on
+  // desktop the only picture is the one in the room: the media element keeps
+  // playing off-screen and feeds the WebGL texture, so nothing is drawn on top of
+  // the screen and no frame edges float over it.
+  const show2d = !use3d || mobile;
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-ink-950">
@@ -66,19 +72,27 @@ export function StationShell({ channelId = "MAIN" }: { channelId?: string }) {
         </motion.div>
       )}
 
-      {/* 2D station picture: hero on mobile / no-WebGL, hidden (but playing) once the room is live on desktop */}
-      <motion.div
-        className={cn("pointer-events-none fixed left-1/2 z-10 -translate-x-1/2", mobile ? "top-16 w-[calc(100%-1.5rem)]" : "top-1/2 w-[min(70vw,1100px)] -translate-y-1/2")}
-        animate={{ opacity: show2d ? 1 : 0, scale: show2d ? 1 : 0.98 }}
-        transition={{ duration: 0.9, ease: [0.2, 0.8, 0.2, 1] }}
-        style={{ visibility: "visible" }}
-      >
-        <div className={cn("pointer-events-auto overflow-hidden rounded-lg border border-white/10 shadow-[0_40px_120px_rgba(0,0,0,0.7)]", !show2d && "pointer-events-none")}>
-          <StationPlayer channelId={channelId} visible className="aspect-video w-full" />
-        </div>
-      </motion.div>
+      {/* 2D station picture: the hero on mobile and wherever WebGL is unavailable.
+          On desktop with the studio running it is not rendered at all - the element
+          below keeps playing so the 3D screen has a texture. */}
+      {show2d ? (
+        <motion.div
+          className={cn("pointer-events-none fixed left-1/2 z-10 -translate-x-1/2", mobile ? "top-16 w-[calc(100%-1.5rem)]" : "top-1/2 w-[min(70vw,1100px)] -translate-y-1/2")}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
+        >
+          <div className="pointer-events-auto overflow-hidden rounded-lg bg-black">
+            <StationPlayer channelId={channelId} visible className="aspect-video w-full" />
+          </div>
+        </motion.div>
+      ) : (
+        <StationPlayer channelId={channelId} visible={false} />
+      )}
 
       <StatusRail channelId={channelId} compact={mobile} />
+      <SoundBlockedPrompt />
+      <ContentNotice />
       {!mobile && <BuyAirtimeControl />}
       <PlacementPanel channelId={channelId} />
 
@@ -92,15 +106,15 @@ export function StationShell({ channelId = "MAIN" }: { channelId?: string }) {
             <button className="btn flex-1" onClick={() => setDrawer(drawer === "queue" ? "none" : "queue")}>
               Log
             </button>
-            <button className="btn flex-1" onClick={() => setDrawer(drawer === "guide" ? "none" : "guide")}>
-              Guide
+            <button className="btn flex-1" onClick={() => setDrawer(drawer === "chat" ? "none" : "chat")}>
+              Chat
             </button>
           </div>
           <AnimatePresence>
             {drawer !== "none" && !focused && (
               <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }} className="glass-strong fixed inset-x-2 z-30 max-h-[50vh] overflow-hidden rounded-t-2xl p-3" style={{ bottom: "calc(64px + var(--safe-bottom))" }}>
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="label-strong">{drawer === "inventory" ? "Inventory" : drawer === "queue" ? "Broadcast log" : "Guide"}</span>
+                  <span className="label-strong">{drawer === "inventory" ? "Inventory" : drawer === "queue" ? "Broadcast log" : drawer === "chat" ? "Chat" : "Guide"}</span>
                   <button className="btn btn-ghost btn-sm" onClick={() => setDrawer("none")}>
                     ✕
                   </button>
@@ -108,6 +122,7 @@ export function StationShell({ channelId = "MAIN" }: { channelId?: string }) {
                 {drawer === "inventory" && <InventoryList className="max-h-[40vh]" onSelect={(p) => { focusPlacement(p.id); setDrawer("none"); }} />}
                 {drawer === "queue" && <BroadcastLog className="max-h-[40vh]" compact />}
                 {drawer === "guide" && <ProgramGuide className="max-h-[40vh]" />}
+                {drawer === "chat" && <StationChat className="h-[42vh]" compact />}
               </motion.div>
             )}
           </AnimatePresence>
@@ -122,13 +137,21 @@ export function StationShell({ channelId = "MAIN" }: { channelId?: string }) {
         </div>
       )}
 
-      <div className="pointer-events-none fixed bottom-2 left-3 z-20 hidden md:block">
+      <div className="pointer-events-auto fixed bottom-2 left-3 z-20 hidden items-center gap-3 md:flex">
+        <AddressChip />
+        <TokenContractChip />
         <div className="mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
-          Every fee buys Anduril pre-stock ·{" "}
+          <Link href="/info" className="text-ink-300 transition hover:text-signal">
+            info
+          </Link>{" "}
+          ·{" "}
+          <Link href="/docs" className="text-ink-300 transition hover:text-signal">
+            docs
+          </Link>{" "}
+          · Every fee buys Anduril pre-stock ·{" "}
           <Link href="/treasury" className="text-signal">
             treasury
-          </Link>{" "}
-          · Built on Robinhood Chain
+          </Link>
         </div>
       </div>
       {mode === "focus" && !mobile && (

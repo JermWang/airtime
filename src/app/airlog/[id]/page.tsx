@@ -31,7 +31,10 @@ interface AirLogDto {
 export default function AirLogPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: log, isLoading, error } = useQuery({ queryKey: ["airlog", id], queryFn: () => api<AirLogDto>(`/api/airlog/${id}`) });
-  const durationSec = log ? Math.round((new Date(log.scheduledEnd).getTime() - new Date(log.scheduledStart).getTime()) / 1000) : 0;
+  // What the buyer actually got: a run lasts until somebody outbids it, so the
+  // real number is actual start → actual end, not anything scheduled.
+  const guaranteedSec = log ? Math.round((new Date(log.scheduledEnd).getTime() - new Date(log.scheduledStart).getTime()) / 1000) : 0;
+  const runtimeSec = log && log.actualStart && log.actualEnd ? Math.round((new Date(log.actualEnd).getTime() - new Date(log.actualStart).getTime()) / 1000) : null;
   const visibility = log && log.analytics.visibilitySamples > 0 ? Math.round((log.analytics.visibleSamples / log.analytics.visibilitySamples) * 100) : null;
   return (
     <PageFrame>
@@ -67,12 +70,15 @@ export default function AirLogPage({ params }: { params: Promise<{ id: string }>
               <dd className="text-ink-50">
                 {log.placement.name} <span className="text-ink-500">({log.placement.type.toLowerCase()} · {log.placement.id})</span>
               </dd>
-              <dt>Scheduled</dt>
+              <dt>Guaranteed</dt>
               <dd className="text-ink-50">
-                {formatDateTime(log.scheduledStart)} → {formatDateTime(log.scheduledEnd)} ({formatDurationSec(durationSec)})
+                {formatDurationSec(guaranteedSec)} <span className="text-ink-500">from {formatDateTime(log.scheduledStart)}, then until outbid</span>
               </dd>
-              <dt>Actual</dt>
-              <dd className="text-ink-50">{log.actualStart ? `${formatDateTime(log.actualStart)} → ${log.actualEnd ? formatDateTime(log.actualEnd) : "—"}` : "not activated"}</dd>
+              <dt>Actual run</dt>
+              <dd className="text-ink-50">
+                {log.actualStart ? `${formatDateTime(log.actualStart)} → ${log.actualEnd ? formatDateTime(log.actualEnd) : "still on air"}` : "never started"}
+                {runtimeSec !== null && <span className="text-ink-500"> ({formatDurationSec(runtimeSec)})</span>}
+              </dd>
               <dt>Buyer</dt>
               <dd className="break-all text-ink-50">{log.walletFull}</dd>
               <dt>Creative hash</dt>

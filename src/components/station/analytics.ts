@@ -75,7 +75,7 @@ export function useAdAnalytics(active: QueueEntryDto[], source: MainSource | nul
   }, [active]);
 
   useEffect(() => {
-    if (!videoEl || !source || source.kind !== "ad-video") return;
+    if (!videoEl || !source || source.kind !== "campaign-video") return;
     const c = source.campaign;
     const onEnded = () => track(c.id, c.placementId, "video_complete");
     const onOk = () => track(c.id, c.placementId, "load_ok");
@@ -91,7 +91,7 @@ export function useAdAnalytics(active: QueueEntryDto[], source: MainSource | nul
   }, [videoEl, source]);
 
   useEffect(() => {
-    if (!source || source.kind !== "ad-image") return;
+    if (!source || source.kind !== "campaign-image") return;
     const c = source.campaign;
     const img = new Image();
     img.onload = () => track(c.id, c.placementId, "load_ok");

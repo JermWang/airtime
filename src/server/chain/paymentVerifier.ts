@@ -4,8 +4,10 @@ import { airtimePaymentsAbi } from "@/lib/chain/airtimePayments";
 import { db, schema } from "../db/client";
 import { serverNow } from "../time/clock";
 import { publicClient, paymentContractAddress, requiredConfirmations } from "./client";
+import { verifyTreasuryTransfer, treasuryAddress } from "./treasuryTransfer";
 import { publish } from "../realtime/bus";
 import { audit, SYSTEM } from "../audit";
+import { takeSurface } from "../ads/activation";
 import { env } from "../env";
 import type { Quote } from "../db/schema";
 
@@ -19,7 +21,8 @@ import type { Quote } from "../db/schema";
  *   3. checks quoteId, buyer, placement hash, creative hash, token and amount
  *      against the quote it signed
  *   4. requires N confirmations
- * Only then does the campaign move AWAITING_PAYMENT → PAID → QUEUED.
+ * Only then does the campaign move AWAITING_PAYMENT → PAID → AIRING, taking the
+ * surface from whoever paid less for it.
  *
  * The same verification runs from the scheduler without any browser hint, so a
  * closed tab cannot lose a payment.
@@ -47,13 +50,23 @@ function matches(log: PurchasedLog, quote: Quote, contract: string): string | nu
   return null;
 }
 
-async function recordPayment(quote: Quote, log: PurchasedLog & { transactionHash: Hex; blockNumber: bigint; logIndex: number }): Promise<void> {
+interface PaymentRef {
+  transactionHash: Hex;
+  blockNumber: bigint;
+  /** 0 for a treasury transfer: there is no log, and the unique index is (txHash, logIndex). */
+  logIndex: number;
+}
+
+async function recordPayment(quote: Quote, log: PaymentRef): Promise<void> {
   const now = serverNow();
   await db().transaction(async (tx) => {
     const [existing] = await tx.select().from(schema.payments).where(eq(schema.payments.quoteId, quote.id));
     if (existing) return;
+    // Lock the surface before the campaign: takeSurface decides here whether this
+    // payment displaces whoever is currently running.
+    const [placement] = await tx.select().from(schema.placements).where(eq(schema.placements.id, quote.placementId)).for("update");
     const [campaign] = await tx.select().from(schema.campaigns).where(eq(schema.campaigns.id, quote.campaignId)).for("update");
-    if (!campaign) return;
+    if (!campaign || !placement) return;
 
     const [payment] = await tx
       .insert(schema.payments)
@@ -74,25 +87,35 @@ async function recordPayment(quote: Quote, log: PurchasedLog & { transactionHash
 
     await tx.update(schema.quotes).set({ status: "CONSUMED" }).where(eq(schema.quotes.id, quote.id));
 
-    // Confirm the hold. If the hold expired while the tx was in flight, re-check the
-    // lane before confirming; a genuine conflict is surfaced to operators.
+    // Turn the buyer's hold into their occupancy record. It stays open-ended:
+    // the run has no end until somebody outbids it.
     const [hold] = await tx.select().from(schema.reservations).where(and(eq(schema.reservations.quoteId, quote.id)));
     if (hold) {
-      await tx.update(schema.reservations).set({ status: "CONFIRMED", expiresAt: null }).where(eq(schema.reservations.id, hold.id));
+      await tx.update(schema.reservations).set({ status: "CONFIRMED", startsAt: now, endsAt: null, expiresAt: null }).where(eq(schema.reservations.id, hold.id));
     } else {
-      await tx.insert(schema.reservations).values({ placementId: quote.placementId, lane: (await tx.select().from(schema.placements).where(eq(schema.placements.id, quote.placementId)))[0].lane, campaignId: campaign.id, quoteId: quote.id, startsAt: quote.startsAt, endsAt: quote.endsAt, status: "CONFIRMED", expiresAt: null });
+      await tx.insert(schema.reservations).values({ placementId: quote.placementId, lane: placement.lane, campaignId: campaign.id, quoteId: quote.id, startsAt: now, endsAt: null, status: "CONFIRMED", expiresAt: null });
     }
 
-    await tx.update(schema.campaigns).set({ status: "PAID", paymentId: payment.id, startsAt: quote.startsAt, endsAt: quote.endsAt, activeQuoteId: null, updatedAt: now }).where(eq(schema.campaigns.id, campaign.id));
+    const amountWei = BigInt(quote.amountWei);
+    await tx
+      .update(schema.campaigns)
+      .set({ status: "PAID", paymentId: payment.id, paidPriceWei: quote.amountWei, guaranteedUntil: quote.endsAt, activeQuoteId: null, updatedAt: now })
+      .where(eq(schema.campaigns.id, campaign.id));
     await audit(SYSTEM, "payment.confirmed", { type: "campaign", id: campaign.id }, { txHash: log.transactionHash, blockNumber: log.blockNumber.toString(), amountWei: quote.amountWei }, tx);
-
-    await tx.insert(schema.adActivations).values({ campaignId: campaign.id, placementId: campaign.placementId, channelId: campaign.channelId, scheduledStart: quote.startsAt, scheduledEnd: quote.endsAt, status: "SCHEDULED" });
-    await tx.update(schema.campaigns).set({ status: "QUEUED", updatedAt: now }).where(eq(schema.campaigns.id, campaign.id));
-    await audit(SYSTEM, "campaign.queued", { type: "campaign", id: campaign.id }, {}, tx);
-
     publish({ type: "payment.confirmed", campaignId: campaign.id, txHash: log.transactionHash });
-    publish({ type: "campaign.updated", campaignId: campaign.id, status: "QUEUED", placementId: campaign.placementId });
-    publish({ type: "queue.updated", channelId: campaign.channelId });
+
+    // Paid: take the surface now, displacing a cheaper occupant if there is one.
+    const [paidCampaign] = await tx.select().from(schema.campaigns).where(eq(schema.campaigns.id, campaign.id));
+    const result = await takeSurface(tx, { placement, campaign: paidCampaign, amountWei, guaranteedUntil: quote.endsAt, now });
+    if (!result.ok) {
+      // Only reachable if the hold lapsed and the transaction landed very late.
+      // The money is on chain, so the campaign is flagged for an operator refund
+      // rather than quietly dropped.
+      await tx.update(schema.campaigns).set({ status: "REJECTED", rejectionReason: result.reason, updatedAt: now }).where(eq(schema.campaigns.id, campaign.id));
+      await tx.update(schema.reservations).set({ status: "RELEASED", endsAt: now }).where(and(eq(schema.reservations.campaignId, campaign.id), eq(schema.reservations.status, "CONFIRMED")));
+      await audit(SYSTEM, "campaign.lost_race", { type: "campaign", id: campaign.id }, { reason: result.reason, amountWei: quote.amountWei }, tx);
+      publish({ type: "campaign.updated", campaignId: campaign.id, status: "REJECTED", placementId: campaign.placementId });
+    }
   });
 }
 
@@ -101,16 +124,38 @@ function extractPurchased(logs: Log[]): Array<PurchasedLog & { transactionHash: 
   return parsed.filter((l) => l.transactionHash && l.blockNumber !== null && l.logIndex !== null) as Array<PurchasedLog & { transactionHash: Hex; blockNumber: bigint; logIndex: number }>;
 }
 
+/** True when this quote is settled by a native transfer into the treasury. */
+export function isTreasuryQuote(quote: Quote): boolean {
+  return quote.contractAddress.toLowerCase() === treasuryAddress().toLowerCase();
+}
+
+/**
+ * Verify a treasury-transfer quote from a hinted hash. The hint is stored on the
+ * quote first, so the scheduler can finish the job if the browser goes away
+ * before the transaction has enough confirmations.
+ */
+async function verifyTransferQuote(quote: Quote, txHash: Hex): Promise<VerifyOutcome> {
+  if (quote.txHint !== txHash) {
+    await db().update(schema.quotes).set({ txHint: txHash }).where(eq(schema.quotes.id, quote.id));
+  }
+  const outcome = await verifyTreasuryTransfer(quote, txHash);
+  if (outcome.status === "confirmed") {
+    await recordPayment(quote, { transactionHash: outcome.txHash, blockNumber: outcome.blockNumber, logIndex: 0 });
+  }
+  return outcome;
+}
+
 /** Verify by a tx hash hinted from the browser. The hash is only a lookup key. */
 export async function verifyQuoteByTxHash(quoteId: string, txHash: Hex): Promise<VerifyOutcome> {
-  const contract = paymentContractAddress();
-  if (!contract) return { status: "pending", reason: "contract not configured" };
   const [quote] = await db().select().from(schema.quotes).where(eq(schema.quotes.id, quoteId));
   if (!quote) return { status: "not_found" };
   if (quote.status === "CONSUMED") {
     const [p] = await db().select().from(schema.payments).where(eq(schema.payments.quoteId, quoteId));
     return p ? { status: "confirmed", txHash: p.txHash as Hex, blockNumber: p.blockNumber } : { status: "not_found" };
   }
+  if (isTreasuryQuote(quote)) return verifyTransferQuote(quote, txHash);
+  const contract = paymentContractAddress();
+  if (!contract) return { status: "pending", reason: "contract not configured" };
   const client = publicClient();
   let receipt;
   try {
@@ -133,8 +178,9 @@ export async function verifyQuoteByTxHash(quoteId: string, txHash: Hex): Promise
 
 /** Scheduler path: scan the chain for purchases of every quote awaiting payment. */
 export async function pollAwaitingPayments(): Promise<number> {
+  const settled = await pollTreasuryTransfers();
   const contract = paymentContractAddress();
-  if (!contract) return 0;
+  if (!contract) return settled;
   const awaiting = await db()
     .select()
     .from(schema.quotes)
@@ -179,6 +225,37 @@ export async function pollAwaitingPayments(): Promise<number> {
     if (Number(latest - log.blockNumber) + 1 < requiredConfirmations()) continue;
     await recordPayment(quote, log);
     confirmed++;
+  }
+  return confirmed;
+}
+
+/**
+ * Treasury transfers awaiting confirmation.
+ *
+ * A transfer has no event to scan for, so the quote's stored hint is what the
+ * scheduler follows up. Everything else is identical: the transaction is read
+ * from the chain's own RPC and every field re-checked before anything is paid.
+ */
+async function pollTreasuryTransfers(): Promise<number> {
+  const now = serverNow();
+  const rows = await db()
+    .select()
+    .from(schema.quotes)
+    .where(inArray(schema.quotes.status, ["ACTIVE", "EXPIRED"]));
+  const candidates = rows.filter(
+    (q) => q.txHint && isTreasuryQuote(q) && (q.status === "ACTIVE" || now.getTime() - q.expiresAt.getTime() < 10 * 60 * 1000),
+  );
+  let confirmed = 0;
+  for (const quote of candidates) {
+    try {
+      const outcome = await verifyTreasuryTransfer(quote, quote.txHint as Hex);
+      if (outcome.status === "confirmed") {
+        await recordPayment(quote, { transactionHash: outcome.txHash, blockNumber: outcome.blockNumber, logIndex: 0 });
+        confirmed += 1;
+      }
+    } catch {
+      // An RPC hiccup must not stop the tick; the next one tries again.
+    }
   }
   return confirmed;
 }

@@ -10,12 +10,19 @@ interface Props {
   current: CreativeDto | null;
 }
 
-/** Upload (or type) a creative for a placement; validation happens server-side. */
+/**
+ * Hand the station something to play: a file, or a link to one hosted somewhere
+ * else. A thirty-minute show is not something anybody wants to push through an
+ * upload form, so the link is the first-class path for shows and the station
+ * probes it server-side before it will sell airtime against it.
+ */
 export function CreativeUpload({ placement, onCreative, current }: Props) {
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [text, setText] = useState("");
+  const [link, setLink] = useState("");
+  const [tab, setTab] = useState<"link" | "file">("link");
   const [clickUrl, setClickUrl] = useState("");
   const [drag, setDrag] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -67,7 +74,26 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
     }
   }, [placement.id, text, clickUrl, onCreative]);
 
+  const submitLink = useCallback(async () => {
+    setBusy(true);
+    setErrors([]);
+    setWarnings([]);
+    try {
+      const creative = await api<CreativeDto>("/api/creatives/link", { method: "POST", json: { placementId: placement.id, url: link.trim() } });
+      setWarnings(creative.warnings ?? []);
+      onCreative(creative);
+    } catch (e) {
+      const details = e instanceof ApiError ? (e.details as string[] | undefined) : undefined;
+      setErrors(Array.isArray(details) && details.length ? details : [(e as Error).message]);
+    } finally {
+      setBusy(false);
+    }
+  }, [placement.id, link, onCreative]);
+
   const accept = placement.mediaTypes.includes("VIDEO") ? "image/png,image/jpeg,image/webp,video/mp4" : "image/png,image/jpeg,image/webp";
+  const maxMinutes = Math.round(placement.maxCreativeSec / 60);
+  const lengthLabel = placement.maxCreativeSec >= 120 ? `up to ${maxMinutes} minutes` : `up to ${placement.maxCreativeSec} seconds`;
+  const allowsVideo = placement.mediaTypes.includes("VIDEO");
 
   return (
     <div className="flex flex-col gap-3">
@@ -82,6 +108,41 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
           </div>
         </>
       ) : (
+        <>
+        {allowsVideo && (
+          <div className="flex items-center gap-1">
+            <button className={cn("btn btn-sm", tab === "link" && "border-signal text-signal")} onClick={() => setTab("link")} data-testid="tab-link">
+              Paste a link
+            </button>
+            <button className={cn("btn btn-sm", tab === "file" && "border-signal text-signal")} onClick={() => setTab("file")} data-testid="tab-file">
+              Upload a file
+            </button>
+            <span className="mono ml-auto text-[9.5px] uppercase tracking-[0.12em] text-ink-500">{lengthLabel}</span>
+          </div>
+        )}
+
+        {allowsVideo && tab === "link" ? (
+          <div className="flex flex-col gap-2">
+            <input
+              className="field"
+              placeholder="https://…/your-show.mp4 or …/stream.m3u8"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && link.trim()) void submitLink();
+              }}
+              data-testid="creative-link-input"
+            />
+            <div className="flex items-center justify-between gap-3">
+              <span className="mono text-[9.5px] uppercase leading-relaxed tracking-[0.12em] text-ink-500">
+                Direct video or HLS · {lengthLabel} · the station plays it itself, so it needs a real file, not a watch page
+              </span>
+              <button className="btn btn-primary btn-sm shrink-0" disabled={busy || !link.trim()} onClick={() => void submitLink()} data-testid="use-link">
+                {busy ? "Checking…" : current ? "Replace" : "Use this"}
+              </button>
+            </div>
+          </div>
+        ) : (
         <div
           className={cn("relative flex min-h-[112px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-5 text-center transition", drag ? "border-signal bg-signal-soft" : "border-white/20 hover:border-white/40 hover:bg-white/[0.03]")}
           onDragOver={(e) => {
@@ -109,11 +170,13 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
             <>
               <div className="text-[12.5px] text-ink-100">{current ? "Drop a new file to replace" : "Drop your creative here"}</div>
               <div className="mono mt-1 text-[10px] uppercase tracking-[0.12em] text-ink-400">
-                {placement.mediaTypes.includes("VIDEO") ? "PNG · JPEG · WebP · H.264 MP4" : "PNG · JPEG · WebP"} · {placement.aspectRatio} · up to {placement.maxWidth}×{placement.maxHeight} · {(placement.maxFileBytes / 1024 / 1024).toFixed(0)} MB
+                {allowsVideo ? "H.264 MP4 · PNG · JPEG · WebP" : "PNG · JPEG · WebP"} · {placement.aspectRatio} · {lengthLabel} · {(placement.maxFileBytes / 1024 / 1024).toFixed(0)} MB
               </div>
             </>
           )}
         </div>
+        )}
+        </>
       )}
       {placement.allowsClickThrough && (
         <input className="field" placeholder="Click-through URL (https, optional)" value={clickUrl} onChange={(e) => setClickUrl(e.target.value)} />

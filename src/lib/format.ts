@@ -21,6 +21,21 @@ export function formatWei(wei: bigint | string | null | undefined, decimals = 18
   return `${int}${trimmed ? "." + trimmed : ""} ${symbol}`;
 }
 
+/**
+ * Parts per million rendered as a percentage: 50 ppm → "0.005".
+ *
+ * Integer arithmetic, because this number is a share of an asset. Dividing and
+ * calling toFixed would round 0.005% to nothing at two decimal places.
+ */
+export function formatPercentFromPpm(ppm: number): string {
+  const scaled = Math.round(ppm);
+  const sign = scaled < 0 ? "-" : "";
+  const abs = Math.abs(scaled);
+  const whole = Math.floor(abs / 10_000);
+  const frac = String(abs % 10_000).padStart(4, "0").replace(/0+$/, "");
+  return `${sign}${whole}${frac ? `.${frac}` : ""}`;
+}
+
 export function formatDurationSec(sec: number): string {
   if (sec < 60) return `${sec}s`;
   if (sec < 3600) {

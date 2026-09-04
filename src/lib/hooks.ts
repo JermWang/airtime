@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type BroadcastStateDto, type QueueDto, type ActivationsDto, type PlacementDto, type AvailabilityDto, type SessionDto, type CampaignDto, type ShowcaseDto, type TreasuryDto } from "./api";
+import { api, type BroadcastStateDto, type QueueDto, type ActivationsDto, type PlacementDto, type BoardDto, type SurfaceDto, type SessionDto, type CampaignDto, type ShowcaseDto, type TreasuryDto } from "./api";
 import { useClock, useRealtime } from "./store";
 
 /* ------------------------------------------------------------------------- */
@@ -84,7 +84,8 @@ export function useRealtimeConnection(): void {
             case "schedule.updated":
               void qc.invalidateQueries({ queryKey: ["broadcast"] });
               void qc.invalidateQueries({ queryKey: ["guide"] });
-              void qc.invalidateQueries({ queryKey: ["availability"] });
+              void qc.invalidateQueries({ queryKey: ["surface"] });
+              void qc.invalidateQueries({ queryKey: ["board"] });
               break;
             case "queue.updated":
             case "placement.activated":
@@ -101,12 +102,20 @@ export function useRealtimeConnection(): void {
               break;
             case "placement.updated":
             case "placements.updated":
+            case "placement.activated":
+            case "placement.released":
               void qc.invalidateQueries({ queryKey: ["placements"] });
+              void qc.invalidateQueries({ queryKey: ["surface"] });
+              void qc.invalidateQueries({ queryKey: ["board"] });
+              void qc.invalidateQueries({ queryKey: ["activations"] });
               break;
             case "clock.updated":
               // Re-sync immediately when the dev clock moves.
               void api<{ serverTime: number }>("/api/time").then((r) => setOffset(r.serverTime - Date.now()));
               void qc.invalidateQueries();
+              break;
+            case "chat.message":
+              void qc.invalidateQueries({ queryKey: ["chat"] });
               break;
             case "settings.updated":
               void qc.invalidateQueries({ queryKey: ["settings"] });
@@ -177,12 +186,22 @@ export function usePlacements(channelId = "MAIN") {
   });
 }
 
-export function useAvailability(placementId: string | null, durationSec: number | null, hours = 24) {
+/** The live ask for one surface. Polled often: the price is always moving. */
+export function useSurface(placementId: string | null) {
   return useQuery({
-    queryKey: ["availability", placementId, durationSec, hours],
-    queryFn: () => api<AvailabilityDto>(`/api/placements/${placementId}/availability?duration=${durationSec}&hours=${hours}`),
-    enabled: Boolean(placementId && durationSec),
-    refetchInterval: 20_000,
+    queryKey: ["surface", placementId],
+    queryFn: () => api<SurfaceDto>(`/api/placements/${placementId}/surface`),
+    enabled: Boolean(placementId),
+    refetchInterval: 10_000,
+  });
+}
+
+/** Every surface, its ask and its occupant. */
+export function useBoard(channelId = "MAIN") {
+  return useQuery({
+    queryKey: ["board", channelId],
+    queryFn: () => api<BoardDto>(`/api/board?channel=${channelId}`),
+    refetchInterval: 15_000,
   });
 }
 

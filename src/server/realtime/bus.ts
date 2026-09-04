@@ -18,7 +18,8 @@ export type RealtimeEvent =
   | { type: "placements.updated" }
   | { type: "payment.confirmed"; campaignId: string; txHash: string }
   | { type: "settings.updated"; key: string }
-  | { type: "clock.updated"; offsetMs: number };
+  | { type: "clock.updated"; offsetMs: number }
+  | { type: "chat.message"; channelId: string; messageId: string };
 
 export type RealtimeEnvelope = RealtimeEvent & { id: number; at: number };
 

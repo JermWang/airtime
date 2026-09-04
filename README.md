@@ -4,7 +4,9 @@ A browser-native, 24/7 linear television network where **every display surface i
 
 Everything the network earns — airtime revenue and token tax — is used to buy **Anduril pre-stock**, which is then distributed to holders. The [treasury page](#treasury) shows income in, pre-stock bought and pre-stock distributed.
 
-Open the homepage and you are already watching the station: a broadcast studio with a live main display, a rear video wall, architectural billboards, an LED ticker and control-room monitors. Any of those surfaces can be clicked, previewed with your own creative, priced, and bought. Payment settles on chain; the station verifies the on-chain event itself, queues the campaign, airs it at the reserved second and issues an **AirLog** receipt.
+Open the homepage and you are already watching the station: a screening room built around one large display, with an LED ticker under it and a readable panel either side. Any of those surfaces can be clicked, previewed with your own creative, and bought.
+
+You are not buying a thirty-second spot. **Every surface runs a continuous descending auction.** It asks a price that falls with time; pay it and the surface is yours, on air, until somebody pays more than you did. A sale ratchets the ask up to twice what you paid and time walks it back down again, so a wanted surface gets expensive and an unwanted one gets cheap. Payment settles on chain; the station verifies the on-chain event itself, puts the run on air immediately, and issues an **AirLog** receipt when it ends.
 
 > AIRTIME is an independent product. Robinhood Chain is used as payment infrastructure.
 
@@ -44,11 +46,11 @@ Open the homepage and you are already watching the station: a broadcast studio w
 | Data-driven placement / inventory system (no hardcoded surfaces) | Working |
 | 3D studio with GLTF-driven surfaces, live textures, camera choreography | Working |
 | WYSIWYG creative preview on the real surface (3D and 2D) | Working |
-| Server-authoritative pricing and EIP-712 signed quotes | Working |
+| Continuous descending-price auction per surface, server-authoritative, EIP-712 signed quotes | Working |
 | Inventory holds, expiry, double-booking prevention (transactional) | Working |
 | On-chain payment + independent server-side event verification | Working |
 | Automatic activation, completion and AirLog generation | Working |
-| Public broadcast queue, program guide, campaign and AirLog pages | Working |
+| Public board of surfaces, program guide, campaign and AirLog pages | Working |
 | Control room: programming, placements incl. visual editor, moderation, payments, audit | Working |
 | Treasury: derived airtime revenue + operator-recorded pre-stock ledger | Working |
 | House showcase cards on unbooked surfaces (always badged EXAMPLE) | Working |
@@ -72,7 +74,7 @@ flowchart TB
     subgraph Server["Next.js server"]
         API["Route handlers<br/>Zod-validated"]
         Engine["Broadcast engine<br/>schedule · blocks"]
-        Ads["Ad engine<br/>pricing · availability · quotes"]
+        Ads["Ad engine<br/>auction · quotes · runs"]
         Verify["Payment verifier<br/>reads canonical events"]
         Ticker["Scheduler tick (1s)<br/>expire · activate · complete"]
         Bus["Realtime bus → SSE"]
@@ -108,9 +110,9 @@ sequenceDiagram
     U->>A: Sign in with Ethereum (SIWE)
     U->>A: Upload creative
     A->>A: Sniff magic bytes, decode, re-encode, hash (keccak256)
-    U->>A: Choose duration + airtime slot
-    A->>A: TX: lock placement, check lane, price, HOLD reservation (~3 min)
-    A-->>U: EIP-712 signed Quote (quoteId, creativeHash, window, amount, nonce)
+    U->>A: Take the surface at the current ask
+    A->>A: TX: lock placement, refuse if held or inside a guaranteed run, read the ask, HOLD (~3 min)
+    A-->>U: EIP-712 signed Quote (quoteId, creativeHash, guaranteed window, amount, nonce)
     U->>W: purchase(quote, signature)
     W->>C: tx with msg.value == amount
     C->>C: verify signature, buyer, expiry, nonce, chain, token
@@ -119,9 +121,9 @@ sequenceDiagram
     U->>A: hint tx hash (optional)
     A->>C: read receipt / logs from its own RPC
     A->>A: match quoteId, buyer, placement, creativeHash, token, amount, window
-    A->>A: PAID → QUEUED, reservation CONFIRMED
-    S->>S: at startsAt → AIRING (texture swaps live everywhere)
-    S->>S: at endsAt → COMPLETED + AirLog
+    A->>A: PAID → AIRING at once, outbidding whoever paid less for the surface
+    A->>A: the ask resets to 2x the price paid and starts descending again
+    S->>S: when a higher bid lands → COMPLETED + AirLog for the outgoing run
 ```
 
 ### Campaign lifecycle
@@ -164,7 +166,7 @@ src/components/
   control-room/       Admin API hooks, UI primitives, visual placement editor
 src/server/
   broadcast/          Linear schedule engine
-  ads/                pricing · availability · quotes · campaigns · creatives · activation
+  ads/                auction · quotes · campaigns · creatives · activation (runs)
   chain/              RPC client, EIP-712 quote signer, payment verifier
   media/              validation (magic bytes, MP4 parser), storage, media provider
   db/                 Drizzle schema, client (Postgres or embedded PGlite), seed
@@ -356,7 +358,7 @@ The page carries an explicit disclosure: it is not an offer, a prospectus, or in
 
 ### Showcase cards
 
-Surfaces nobody has booked can show a house **showcase card** so an empty network still demonstrates what the billboards do. These are drawn procedurally from text only — no third-party artwork — and always carry a permanent **EXAMPLE** badge plus "this space is available". They never enter the public queue, never produce an AirLog, and are not counted as revenue. Cards live in the `showcase_creatives` table, seeded against four surfaces; the floating glass panel and the studio monitors are deliberately left bare so genuine availability is obvious.
+Surfaces nobody has booked can show a house **showcase card** so an empty network still demonstrates what the billboards do. These are drawn procedurally from text only — no third-party artwork — and always carry a permanent **EXAMPLE** badge plus "this space is available". They never enter the public board, never produce an AirLog, and are not counted as revenue. Cards live in the `showcase_creatives` table, seeded against the two studio billboards; every other surface is deliberately left bare so genuine availability is obvious.
 
 ## How synchronized television works
 
@@ -417,7 +419,7 @@ The main display (`<BroadcastScreen>`) shares the station player's single `<vide
 
 Nothing about inventory is hardcoded. Two ways to add a surface:
 
-**From the control room (no code):** `/control-room/placements → New`. Give it an id, type, aspect ratio, media types, durations, pricing and availability rules, and either pick a **GLTF mesh** (`Pick` lets you click any mesh in the live studio) or leave the mesh empty and place it with the transform gizmo. Save; the studio picks it up over the realtime bus and it becomes buyable immediately.
+**From the control room (no code):** `/control-room/placements → New`. Give it an id, type, aspect ratio, media types and auction rules, and either pick a **GLTF mesh** (`Pick` lets you click any mesh in the live studio) or leave the mesh empty and place it with the transform gizmo. Save; the studio picks it up over the realtime bus and it becomes buyable immediately.
 
 **From code (seed):** add an entry to `BASE_PLACEMENTS` in `src/server/db/seed.ts`.
 
@@ -431,15 +433,19 @@ Fields that matter:
 | `ownsMainStream` | An airing campaign here replaces the main broadcast picture. This is what makes commercials, channel takeovers and sponsored station-ID bumpers work without special-casing a placement type |
 | `meshName` | GLTF mesh to map the texture onto, or `null` for a transform-placed plane |
 | `transform` | Position / rotation / scale for mesh-less placements (edited with the gizmo) |
-| `availability.inventoryMode` | `CONTINUOUS` (any slot on the grid) or `AD_BREAK` (must fit inside a commercial break) |
-| `availability.slotSeconds` | Booking grid; quotes off the grid are rejected server-side |
-| `pricingRules` | Fixed or dynamic: duration curve, daypart, premium-program, demand and proximity multipliers, all in basis points |
+| `availability.inventoryMode` | `CONTINUOUS` (the occupant is on the surface the whole time it holds it) or `AD_BREAK` (the occupant owns the picture during every commercial break) |
+| `auction.openingPriceWei` / `auction.floorPriceWei` | Where the ask starts on a surface that has never sold, and the level it never decays below |
+| `auction.decaySeconds` | How long the ask takes to walk from the top of a descent down to its floor, linearly |
+| `auction.takeoverPremiumBps` | Where the ask restarts after a sale: 20000 = 2x what the buyer paid |
+| `auction.minIncrementBps` | How much a challenger has to beat the occupant by: 500 = +5% |
+| `auction.minHoldSeconds` | Runtime a buyer is guaranteed before anybody can outbid them |
+| `auction.maxHoldSeconds` | Hard cap on a single run. 0, the default, means it runs until outbid |
 | `requiresModeration` | Campaign cannot be quoted until a moderator approves the creative |
 | `maxWidth/maxHeight/maxFileBytes/allowsAudio/allowsClickThrough` | Creative rules enforced during validation |
 
-Seeded placements cover all four categories: full-screen commercials (15 s and 30 s inside ad breaks), overlays (lower third, ticker, sponsor bug), 3D environment surfaces (left and right billboards, rear video wall, desk display and a transform-placed floating glass panel) and a sponsorship (10-second station-identification bumper).
+Seeded placements: the commercial break (one surface that owns the picture during every break for as long as its buyer holds it), three overlays (lower third, ticker, sponsor bug) and the two studio billboards.
 
-The 19 named surfaces in the shipped studio (`public/models/studio.meshes.json`) include `Screen_Main`, `Monitor_Rear`, `Billboard_Left`, `Billboard_Right`, `LED_Ribbon`, `Desk_Display`, six wing monitors, four control-room monitors and three desk monitors — any of them can be sold by pointing a placement at it.
+The shipped studio (`public/models/studio.meshes.json`) is deliberately spare: four sellable surfaces — `Screen_Main`, `LED_Ribbon`, `Billboard_Left` and `Billboard_Right` — all facing the viewer square on, plus the architecture and lighting around them. Earlier layouts had an anchor desk, wing walls, a rear video wall and a wall of small monitors; they were removed because inventory nobody can read is not worth selling. Add a mesh in `scripts/build-studio-gltf.ts` with `extras.surface` and it becomes sellable the moment a placement points at it.
 
 ---
 
@@ -485,14 +491,14 @@ A pending transaction is never treated as paid, and `payments` unique indexes ma
 ## Testing
 
 ```bash
-pnpm test            # Vitest: pricing, player sync, MP4 parser, full API integration
+pnpm test            # Vitest: the price curve, player sync, MP4 parser, full API integration
 pnpm contract:test   # Foundry: 24 tests incl. replay, expiry, wrong chain, fuzz
 pnpm test:e2e        # Playwright: the complete vertical slice against a local chain
 ```
 
 The integration suite (`tests/api/inventory.test.ts`) runs against a real in-memory Postgres and covers creative validation (including a disguised HTML file), quote signing and verification against the contract's EIP-712 domain, inventory holds, **concurrent quotes for the same window where exactly one wins**, quote expiry releasing inventory, event-matched payment verification, replay rejection, activation, completion, AirLog contents and schedule synchronisation.
 
-The Playwright suite deploys `AirtimePayments` to a fresh anvil chain, builds and starts the production server, then drives the browser through: watch the station → open a studio billboard → sign in → upload a creative → preview it → pick airtime → receive a quote → pay with a local wallet → server verifies the on-chain event → campaign appears in the public queue → operator jumps the station clock → campaign airs → completes → AirLog page renders with the transaction.
+The Playwright suite deploys `AirtimePayments` to a fresh anvil chain, builds and starts the production server, then drives the browser through: watch the station → open a studio billboard → sign in → upload a creative → preview it → read the live descending ask → receive a quote → pay with a local wallet → server verifies the on-chain event → the run is on air immediately and the surface reports its occupant and its new takeover price → the buyer hands the surface back → AirLog page renders with the transaction.
 
 ---
 
@@ -552,7 +558,7 @@ Three parts of AIRTIME assume a long-lived server with a disk. On Vercel each re
 | --- | --- | --- |
 | Database | embedded PGlite on disk | **required:** `DATABASE_URL` to managed Postgres. The embedded fallback is refused with an explanatory error |
 | Creative storage | `./storage` on disk | **required:** `STORAGE_PROVIDER=s3` plus bucket, credentials and `STORAGE_PUBLIC_BASE_URL`. Local storage is refused |
-| Scheduler | `setInterval` every second | Vercel Cron calls `/api/cron/tick` every minute, and `/api/queue`, `/api/activations` and `/api/broadcast/state` tick opportunistically (at most once every 4s) so traffic keeps the station moving between firings |
+| Scheduler | `setInterval` every second | Vercel Cron calls `/api/cron/tick` every minute, and `/api/queue`, `/api/activations`, `/api/board` and `/api/broadcast/state` tick opportunistically (at most once every 4s) so traffic keeps the station moving between firings |
 
 ### Setup
 
@@ -609,15 +615,25 @@ See `.env.example`. Secrets must never be placed in `NEXT_PUBLIC_*` variables.
 | `/` | The station: immersive studio + live television + purchase |
 | `/watch` | 2D station with guide and broadcast log (no WebGL required) |
 | `/guide` | Program guide |
-| `/queue` | Public broadcast log: on air, up next, later, recently aired |
+| `/queue` | Public board: who is standing on which surface, and who was outbid off one recently |
 | `/airtime` | All inventory, plus your campaigns |
 | `/airtime/[placementId]` | Conventional purchase page with WYSIWYG preview |
 | `/campaign/[id]` | Campaign status, creative hashes and payment |
 | `/airlog/[id]` | Shareable proof-of-air receipt |
 | `/treasury` | Income in, Anduril pre-stock bought and distributed |
+| `/info` | Public explainer: what the network is, what is for sale, what the chain proves |
+| `/docs` | Advertiser and operator documentation |
 | `/control-room` | Master control (authenticated) |
 
-API: `/api/time`, `/api/events` (SSE), `/api/treasury`, `/api/showcase`, `/api/broadcast/state`, `/api/broadcast/guide`, `/api/queue`, `/api/activations`, `/api/placements`, `/api/placements/[id]/availability`, `/api/auth/*`, `/api/creatives*`, `/api/campaigns*`, `/api/analytics`, `/api/airlog/[id]`, `/api/admin/*`.
+API: `/api/time`, `/api/events` (SSE), `/api/treasury`, `/api/showcase`, `/api/broadcast/state`, `/api/broadcast/guide`, `/api/queue`, `/api/activations`, `/api/placements`, `/api/placements/[id]/surface`, `/api/board`, `/api/auth/*`, `/api/creatives*`, `/api/campaigns*`, `/api/analytics`, `/api/airlog/[id]`, `/api/admin/*`.
+
+---
+
+## Sound and content
+
+One `<video>` element carries the whole station: the programme, and whatever a buyer has taken the main picture with. The 3D screen samples that same element, so picture and sound can never disagree, and environment surfaces are always silent. Sound starts muted because browsers refuse to autoplay audio; the control in the status rail unmutes and sets the level, the choice is remembered per browser, and if the autoplay policy refuses an unmuted start the player falls back to muted playback and asks for a click rather than stalling.
+
+Programming is **unrated**. There is no TV rating system, no age gate and no viewer discretion advisory: everything that runs during station time is a user submission that was paid for, and placements flagged `requiresModeration` get a policy check by a moderator, which is not a rating. That disclosure appears on first visit, permanently in the footer, and in full at `/docs#content`.
 
 ---
 

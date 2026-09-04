@@ -13,6 +13,7 @@ export default function SettingsPage() {
   const patch = useAdminMutation((body: Record<string, unknown>) => api("/api/admin/settings", { method: "PATCH", json: body }));
   const [hold, setHold] = useState<number | null>(null);
   const [alloc, setAlloc] = useState<number | null>(null);
+  const [holderCap, setHolderCap] = useState<number | null>(null);
   const [jump, setJump] = useState(5);
   const s = data?.settings;
   return (
@@ -47,6 +48,24 @@ export default function SettingsPage() {
                 onChange={(e) => setAlloc(Number(e.target.value))}
               />
               <button className="btn btn-sm" onClick={() => alloc !== null && patch.mutate({ treasuryAllocationBps: Math.round(alloc * 100) })}>
+                Save
+              </button>
+            </div>
+          </Field>
+        </div>
+        <div className="mt-4">
+          <Field label="Holder reward cap (% of pre-IPO)" hint="The most any single token holder is rewarded with. Stored as parts per million, so 0.005 is exact. Shown publicly on /treasury.">
+            <div className="flex gap-2">
+              <input
+                className="field"
+                type="number"
+                min={0}
+                max={100}
+                step={0.001}
+                value={holderCap ?? (s ? s.holderRewardCapPpm / 10_000 : 0.005)}
+                onChange={(e) => setHolderCap(Number(e.target.value))}
+              />
+              <button className="btn btn-sm" onClick={() => holderCap !== null && patch.mutate({ holderRewardCapPpm: Math.round(holderCap * 10_000) })}>
                 Save
               </button>
             </div>

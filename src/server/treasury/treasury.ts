@@ -10,7 +10,10 @@ import type { TreasuryEntry } from "../db/schema";
  * The AIRTIME treasury.
  *
  * Policy: a configured share of everything the network earns is used to buy
- * Anduril pre-stock, which is then distributed to holders.
+ * Anduril pre-stock, which is then distributed to token holders. Every holder is
+ * rewarded in pre-IPO shares up to `holderRewardCapPpm` each (0.005% by
+ * default); the cap is policy, and what was actually distributed is recorded in
+ * the ledger below like every other off-chain movement.
  *
  * Two very different kinds of number meet here, and the split is deliberate:
  *
@@ -26,6 +29,8 @@ import type { TreasuryEntry } from "../db/schema";
 export interface TreasurySummary {
   /** Basis points of income earmarked for pre-stock. 10000 = 100%. */
   allocationBps: number;
+  /** Cap on one holder's reward, in parts per million of the allocation. 50 = 0.005%. */
+  holderRewardCapPpm: number;
   /** Confirmed, non-refunded airtime payments. Derived from verified events. */
   airtimeRevenueWei: string;
   airtimePayments: number;
@@ -129,6 +134,7 @@ export async function getTreasurySummary(): Promise<TreasurySummary> {
 
   return {
     allocationBps: settings.treasuryAllocationBps,
+    holderRewardCapPpm: settings.holderRewardCapPpm,
     airtimeRevenueWei: airtimeRevenueWei.toString(),
     airtimePayments: Number(revenue?.count ?? 0),
     taxInflowWei: taxInflowWei.toString(),
