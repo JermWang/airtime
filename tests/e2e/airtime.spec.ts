@@ -32,22 +32,27 @@ async function connectDevWallet(page: Page) {
 
 test.describe.configure({ mode: "serial" });
 
-test("station is live on the homepage: video, program, log and inventory HUD", async ({ page }) => {
+test("station is live: picture, programme and the price board", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("video").first()).toBeAttached();
   await expect(page.getByText(/on air|stand by|live/i).first()).toBeVisible({ timeout: 30_000 });
   const state = await page.request.get("/api/broadcast/state?channel=MAIN").then((r) => r.json());
   expect(state.now).toBeTruthy();
   expect(state.next).toBeTruthy();
-  // Browse all inventory from the studio control and open the left billboard.
-  await page.getByRole("button", { name: /browse all inventory/i }).click();
-  await page.getByRole("button", { name: /Left studio billboard/i }).click();
-  await expect(page.getByTestId("placement-panel")).toBeVisible();
+
+  // The board sells one screen and the two panels beside it, all opening at 0.01.
+  const board = await page.request.get("/api/board?channel=MAIN").then((r) => r.json());
+  const ids = board.rows.map((r: { placement: { id: string } }) => r.placement.id).sort();
+  expect(ids).toEqual(["AD", "PANEL_LEFT", "PANEL_RIGHT", "SHOW"]);
+  for (const row of board.rows) expect(row.surface.askWei).toBe("10000000000000000");
+
+  // Opening a surface goes straight into the purchase flow.
+  await page.goto("/airtime/SHOW");
   await expect(page.getByTestId("purchase-flow")).toHaveAttribute("data-step", "connect");
 });
 
 test("full purchase → on-chain verification → queue → air → AirLog", async ({ page, request }) => {
-  await page.goto("/airtime/SHOW");
+  await page.goto("/airtime/AD");
   await expect(page.getByTestId("purchase-flow")).toHaveAttribute("data-step", "connect");
 
   // 1. connect + sign in (SIWE) with the local dev wallet
@@ -57,6 +62,8 @@ test("full purchase → on-chain verification → queue → air → AirLog", asy
 
   // 2. upload a valid creative
   await page.getByTestId("display-name").fill("Playwright Motors");
+  // A surface that takes video offers the link tab first; this buyer has a file.
+  await page.getByTestId("tab-file").click();
   const png = await sharp({ create: { width: 1280, height: 720, channels: 3, background: { r: 31, g: 224, b: 122 } } }).png().toBuffer();
   await page.getByTestId("creative-file-input").setInputFiles({ name: "spot.png", mimeType: "image/png", buffer: png });
   await expect(page.getByTestId("purchase-flow")).toHaveAttribute("data-step", "price", { timeout: 60_000 });
@@ -111,10 +118,10 @@ test("full purchase → on-chain verification → queue → air → AirLog", asy
   const queue = await request.get("/api/queue?channel=MAIN").then((r) => r.json());
   expect(queue.onAir.some((e: { id: string }) => e.id === campaignId)).toBe(true);
   const activations = await request.get("/api/activations?channel=MAIN").then((r) => r.json());
-  expect(activations.active.some((e: { id: string; placementId: string }) => e.id === campaignId && e.placementId === "SHOW")).toBe(true);
+  expect(activations.active.some((e: { id: string; placementId: string }) => e.id === campaignId && e.placementId === "AD")).toBe(true);
 
   // The surface now asks the takeover premium and is protected for the guaranteed runtime.
-  const surface = await request.get("/api/placements/SHOW/surface").then((r) => r.json());
+  const surface = await request.get("/api/placements/AD/surface").then((r) => r.json());
   expect(surface.occupant.campaignId).toBe(campaignId);
   expect(surface.status).toBe("PROTECTED");
   expect(BigInt(surface.askWei)).toBeGreaterThan(BigInt(live.pricePaidWei));
@@ -140,6 +147,20 @@ test("full purchase → on-chain verification → queue → air → AirLog", asy
 
   await jumpClock(request, 0);
 });
+
+test("buy airtime asks for a show or an ad, with both prices live", async ({ page }) => {
+    await page.goto("/station");
+    await page.getByRole("button", { name: /buy airtime/i }).first().click();
+    const chooser = page.getByTestId("product-chooser");
+    await expect(chooser).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("product-show")).toContainText(/show/i);
+    await expect(page.getByTestId("product-ad")).toContainText(/ad/i);
+    // Both products, and the three ad surfaces behind the ad card.
+    await page.getByTestId("product-ad").click();
+    await expect(page.getByTestId("ad-surface-AD")).toBeVisible();
+    await expect(page.getByTestId("ad-surface-PANEL_LEFT")).toBeVisible();
+    await expect(page.getByTestId("ad-surface-PANEL_RIGHT")).toBeVisible();
+  });
 
 test("treasury reports airtime revenue and operator-recorded pre-stock", async ({ page, request }) => {
   await adminLogin(request);
@@ -167,7 +188,7 @@ test("a quote cannot be replayed and the surface goes back on the market", async
   const recent = queue.recent[0];
   expect(recent).toBeTruthy();
   // The surface is free again and its ask descends from what it last cleared at.
-  const surface = await request.get("/api/placements/SHOW/surface").then((r) => r.json());
+  const surface = await request.get("/api/placements/AD/surface").then((r) => r.json());
   expect(surface.occupant).toBeNull();
   expect(surface.forSale).toBe(true);
   expect(BigInt(surface.lastClearingPriceWei)).toBeGreaterThan(0n);

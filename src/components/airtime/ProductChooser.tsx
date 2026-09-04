@@ -65,7 +65,7 @@ export function ProductChooser({ channelId = "MAIN", className }: { channelId?: 
   const rows = data?.rows ?? [];
   const show = rows.find((r) => r.placement.kind === "show");
   const ads = rows.filter((r) => r.placement.kind === "ad" || r.placement.kind === "panel");
-  const showLive = useLiveAsk(show?.placement ?? rows[0]?.placement, show?.surface);
+  const showLive = useLiveAsk(show?.placement, show?.surface);
 
   const pick = (id: string) => {
     focusPlacement(id);

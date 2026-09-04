@@ -13,19 +13,22 @@ import { formatWei, formatDurationSec, cn } from "@/lib/format";
  * number here is recomputed locally from the same curve the server uses. The two
  * agree to the wei because they run the identical function.
  */
-export function useLiveAsk(placement: PlacementDto, surface: SurfaceDto | undefined) {
+export function useLiveAsk(placement: PlacementDto | undefined, surface: SurfaceDto | undefined) {
   const now = useServerNow(500);
+  // Both can be absent for a frame or two while the board loads, and a hook may
+  // not bail out early, so the guard belongs inside.
+  const auction = placement?.auction;
   return useMemo(() => {
-    if (!surface) return null;
+    if (!surface || !auction) return null;
     const ask = computeAsk({
-      auction: placement.auction,
+      auction,
       lastClearingPriceWei: BigInt(surface.lastClearingPriceWei || "0"),
       askResetAtMs: new Date(surface.askResetAt).getTime(),
       occupied: Boolean(surface.occupant),
       nowMs: now,
     });
     return { ...ask, progress: descentProgress(ask), nowMs: now };
-  }, [placement.auction, surface, now]);
+  }, [auction, surface, now]);
 }
 
 interface Props {

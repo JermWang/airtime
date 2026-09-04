@@ -443,7 +443,22 @@ Fields that matter:
 | `requiresModeration` | Campaign cannot be quoted until a moderator approves the creative |
 | `maxWidth/maxHeight/maxFileBytes/allowsAudio/allowsClickThrough` | Creative rules enforced during validation |
 
-Seeded placements: the commercial break (one surface that owns the picture during every break for as long as its buyer holds it), three overlays (lower third, ticker, sponsor bug) and the two studio billboards.
+Seeded placements — one screen, one panel either side, four things to buy:
+
+| Placement | What it is | Length | Opens at |
+| --- | --- | --- | --- |
+| `SHOW` | The picture itself, whenever a break is not on | up to 30 minutes | 0.01 ETH |
+| `AD` | The picture during every commercial break | up to 30 seconds | 0.01 ETH |
+| `PANEL_LEFT` | The panel left of the picture, always on | up to 30 seconds | 0.01 ETH |
+| `PANEL_RIGHT` | The panel right of the picture, always on | up to 30 seconds | 0.01 ETH |
+
+Everything opens at the same price and the market separates them. A show is worth more than a spot, so a show clears higher — nothing in the code makes it so.
+
+### Submitting a show
+
+A show is up to half an hour, which is not something anybody wants to push through an upload form, so a submission can be a **link** instead. The station fetches it itself before it will sell airtime against it: it refuses private addresses and plain http, reads the content type, parses the MP4 container or sums the HLS playlist for the real running time, and checks the origin sends CORS headers so the frame can be copied into the WebGL texture. The URL is what gets hashed into the quote, so the buyer is committing to that exact address.
+
+Direct video (`.mp4`, `.webm`) and HLS (`.m3u8`) play. A watch page — YouTube, Vimeo, Twitch — is rejected with an explanation, because playing one means embedding somebody else's player, and no third-party markup or script is ever loaded into this station.
 
 The shipped studio (`public/models/studio.meshes.json`) is deliberately spare: four sellable surfaces — `Screen_Main`, `LED_Ribbon`, `Billboard_Left` and `Billboard_Right` — all facing the viewer square on, plus the architecture and lighting around them. Earlier layouts had an anchor desk, wing walls, a rear video wall and a wall of small monitors; they were removed because inventory nobody can read is not worth selling. Add a mesh in `scripts/build-studio-gltf.ts` with `extras.surface` and it becomes sellable the moment a placement points at it.
 
@@ -615,6 +630,7 @@ See `.env.example`. Secrets must never be placed in `NEXT_PUBLIC_*` variables.
 | `/` | The front page: live picture as the splash, then how it works, the board, treasury, chat and the room |
 | `/watch` | 2D station with guide and broadcast log (no WebGL required) |
 | `/guide` | Program guide |
+| `/station` | The auditorium: the 3D room, the picture and the two panels |
 | `/queue` | Public board: who is standing on which surface, and who was outbid off one recently |
 | `/airtime` | All inventory, plus your campaigns |
 | `/airtime/[placementId]` | Conventional purchase page with WYSIWYG preview |
