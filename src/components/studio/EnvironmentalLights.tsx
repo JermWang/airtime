@@ -18,8 +18,8 @@ export function EnvironmentalLights({ tier }: { tier: Tier }) {
   }, []);
   return (
     <>
-      <hemisphereLight args={["#3d4854", "#0b0e12", 1.15]} />
-      <ambientLight intensity={0.34} color="#aeb8c4" />
+      <hemisphereLight args={["#48545f", "#101418", 1.6]} />
+      <ambientLight intensity={0.5} color="#b6c0cc" />
       <spotLight
         position={[0, 11.6, 3.2]}
         angle={0.7}
@@ -36,8 +36,9 @@ export function EnvironmentalLights({ tier }: { tier: Tier }) {
       />
       <spotLight position={[-9, 11, 3.2]} angle={0.72} penumbra={1} intensity={45} distance={28} decay={2} color="#d6dde3" />
       <spotLight position={[9, 11, 3.2]} angle={0.72} penumbra={1} intensity={45} distance={28} decay={2} color="#d6dde3" />
-      {/* Spill from the picture itself, sized to the screen. */}
-      <rectAreaLight position={[0, 6.4, -5.1]} width={17.8} height={10} intensity={5.6} color="#cfd8e3" rotation={[0, 0, 0]} />
+      {/* Spill from the picture onto the room. Deliberately gentle: it should
+          light the wall and floor a little, never ring the frame with a halo. */}
+      <rectAreaLight position={[0, 6.4, -5.1]} width={17.8} height={10} intensity={2.2} color="#cfd8e3" rotation={[0, 0, 0]} />
       {/* Signal-green hairlines high on the side walls. */}
       <pointLight position={[-12.6, 10.5, 2]} intensity={9} distance={14} decay={2} color="#ccff00" />
       <pointLight position={[12.6, 10.5, 2]} intensity={9} distance={14} decay={2} color="#ccff00" />

@@ -59,9 +59,24 @@ export function useServerNow(intervalMs = 250): number {
 /*  Realtime (SSE)                                                            */
 /* ------------------------------------------------------------------------- */
 
+/** A per-tab id so the server can count this viewer once, across reconnects. */
+function viewerId(): string {
+  const KEY = "airtime.viewer";
+  try {
+    const existing = sessionStorage.getItem(KEY);
+    if (existing) return existing;
+    const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    sessionStorage.setItem(KEY, id);
+    return id;
+  } catch {
+    return Math.random().toString(36).slice(2);
+  }
+}
+
 export function useRealtimeConnection(): void {
   const push = useRealtime((s) => s.push);
   const setConnected = useRealtime((s) => s.setConnected);
+  const setViewers = useRealtime((s) => s.setViewers);
   const setOffset = useClock((s) => s.setOffset);
   const qc = useQueryClient();
   useEffect(() => {
@@ -70,7 +85,7 @@ export function useRealtimeConnection(): void {
     let stopped = false;
     const connect = () => {
       if (stopped) return;
-      es = new EventSource("/api/events");
+      es = new EventSource(`/api/events?v=${encodeURIComponent(viewerId())}`);
       es.onopen = () => {
         retry = 1000;
         setConnected(true);
@@ -120,6 +135,12 @@ export function useRealtimeConnection(): void {
             case "settings.updated":
               void qc.invalidateQueries({ queryKey: ["settings"] });
               break;
+            case "viewers":
+              setViewers(e.count);
+              break;
+            case "hello":
+              if (typeof e.viewers === "number") setViewers(e.viewers);
+              break;
           }
         } catch {
           /* ignore malformed */
@@ -138,7 +159,7 @@ export function useRealtimeConnection(): void {
       stopped = true;
       es?.close();
     };
-  }, [push, setConnected, setOffset, qc]);
+  }, [push, setConnected, setOffset, setViewers, qc]);
 }
 
 /* ------------------------------------------------------------------------- */

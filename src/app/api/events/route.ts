@@ -1,5 +1,6 @@
 import { boot } from "@/server/boot";
 import { subscribe } from "@/server/realtime/bus";
+import { touchViewer, dropViewer, viewerCount } from "@/server/realtime/presence";
 import { serverNowMs } from "@/server/time/clock";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,9 @@ const STREAM_LIFETIME_MS = Number(process.env.AIRTIME_SSE_LIFETIME_MS ?? 50_000)
 export async function GET(req: Request): Promise<Response> {
   await boot();
   const encoder = new TextEncoder();
+  // One presence slot per tab, not per connection: the stream recycles itself
+  // every 50 seconds and the viewer should not blink out when it does.
+  const viewerId = new URL(req.url).searchParams.get("v")?.slice(0, 64) || null;
   let unsubscribe: (() => void) | null = null;
   let ping: ReturnType<typeof setInterval> | null = null;
   let lifetime: ReturnType<typeof setTimeout> | null = null;
@@ -30,9 +34,11 @@ export async function GET(req: Request): Promise<Response> {
           /* closed */
         }
       };
-      send({ id: 0, at: Date.now(), type: "hello", serverTime: serverNowMs() });
+      if (viewerId) touchViewer(viewerId);
+      send({ id: 0, at: Date.now(), type: "hello", serverTime: serverNowMs(), viewers: viewerCount() });
       unsubscribe = subscribe(send);
       ping = setInterval(() => {
+        if (viewerId) touchViewer(viewerId);
         try {
           controller.enqueue(encoder.encode(`: ping ${serverNowMs()}\n\n`));
         } catch {
@@ -55,6 +61,9 @@ export async function GET(req: Request): Promise<Response> {
     },
     cancel() {
       unsubscribe?.();
+      // A cancel is the tab going away rather than the stream recycling, so the
+      // viewer leaves now instead of ageing out.
+      if (viewerId) dropViewer(viewerId);
       if (ping) clearInterval(ping);
       if (lifetime) clearTimeout(lifetime);
     },

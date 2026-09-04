@@ -366,8 +366,12 @@ describe("payment, occupancy and takeover", () => {
 
   it("shows every surface with its ask on the board", async () => {
     const board = await getBoard("MAIN");
-    // One screen, two products on it.
-    expect(board.rows).toHaveLength(2);
+    // The picture (a show or the break on it) plus the two panels beside it.
+    expect(board.rows).toHaveLength(4);
+    expect(board.rows.filter((r) => r.placement.ownsMainStream)).toHaveLength(2);
+    expect(board.rows.filter((r) => r.placement.kind === "panel")).toHaveLength(2);
+    // Everything opens at the same 0.01 and demand takes it from there.
+    for (const row of board.rows) expect(row.placement.auction.openingPriceWei).toBe((10n ** 16n).toString());
     for (const row of board.rows) {
       expect(BigInt(row.surface.askWei)).toBeGreaterThan(0n);
       expect(row.surface.placementId).toBe(row.placement.id);

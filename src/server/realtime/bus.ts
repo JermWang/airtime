@@ -19,7 +19,9 @@ export type RealtimeEvent =
   | { type: "payment.confirmed"; campaignId: string; txHash: string }
   | { type: "settings.updated"; key: string }
   | { type: "clock.updated"; offsetMs: number }
-  | { type: "chat.message"; channelId: string; messageId: string };
+  | { type: "chat.message"; channelId: string; messageId: string }
+  /** How many people have the station open, counted from live event streams. */
+  | { type: "viewers"; count: number };
 
 export type RealtimeEnvelope = RealtimeEvent & { id: number; at: number };
 

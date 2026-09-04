@@ -8,6 +8,7 @@ import { Wordmark } from "./Wordmark";
 import { WalletButton } from "./WalletButton";
 import { SoundControl } from "./SoundControl";
 import { formatClock, cn } from "@/lib/format";
+import { useRealtime } from "@/lib/store";
 
 /**
  * Tiny status rail: AIRTIME · LIVE · program · server time · BUY AIRTIME.
@@ -22,6 +23,9 @@ export function StatusRail({ channelId = "MAIN", compact = false }: { channelId?
   const setMode = useStation((s) => s.setMode);
   const focusPlacement = useStation((s) => s.focusPlacement);
   const setDrawer = useStation((s) => s.setDrawer);
+
+  // A real count of open station tabs, straight off the event streams.
+  const viewers = useRealtime((s) => s.viewers);
 
   const nowBlock = data?.now;
   const isLive = nowBlock?.type === "LIVE_HLS";
@@ -45,6 +49,13 @@ export function StatusRail({ channelId = "MAIN", compact = false }: { channelId?
         <span className="mono hidden text-[11px] tracking-[0.12em] text-ink-300 lg:block" suppressHydrationWarning>
           {formatClock(now)} UTC
         </span>
+        {viewers > 0 && (
+          <span className="mono hidden shrink-0 items-center gap-1.5 text-[11px] tracking-[0.12em] text-ink-300 sm:inline-flex" title="People with the station open right now">
+            <span className="h-1.5 w-1.5 rounded-full bg-signal" />
+            {viewers}
+            <span className="text-ink-500">watching</span>
+          </span>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-1 md:gap-2">
         <SoundControl compact={compact} />

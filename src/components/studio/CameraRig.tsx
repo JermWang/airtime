@@ -12,23 +12,25 @@ interface Props {
   mode: StationMode;
 }
 
-const WATCH_POS = new THREE.Vector3(0, 6.1, 8.6);
-const WATCH_TARGET = new THREE.Vector3(0, 6.25, -5.2);
-const BROWSE_POS = new THREE.Vector3(0, 6.3, 12.4);
-const BROWSE_TARGET = new THREE.Vector3(0, 6.3, -5.2);
-const MOBILE_POS = new THREE.Vector3(0, 6.2, 12.6);
-const MOBILE_TARGET = new THREE.Vector3(0, 6.4, -5.2);
+const SCREEN_Y = 6.5;
+const SCREEN_Z = -5.2;
+const WATCH_POS = new THREE.Vector3(0, SCREEN_Y, 14.0);
+const WATCH_TARGET = new THREE.Vector3(0, SCREEN_Y, SCREEN_Z);
+const BROWSE_POS = new THREE.Vector3(0, SCREEN_Y, 16.8);
+const BROWSE_TARGET = new THREE.Vector3(0, SCREEN_Y, SCREEN_Z);
+const MOBILE_POS = new THREE.Vector3(0, SCREEN_Y, 17.6);
+const MOBILE_TARGET = new THREE.Vector3(0, SCREEN_Y, SCREEN_Z);
 
 /* ---- opening move ------------------------------------------------------- */
 /* A dolly out: the shot opens tight on the main picture from inside the set,
  * then pulls back through the room, rising and widening until the whole studio
  * is revealed at the resting watch pose. The path is authored rather than
  * damped, so the move lands on exactly the frame the station then holds. */
-const SCREEN_CENTRE = new THREE.Vector3(0, 6.4, -5.2);
-const INTRO_FROM = new THREE.Vector3(0.9, 5.6, -0.4);
-const INTRO_MID = new THREE.Vector3(1.8, 5.9, 3.8);
-const MOBILE_INTRO_FROM = new THREE.Vector3(0.5, 5.9, 1.2);
-const MOBILE_INTRO_MID = new THREE.Vector3(0.9, 6.05, 6.4);
+const SCREEN_CENTRE = new THREE.Vector3(0, SCREEN_Y, SCREEN_Z);
+const INTRO_FROM = new THREE.Vector3(0.9, SCREEN_Y, 2.6);
+const INTRO_MID = new THREE.Vector3(1.6, SCREEN_Y, 8.0);
+const MOBILE_INTRO_FROM = new THREE.Vector3(0.5, SCREEN_Y, 5.6);
+const MOBILE_INTRO_MID = new THREE.Vector3(0.8, SCREEN_Y, 11.4);
 const INTRO_SEC = 3.8;
 const MOBILE_INTRO_SEC = 2.9;
 const INTRO_FOV = 31;
@@ -160,8 +162,7 @@ export function CameraRig({ reducedMotion, mobile, mode }: Props) {
       desiredPos = (mobile ? MOBILE_POS : WATCH_POS).clone();
       desiredTarget = (mobile ? MOBILE_TARGET : WATCH_TARGET).clone();
       if (!reducedMotion && !mobile) {
-        desiredPos.x += pointer.current.x * 0.35;
-        desiredPos.y += -pointer.current.y * 0.18;
+        desiredPos.x += pointer.current.x * 0.3;
       }
     }
 

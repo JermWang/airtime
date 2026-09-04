@@ -85,7 +85,7 @@ add({ name: "Wall_Right", geometry: plane(ROOM_D, ROOM_H), material: "MetalPanel
 /* --------------------------------------------------------------------- */
 
 /* Dead centre of the back wall, horizontally and vertically. */
-const MAIN_W = 16;
+const MAIN_W = 15;
 const MAIN_H = MAIN_W * (9 / 16);
 const MAIN_Y = ROOM_H / 2;
 const MAIN_Z = BACK_Z + 0.3;
@@ -99,9 +99,9 @@ add({ name: "Screen_Main", geometry: plane(MAIN_W, MAIN_H), material: "Screen", 
 
 /* Same eye line as the picture, turned a few degrees inward so they read as
  * part of the room rather than as posters stuck on the wall. */
-const PANEL_W = 3.9;
+const PANEL_W = 3.2;
 const PANEL_H = PANEL_W * (9 / 16);
-const PANEL_X = MAIN_W / 2 + 0.8 + PANEL_W / 2;
+const PANEL_X = MAIN_W / 2 + 0.55 + PANEL_W / 2;
 
 for (const side of [-1, 1] as const) {
   const name = side < 0 ? "Left" : "Right";

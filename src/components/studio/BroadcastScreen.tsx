@@ -38,7 +38,16 @@ export function BroadcastScreen({ surface, placements, active, mainPlacement }: 
   const focusPlacement = useStation((s) => s.focusPlacement);
   const safeZones = useStation((s) => s.showSafeZones);
 
-  const material = useMemo(() => new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.25, metalness: 0, emissive: "#ffffff", emissiveIntensity: 1.35, toneMapped: true }), []);
+  /**
+   * The picture is drawn flat and unlit: the texture, and nothing else.
+   *
+   * It used to be a lit material that also emitted at 1.3x, which meant the room
+   * lighting and the emissive pass both acted on the video and pushed the
+   * highlights past the bloom threshold - the glow that sat over everything. A
+   * basic material with tone mapping off shows the frame the broadcast actually
+   * sent, at its own contrast.
+   */
+  const material = useMemo(() => new THREE.MeshBasicMaterial({ color: "#ffffff", toneMapped: true }), []);
   const attention = useRef(1);
   const videoTex = useRef<THREE.VideoTexture | null>(null);
   const altTex = useRef<SurfaceTexture | null>(null);
@@ -105,14 +114,14 @@ export function BroadcastScreen({ surface, placements, active, mainPlacement }: 
     const tex = altTex.current?.texture ?? videoTex.current;
     if (tex && material.map !== tex) {
       material.map = tex;
-      material.emissiveMap = tex;
       material.needsUpdate = true;
     }
-    // The picture is the subject while watching, and steps back when the viewer
-    // is looking at a different surface.
+    // The picture is the subject while watching and steps back when the viewer is
+    // looking at something else. On an unlit material that is a straight multiply
+    // on the texture, so dimming never tints or blooms the image.
     const self = { focused: Boolean(mainPlacement && focused === mainPlacement.id), hovered: Boolean(mainPlacement && hovered === mainPlacement.id) };
-    attention.current = THREE.MathUtils.damp(attention.current, attentionFor(mode, "main", self), ATTENTION_LAMBDA, dt);
-    material.emissiveIntensity = 1.3 * attention.current;
+    attention.current = THREE.MathUtils.damp(attention.current, Math.min(1, attentionFor(mode, "main", self)), ATTENTION_LAMBDA, dt);
+    material.color.setScalar(attention.current);
   });
 
   // Overlay planes in front of the screen, sized from the surface.

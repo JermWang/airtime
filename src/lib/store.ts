@@ -37,6 +37,9 @@ export interface RealtimeEnvelope {
 
 interface RealtimeState {
   connected: boolean;
+  /** People with the station open right now, counted by the server. */
+  viewers: number;
+  setViewers: (n: number) => void;
   last: RealtimeEnvelope | null;
   /** Monotonic counters per event type, used by hooks to re-fetch. */
   versions: Record<string, number>;
@@ -46,6 +49,8 @@ interface RealtimeState {
 
 export const useRealtime = create<RealtimeState>((set) => ({
   connected: false,
+  viewers: 0,
+  setViewers: (viewers) => set({ viewers }),
   last: null,
   versions: {},
   setConnected: (connected) => set({ connected }),
