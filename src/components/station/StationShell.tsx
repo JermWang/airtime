@@ -15,7 +15,7 @@ import { MobileDock } from "@/components/hud/MobileDock";
 import { Ident } from "@/components/hud/Ident";
 import { SoundBlockedPrompt } from "@/components/hud/SoundControl";
 import { ContentNotice } from "@/components/hud/ContentNotice";
-import { AddressChip, TokenContractChip } from "@/components/hud/AddressChip";
+import { TokenContractChip } from "@/components/hud/AddressChip";
 import { BroadcastLog } from "@/components/hud/BroadcastLog";
 import { InventoryList } from "@/components/hud/InventoryDrawer";
 import { ProgramGuide } from "@/components/hud/ProgramGuide";
@@ -138,7 +138,6 @@ export function StationShell({ channelId = "MAIN" }: { channelId?: string }) {
       )}
 
       <div className="pointer-events-auto fixed bottom-2 left-3 z-20 hidden items-center gap-3 md:flex">
-        <AddressChip />
         <TokenContractChip />
         <div className="mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
           <Link href="/info" className="text-ink-300 transition hover:text-signal">

@@ -63,6 +63,40 @@ export function parseQuery<T>(req: Request, schema: ZodType<T>): T {
   return schema.parse(obj);
 }
 
+/** Parse multipart data through a byte-counting stream, independent of Content-Length honesty. */
+export async function parseFormDataLimited(req: Request, maxBytes: number): Promise<FormData> {
+  const declared = req.headers.get("content-length");
+  if (declared) {
+    const length = Number(declared);
+    if (!Number.isSafeInteger(length) || length < 0) throw new HttpError(400, "Invalid Content-Length");
+    if (length > maxBytes) throw new HttpError(413, "Upload too large");
+  }
+  if (!req.body) throw new HttpError(400, "Expected multipart form data");
+
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      if (received > maxBytes) {
+        await reader.cancel();
+        throw new HttpError(413, "Upload too large");
+      }
+      chunks.push(value);
+    }
+    const body = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength)), received);
+    return await new Response(body, { headers: { "content-type": req.headers.get("content-type") ?? "" } }).formData();
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    throw new HttpError(400, "Expected multipart form data");
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 /* ------------------------------------------------------------------------- */
 /*  Rate limiting (token bucket per key, in-process)                          */
 /* ------------------------------------------------------------------------- */

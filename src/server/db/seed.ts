@@ -3,6 +3,7 @@ import { eq, inArray } from "drizzle-orm";
 import { db, schema } from "./client";
 import { env, devDataAllowed, isProduction } from "../env";
 import { ensureScheduleHorizon } from "../broadcast/schedule";
+import { MAX_DIRECT_UPLOAD_BYTES } from "@/lib/upload";
 import type { NewPlacement, PlacementAuctionRules, PlacementAvailabilityRules } from "./schema";
 
 /**
@@ -64,7 +65,7 @@ export const BASE_PLACEMENTS: NewPlacement[] = [
     maxWidth: 3840,
     maxHeight: 2160,
     maxCreativeSec: SHOW_MAX_SECONDS,
-    maxFileBytes: 512 * 1024 * 1024,
+    maxFileBytes: MAX_DIRECT_UPLOAD_BYTES,
     allowsAudio: true,
     allowsClickThrough: false,
     requiresModeration: false,
@@ -90,7 +91,7 @@ export const BASE_PLACEMENTS: NewPlacement[] = [
     maxWidth: 3840,
     maxHeight: 2160,
     maxCreativeSec: AD_MAX_SECONDS,
-    maxFileBytes: 96 * 1024 * 1024,
+    maxFileBytes: MAX_DIRECT_UPLOAD_BYTES,
     allowsAudio: true,
     allowsClickThrough: false,
     requiresModeration: false,

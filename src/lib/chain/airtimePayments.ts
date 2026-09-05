@@ -63,6 +63,13 @@ export const airtimePaymentsAbi = [
     outputs: [{ name: "", type: "bool" }],
   },
   {
+    type: "function",
+    name: "protectedUntil",
+    stateMutability: "view",
+    inputs: [{ name: "placementId", type: "bytes32" }],
+    outputs: [{ name: "", type: "uint64" }],
+  },
+  {
     type: "event",
     name: "AirtimePurchased",
     inputs: [
@@ -86,6 +93,7 @@ export const airtimePaymentsAbi = [
   { type: "error", name: "UnexpectedNativeValue", inputs: [] },
   { type: "error", name: "ZeroAmount", inputs: [] },
   { type: "error", name: "InvalidWindow", inputs: [] },
+  { type: "error", name: "PlacementProtected", inputs: [{ name: "placementId", type: "bytes32" }, { name: "protectedUntil", type: "uint64" }] },
   { type: "error", name: "TreasuryTransferFailed", inputs: [] },
 ] as const;
 

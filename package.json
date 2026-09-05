@@ -22,7 +22,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "worker": "tsx scripts/worker.ts"
+    "worker": "tsx scripts/worker.ts",
+    "art:build": "tsx scripts/build-panel-art.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",

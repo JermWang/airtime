@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_DIRECT_UPLOAD_BYTES } from "@/lib/upload";
 
 const bps = z.number().int().min(0).max(1_000_000);
 
@@ -49,7 +50,7 @@ export const placementInputSchema = z.object({
   maxWidth: z.number().int().min(0).max(8192),
   maxHeight: z.number().int().min(0).max(8192),
   maxCreativeSec: z.number().int().min(0).max(24 * 3600).default(60),
-  maxFileBytes: z.number().int().min(0).max(512 * 1024 * 1024),
+  maxFileBytes: z.number().int().min(0).max(MAX_DIRECT_UPLOAD_BYTES),
   allowsAudio: z.boolean().default(false),
   allowsClickThrough: z.boolean().default(false),
   requiresModeration: z.boolean().default(false),

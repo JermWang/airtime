@@ -34,7 +34,9 @@ test.describe.configure({ mode: "serial" });
 
 test("station is live: picture, programme and the price board", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("video").first()).toBeAttached();
+  const heroVideo = page.locator('[aria-label="AIRTIME station"] video').first();
+  await expect(heroVideo).toBeAttached();
+  await expect(heroVideo).toHaveCSS("object-fit", "contain");
   await expect(page.getByText(/on air|stand by|live/i).first()).toBeVisible({ timeout: 30_000 });
   const state = await page.request.get("/api/broadcast/state?channel=MAIN").then((r) => r.json());
   expect(state.now).toBeTruthy();
@@ -49,6 +51,37 @@ test("station is live: picture, programme and the price board", async ({ page })
   // Opening a surface goes straight into the purchase flow.
   await page.goto("/airtime/SHOW");
   await expect(page.getByTestId("purchase-flow")).toHaveAttribute("data-step", "connect");
+});
+
+test("the mobile splash gives the uncropped picture a full-width row above its panels", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const station = page.locator('[aria-label="AIRTIME station"]').first();
+  const video = station.locator("video");
+  await expect(video).toHaveCSS("object-fit", "contain");
+
+  const stationBox = await station.boundingBox();
+  expect(stationBox).not.toBeNull();
+  expect(stationBox!.width).toBeGreaterThan(370);
+});
+
+test("panel artwork itself flips the card and the Anduril panel carries the logo", async ({ page }) => {
+  await page.goto("/");
+  const front = page.getByTestId("treasury-panel-front");
+  const back = page.getByTestId("treasury-panel-back");
+
+  await expect(front).toBeVisible();
+  await expect(page.getByRole("img", { name: "Anduril", exact: true })).toBeVisible();
+  await front.scrollIntoViewIfNeeded();
+  const box = await front.boundingBox();
+  expect(box).not.toBeNull();
+
+  // Click high in the photographic area, well above the caption/footer that
+  // already exposed the original turn-over control.
+  await page.mouse.click(box!.x + box!.width / 2, box!.y + 80);
+  await expect(back).toHaveAttribute("aria-hidden", "false");
+  await expect(back.getByText("What the network earns is used to buy Anduril pre-stock")).toBeVisible();
 });
 
 test("full purchase → on-chain verification → queue → air → AirLog", async ({ page, request }) => {

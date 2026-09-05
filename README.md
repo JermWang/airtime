@@ -115,7 +115,8 @@ sequenceDiagram
     A-->>U: EIP-712 signed Quote (quoteId, creativeHash, guaranteed window, amount, nonce)
     U->>W: purchase(quote, signature)
     W->>C: tx with msg.value == amount
-    C->>C: verify signature, buyer, expiry, nonce, chain, token
+    C->>C: verify signature, buyer, expiry, nonce, chain, token, placement availability
+    C->>C: protect placement through the guaranteed window; a racing loser reverts before value moves
     C-->>C: emit AirtimePurchased(...)
     C->>C: forward funds to treasury
     U->>A: hint tx hash (optional)
@@ -306,12 +307,12 @@ Payment assets: **native ETH works out of the box.** ERC-20 support exists in th
 
 ## Contract deployment
 
-`contracts/src/AirtimePayments.sol` is deliberately small: verify a signed quote, take payment once, emit the canonical event, forward funds. No scheduling, media or business logic on chain.
+`contracts/src/AirtimePayments.sol` is deliberately small: verify a signed quote, atomically protect its placement for the guaranteed window, take payment once, emit the canonical event, and forward funds. No scheduling, media or creative logic lives on chain.
 
 ```bash
 cd contracts
 forge build
-forge test -vv          # 24 tests: replay, expiry, tampering, wrong chain, pause, fuzz
+forge test -vv          # replay, expiry, tampering, placement races, wrong chain, pause, fuzz
 ```
 
 Deploy to Robinhood Chain Testnet:
@@ -469,10 +470,11 @@ The shipped studio (`public/models/studio.meshes.json`) is deliberately spare: f
 **The browser never decides that something is paid.**
 
 1. The backend signs an EIP-712 `Quote` binding `quoteId`, `buyer`, `placementId` hash, `creativeHash`, `startAt`, `endAt`, `paymentToken`, `amount`, `expiresAt`, `nonce`. The domain separator includes `chainId` and the contract address, so a quote cannot be replayed on another chain or deployment.
-2. `AirtimePayments.purchase()` re-checks the signature, the caller, expiry, the quote id, the buyer nonce, token support and the exact amount, records the quote as consumed, forwards funds to the treasury and emits `AirtimePurchased`.
-3. The browser may **hint** a transaction hash. The server uses it only as a lookup key: it fetches the receipt from its own RPC, finds an `AirtimePurchased` log **emitted by the configured contract address**, and re-checks quote id, buyer, placement hash, creative hash, token, amount and time window against the quote it signed, then requires N confirmations.
-4. The same verification runs from the scheduler every few seconds without any browser involvement (`pollAwaitingPayments`), so closing the tab cannot lose a payment. Expired quotes keep a short grace window because the contract itself honours a transaction mined within the quote's validity.
-5. Only then: `PAID → QUEUED`, hold becomes `CONFIRMED`, activation scheduled, realtime event published.
+2. `AirtimePayments.purchase()` re-checks the signature, caller, expiry, quote id, buyer nonce, token support and exact amount. It then protects that placement through the signed guaranteed window, records the quote as consumed, forwards funds to the treasury and emits `AirtimePurchased`.
+3. If valid payments for the same placement race, chain ordering makes one the winner. Every later transaction inside that protected window reverts before native currency or tokens transfer, so the losing payment value remains in its buyer's wallet (ordinary transaction gas can still be charged).
+4. The browser may **hint** a transaction hash. The server uses it only as a lookup key: it fetches the receipt from its own RPC, requires a successful receipt, finds an `AirtimePurchased` log **emitted by the configured contract address**, and re-checks quote id, buyer, placement hash, creative hash, token, amount and time window against the quote it signed, then requires N confirmations.
+5. The same verification runs from the scheduler every few seconds without any browser involvement (`pollAwaitingPayments`), so closing the tab cannot lose a payment. Expired quotes keep a short grace window because the contract itself honours a transaction mined within the quote's validity.
+6. Only then: `PAID → QUEUED`, hold becomes `CONFIRMED`, activation scheduled, realtime event published.
 
 A pending transaction is never treated as paid, and `payments` unique indexes make double-recording impossible.
 
@@ -507,11 +509,11 @@ A pending transaction is never treated as paid, and `payments` unique indexes ma
 
 ```bash
 pnpm test            # Vitest: the price curve, player sync, MP4 parser, full API integration
-pnpm contract:test   # Foundry: 24 tests incl. replay, expiry, wrong chain, fuzz
+pnpm contract:test   # Foundry: replay, expiry, same-placement races, wrong chain, fuzz
 pnpm test:e2e        # Playwright: the complete vertical slice against a local chain
 ```
 
-The integration suite (`tests/api/inventory.test.ts`) runs against a real in-memory Postgres and covers creative validation (including a disguised HTML file), quote signing and verification against the contract's EIP-712 domain, inventory holds, **concurrent quotes for the same window where exactly one wins**, quote expiry releasing inventory, event-matched payment verification, replay rejection, activation, completion, AirLog contents and schedule synchronisation.
+The integration suite (`tests/api/inventory.test.ts`) runs against a real in-memory Postgres and covers creative validation (including a disguised HTML file), quote signing and verification against the contract's EIP-712 domain, inventory holds, **concurrent quotes for the same window where exactly one wins**, quote expiry releasing inventory, full-field event-matched payment authorization, replay rejection, activation, completion, AirLog contents and schedule synchronisation. The contract suite separately proves that a racing same-placement loser transfers no payment and that the placement becomes purchasable again after the protected window.
 
 The Playwright suite deploys `AirtimePayments` to a fresh anvil chain, builds and starts the production server, then drives the browser through: watch the station → open a studio billboard → sign in → upload a creative → preview it → read the live descending ask → receive a quote → pay with a local wallet → server verifies the on-chain event → the run is on air immediately and the surface reports its occupant and its new takeover price → the buyer hands the surface back → AirLog page renders with the transaction.
 

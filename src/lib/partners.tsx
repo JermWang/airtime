@@ -1,16 +1,11 @@
 import type { ReactNode } from "react";
 
 /**
- * The logo row.
+ * The technology and settlement providers AIRTIME actually uses.
  *
- * Ground rule, same as everywhere else in this project: nothing here may claim
- * a relationship that does not exist. Until commercial partners are signed,
- * this row carries the infrastructure the network genuinely runs on, under the
- * heading "Runs on" — every entry below is a real dependency of this repo, and
- * the marks are AIRTIME's own neutral glyphs rather than anyone's trademark.
- *
- * When real partners exist, replace the entries and pass a different `label`
- * to <LogoRow>. Nothing else has to change.
+ * These are the real brand marks, sourced from the Simple Icons project. The
+ * row is labelled "Partners / infrastructure" wherever it appears so showing a
+ * trademark does not imply a paid sponsorship or endorsement.
  */
 export interface LogoEntry {
   name: string;
@@ -20,123 +15,98 @@ export interface LogoEntry {
   mark: ReactNode;
 }
 
-const stroke = {
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.4,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-};
+function BrandMark({ title, path }: { title: string; path: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" role="img" aria-label={`${title} logo`}>
+      <path d={path} fill="currentColor" />
+    </svg>
+  );
+}
 
 export const PARTNERS: LogoEntry[] = [
   {
+    name: "Anduril",
+    role: "Named pre-stock allocation in the AIRTIME treasury model",
+    href: "https://www.anduril.com",
+    mark: (
+      <span
+        role="img"
+        aria-label="Anduril logo"
+        className="block h-[22px] w-[22px] shrink-0 mix-blend-screen [background-position:50%_39%] [background-repeat:no-repeat] [background-size:430%_auto]"
+        style={{ backgroundImage: 'url("/anduril%20logo.png")' }}
+      />
+    ),
+  },
+  {
     name: "Robinhood Chain",
-    role: "Settlement layer for every airtime purchase",
+    role: "Settlement layer for every protected airtime purchase",
     href: "https://chain.robinhood.com",
     mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-        <rect x="3" y="8.5" width="10" height="7" rx="3.5" {...stroke} />
-        <rect x="11" y="8.5" width="10" height="7" rx="3.5" {...stroke} />
-      </svg>
+      <BrandMark
+        title="Robinhood"
+        path="M2.84 24h.53c.096 0 .192-.048.224-.128C7.591 13.696 11.94 8.656 14.67 5.638c.112-.128.064-.225-.096-.225h-4.88a.55.55 0 0 0-.45.225L5.746 9.972c-.514.642-.642 1.236-.642 2.086v4.43c-1.14 3.194-1.862 5.361-2.392 7.32-.032.125.016.192.129.192M20.447.646c-.754-.802-4.157-.834-5.73-.224a3 3 0 0 0-.786.465 41 41 0 0 0-3.323 3.178c-.112.113-.064.225.097.225h5.409c.497 0 .786.289.786.786v6.1c0 .16.128.208.225.064l3.258-4.254c.53-.69.69-.898.835-1.861.192-1.413.08-3.58-.77-4.479m-6.982 16.18 2.231-3.676a.7.7 0 0 0 .064-.29V6.73c0-.16-.112-.225-.224-.097-3.355 3.74-5.971 7.672-8.395 12.407-.06.12.016.225.16.177l5.009-1.54c.565-.174.882-.402 1.155-.852"
+      />
     ),
   },
   {
-    name: "EVM",
-    role: "The AirtimePayments contract runtime",
-    mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-        <path d="M12 2.5 19 12l-7 9.5L5 12z" {...stroke} />
-        <path d="M5 12h14" {...stroke} />
-      </svg>
-    ),
-  },
-  {
-    name: "Foundry",
-    role: "Contract build, test and deploy toolchain",
-    href: "https://getfoundry.sh",
-    mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-        <path d="M12 3 20 7.5v9L12 21 4 16.5v-9z" {...stroke} />
-        <circle cx="12" cy="12" r="2.4" {...stroke} />
-      </svg>
-    ),
+    name: "Ethereum",
+    role: "EVM execution and native payment standard",
+    href: "https://ethereum.org",
+    mark: <BrandMark title="Ethereum" path="M11.944 17.97 4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0 4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />,
   },
   {
     name: "Next.js",
     role: "Application server and route handlers",
     href: "https://nextjs.org",
     mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-        <circle cx="12" cy="12" r="9" {...stroke} />
-        <path d="M8.5 16V8l7.5 9.2" {...stroke} />
-      </svg>
+      <BrandMark
+        title="Next.js"
+        path="M18.665 21.978C16.758 23.255 14.465 24 12 24 5.377 24 0 18.623 0 12S5.377 0 12 0s12 5.377 12 12c0 3.583-1.574 6.801-4.067 9.001L9.219 7.2H7.2v9.596h1.615V9.251l9.85 12.727Zm-3.332-8.533 1.6 2.061V7.2h-1.6v6.245Z"
+      />
     ),
   },
   {
-    name: "React Three Fiber",
-    role: "Declarative studio scene graph",
-    href: "https://r3f.docs.pmnd.rs",
+    name: "React",
+    role: "Interface and realtime station state",
+    href: "https://react.dev",
     mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-        <ellipse cx="12" cy="12" rx="9.2" ry="4" {...stroke} />
-        <ellipse cx="12" cy="12" rx="9.2" ry="4" transform="rotate(60 12 12)" {...stroke} />
-        <circle cx="12" cy="12" r="1.8" fill="currentColor" />
-      </svg>
+      <BrandMark
+        title="React"
+        path="M14.23 12.004a2.236 2.236 0 0 1-2.235 2.236 2.236 2.236 0 0 1-2.236-2.236 2.236 2.236 0 0 1 2.235-2.236 2.236 2.236 0 0 1 2.236 2.236zm2.648-10.69c-1.346 0-3.107.96-4.888 2.622-1.78-1.653-3.542-2.602-4.887-2.602-.41 0-.783.093-1.106.278-1.375.793-1.683 3.264-.973 6.365C1.98 8.917 0 10.42 0 12.004c0 1.59 1.99 3.097 5.043 4.03-.704 3.113-.39 5.588.988 6.38.32.187.69.275 1.102.275 1.345 0 3.107-.96 4.888-2.624 1.78 1.654 3.542 2.603 4.887 2.603.41 0 .783-.09 1.106-.275 1.374-.792 1.683-3.263.973-6.365C22.02 15.096 24 13.59 24 12.004c0-1.59-1.99-3.097-5.043-4.032.704-3.11.39-5.587-.988-6.38-.318-.184-.688-.277-1.092-.278zm-.005 1.09c.225 0 .406.044.558.127.666.382.955 1.835.73 3.704-.054.46-.142.945-.25 1.44-.96-.236-2.006-.417-3.107-.534-.66-.905-1.345-1.727-2.035-2.447 1.592-1.48 3.087-2.292 4.105-2.295zm-9.77.02c1.012 0 2.514.808 4.11 2.28-.686.72-1.37 1.537-2.02 2.442-1.107.117-2.154.298-3.113.538-.112-.49-.195-.964-.254-1.42-.23-1.868.054-3.32.714-3.707.19-.09.4-.127.563-.132zm4.882 3.05c.455.468.91.992 1.36 1.564-.44-.02-.89-.034-1.345-.034-.46 0-.915.01-1.36.034.44-.572.895-1.096 1.345-1.565zM12 8.1c.74 0 1.477.034 2.202.093.406.582.802 1.203 1.183 1.86.372.64.71 1.29 1.018 1.946-.308.655-.646 1.31-1.013 1.95-.38.66-.773 1.288-1.18 1.87-.728.063-1.466.098-2.21.098-.74 0-1.477-.035-2.202-.093-.406-.582-.802-1.204-1.183-1.86-.372-.64-.71-1.29-1.018-1.946.303-.657.646-1.313 1.013-1.954.38-.66.773-1.286 1.18-1.868.728-.064 1.466-.098 2.21-.098zm-3.635.254c-.24.377-.48.763-.704 1.16-.225.39-.435.782-.635 1.174-.265-.656-.49-1.31-.676-1.947.64-.15 1.315-.283 2.015-.386zm7.26 0c.695.103 1.365.23 2.006.387-.18.632-.405 1.282-.66 1.933-.2-.39-.41-.783-.64-1.174-.225-.392-.465-.774-.705-1.146zm3.063.675c.484.15.944.317 1.375.498 1.732.74 2.852 1.708 2.852 2.476-.005.768-1.125 1.74-2.857 2.475-.42.18-.88.342-1.355.493-.28-.958-.646-1.956-1.1-2.98.45-1.017.81-2.01 1.085-2.964zm-13.395.004c.278.96.645 1.957 1.1 2.98-.45 1.017-.812 2.01-1.086 2.964-.484-.15-.944-.318-1.37-.5-1.732-.737-2.852-1.706-2.852-2.474 0-.768 1.12-1.742 2.852-2.476.42-.18.88-.342 1.356-.494zm11.678 4.28c.265.657.49 1.312.676 1.948-.64.157-1.316.29-2.016.39.24-.375.48-.762.705-1.158.225-.39.435-.788.636-1.18zm-9.945.02c.2.392.41.783.64 1.175.23.39.465.772.705 1.143-.695-.102-1.365-.23-2.006-.386.18-.63.406-1.282.66-1.933zM17.92 16.32c.112.493.2.968.254 1.423.23 1.868-.054 3.32-.714 3.708-.147.09-.338.128-.563.128-1.012 0-2.514-.807-4.11-2.28.686-.72 1.37-1.536 2.02-2.44 1.107-.118 2.154-.3 3.113-.54zm-11.83.01c.96.234 2.006.415 3.107.532.66.905 1.345 1.727 2.035 2.446-1.595 1.483-3.092 2.295-4.11 2.295-.22-.005-.406-.05-.553-.132-.666-.38-.955-1.834-.73-3.703.054-.46.142-.944.25-1.438zm4.56.64c.44.02.89.034 1.345.034.46 0 .915-.01 1.36-.034-.44.572-.895 1.095-1.345 1.565-.455-.47-.91-.993-1.36-1.565z"
+      />
     ),
   },
   {
-    name: "three.js",
-    role: "WebGL renderer behind every surface",
+    name: "Three.js",
+    role: "WebGL renderer behind every programmable surface",
     href: "https://threejs.org",
     mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-        <path d="M12 3 20 7.5v9L12 21 4 16.5v-9z" {...stroke} />
-        <path d="M4 7.5 12 12l8-4.5M12 12v9" {...stroke} />
-      </svg>
-    ),
-  },
-  {
-    name: "PostgreSQL",
-    role: "Schedule, inventory and payment ledger",
-    href: "https://www.postgresql.org",
-    mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-        <ellipse cx="12" cy="6" rx="7" ry="3" {...stroke} />
-        <path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6" {...stroke} />
-        <path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" {...stroke} />
-      </svg>
+      <BrandMark
+        title="Three.js"
+        path="M.38 0a.268.268 0 0 0-.256.332l2.894 11.716a.268.268 0 0 0 .01.04l2.89 11.708a.268.268 0 0 0 .447.128L23.802 7.15a.268.268 0 0 0-.112-.45l-5.784-1.667a.268.268 0 0 0-.123-.035L6.38 1.715a.268.268 0 0 0-.144-.04L.456.01A.268.268 0 0 0 .38 0zm.374.654L5.71 2.08 1.99 5.664zM6.61 2.34l4.864 1.4-3.65 3.515zm-.522.12 1.217 4.926-4.877-1.4zm6.28 1.538 4.878 1.404-3.662 3.53zm-.52.13 1.208 4.9-4.853-1.392zm6.3 1.534 4.947 1.424-3.715 3.574zm-.524.12 1.215 4.926-4.876-1.398zm-15.432.696 4.964 1.424-3.726 3.586zM8.047 8.15l4.877 1.4-3.66 3.527zm-.518.137 1.236 5.017-4.963-1.432zm6.274 1.535 4.965 1.425-3.73 3.586zm-.52.127 1.235 5.012-4.958-1.43zm-9.63 2.438 4.873 1.406-3.656 3.523zm5.854 1.687 4.863 1.403-3.648 3.51zm-.54.04 1.214 4.927-4.875-1.4zm-3.896 4.02 5.037 1.442-3.782 3.638z"
+      />
     ),
   },
   {
     name: "Drizzle",
-    role: "Typed schema and migrations",
+    role: "Typed database schema and migrations",
     href: "https://orm.drizzle.team",
     mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-        <path d="M6 15 9.5 6M11 15l3.5-9M16 15l3.5-9" {...stroke} />
-        <path d="M4 19h16" {...stroke} />
-      </svg>
+      <BrandMark
+        title="Drizzle"
+        path="M5.353 11.823a1.036 1.036 0 0 0-.395-1.422 1.063 1.063 0 0 0-1.437.399L.138 16.702a1.035 1.035 0 0 0 .395 1.422 1.063 1.063 0 0 0 1.437-.398l3.383-5.903Zm11.216 0a1.036 1.036 0 0 0-.394-1.422 1.064 1.064 0 0 0-1.438.399l-3.382 5.902a1.036 1.036 0 0 0 .394 1.422c.506.283 1.15.104 1.438-.398l3.382-5.903Zm7.293-4.525a1.036 1.036 0 0 0-.395-1.422 1.062 1.062 0 0 0-1.437.399l-3.383 5.902a1.036 1.036 0 0 0 .395 1.422 1.063 1.063 0 0 0 1.437-.399l3.383-5.902Zm-11.219 0a1.035 1.035 0 0 0-.394-1.422 1.064 1.064 0 0 0-1.438.398l-3.382 5.903a1.036 1.036 0 0 0 .394 1.422c.506.282 1.15.104 1.438-.399l3.382-5.902Z"
+      />
     ),
   },
   {
-    name: "viem · wagmi",
-    role: "Wallet connection and RPC reads",
-    href: "https://viem.sh",
+    name: "WalletConnect",
+    role: "Wallet connection transport",
+    href: "https://walletconnect.com",
     mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-        <path d="M3 12h3l2.5-6 3.5 12 3-9 2 3h4" {...stroke} />
-      </svg>
-    ),
-  },
-  {
-    name: "Playwright",
-    role: "End-to-end proof of the whole purchase path",
-    href: "https://playwright.dev",
-    mark: (
-      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
-        <circle cx="12" cy="12" r="9" {...stroke} />
-        <path d="M10 8.5 16 12l-6 3.5z" {...stroke} />
-      </svg>
+      <BrandMark
+        title="WalletConnect"
+        path="M4.913 7.519c3.915-3.831 10.26-3.831 14.174 0l.471.461a.483.483 0 0 1 0 .694l-1.611 1.577a.252.252 0 0 1-.354 0l-.649-.634c-2.73-2.673-7.157-2.673-9.887 0l-.694.68a.255.255 0 0 1-.355 0L4.397 8.719a.482.482 0 0 1 0-.693l.516-.507Zm17.506 3.263 1.434 1.404a.483.483 0 0 1 0 .694l-6.466 6.331a.508.508 0 0 1-.709 0l-4.588-4.493a.126.126 0 0 0-.178 0l-4.589 4.493a.508.508 0 0 1-.709 0L.147 12.88a.483.483 0 0 1 0-.694l1.434-1.404a.508.508 0 0 1 .709 0l4.589 4.493c.05.048.129.048.178 0l4.589-4.493a.508.508 0 0 1 .709 0l4.589 4.493c.05.048.128.048.178 0l4.589-4.493a.507.507 0 0 1 .708 0Z"
+      />
     ),
   },
 ];

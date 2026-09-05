@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { api, type CampaignDto, type CreativeDto, type PlacementDto, type QuoteDto } from "@/lib/api";
 import { useServerNow, useSurface } from "@/lib/hooks";
 import { useStation } from "@/lib/store";
-import { paymentChains, chainLabel } from "@/lib/chain/chains";
+import { activeChain, paymentChains, chainLabel } from "@/lib/chain/chains";
 import { formatWei, formatDurationSec, formatDateTime, cn, shortHash } from "@/lib/format";
 import { CreativeUpload } from "./CreativeUpload";
 import { AskTicker, useLiveAsk } from "./AskTicker";
@@ -48,9 +48,9 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
   const [displayName, setDisplayName] = useState("");
   const [fit, setFit] = useState<"FIT" | "FILL">(placement.material.fit);
   const [quote, setQuote] = useState<QuoteDto | null>(null);
-  // Which network the buyer pays from. Both settle into the same treasury and
-  // are verified the same way; the choice is only about where their funds are.
-  const chains = paymentChains();
+  // Only expose chains with this deployment's protected payment contract.
+  // Direct treasury transfers cannot provide atomic loser refunds.
+  const chains = paymentChains().filter((chain) => chain.id === activeChain().id);
   const [payChainId, setPayChainId] = useState<number>(chains[0].id);
   const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +126,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
     } finally {
       setQuoting(false);
     }
-  }, [campaign, live, displayName, fit, purchase]);
+  }, [campaign, live, displayName, fit, payChainId, purchase]);
 
   const pay = useCallback(async () => {
     if (!quote) return;
@@ -296,7 +296,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                   </button>
                   <p className="mono text-[9.5px] uppercase leading-relaxed tracking-[0.12em] text-ink-500">
                     Guaranteed {formatDurationSec(placement.auction.minHoldSeconds)} of runtime, then it runs on until outbid. No refunds when you are outbid: the
-                    runtime you paid for was delivered.
+                    runtime you paid for was delivered. If two payments race for this surface, the contract accepts the first and reverts the other before its payment value moves.
                   </p>
                 </>
               )}

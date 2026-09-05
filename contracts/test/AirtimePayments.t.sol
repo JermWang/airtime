@@ -91,6 +91,66 @@ contract AirtimePaymentsTest is Test {
         assertTrue(payments.usedNonces(buyer, q.nonce), "nonce used");
     }
 
+    function test_simultaneous_same_placement_loser_keeps_payment() public {
+        AirtimePayments.Quote memory first = _quote();
+        first.startAt = uint64(block.timestamp);
+        first.endAt = uint64(block.timestamp + 300);
+        bytes memory firstSig = _sign(first, signerKey);
+
+        AirtimePayments.Quote memory second = _quote();
+        second.startAt = first.startAt;
+        second.endAt = first.endAt;
+        second.quoteId = keccak256("quote-2");
+        second.buyer = stranger;
+        second.nonce = 2;
+        bytes memory secondSig = _sign(second, signerKey);
+
+        uint256 treasuryBefore = treasury.balance;
+        uint256 loserBefore = stranger.balance;
+
+        vm.prank(buyer);
+        payments.purchase{value: first.amount}(first, firstSig);
+
+        vm.startPrank(stranger);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AirtimePayments.PlacementProtected.selector, first.placementId, first.endAt
+            )
+        );
+        payments.purchase{value: second.amount}(second, secondSig);
+        vm.stopPrank();
+
+        assertEq(treasury.balance, treasuryBefore + first.amount, "only the winner reaches treasury");
+        assertEq(stranger.balance, loserBefore, "losing payment remains in buyer wallet");
+        assertFalse(payments.consumedQuotes(second.quoteId), "losing quote remains unconsumed");
+        assertEq(payments.protectedUntil(first.placementId), first.endAt, "winner protects placement");
+    }
+
+    function test_same_placement_can_be_bought_after_protection_ends() public {
+        AirtimePayments.Quote memory first = _quote();
+        first.startAt = uint64(block.timestamp);
+        first.endAt = uint64(block.timestamp + 60);
+        bytes memory firstSig = _sign(first, signerKey);
+        vm.prank(buyer);
+        payments.purchase{value: first.amount}(first, firstSig);
+
+        vm.warp(first.endAt);
+        AirtimePayments.Quote memory takeover = _quote();
+        takeover.quoteId = keccak256("takeover");
+        takeover.buyer = stranger;
+        takeover.startAt = uint64(block.timestamp);
+        takeover.endAt = uint64(block.timestamp + 120);
+        takeover.expiresAt = uint64(block.timestamp + 180);
+        takeover.nonce = 3;
+        bytes memory takeoverSig = _sign(takeover, signerKey);
+
+        vm.prank(stranger);
+        payments.purchase{value: takeover.amount}(takeover, takeoverSig);
+
+        assertTrue(payments.consumedQuotes(takeover.quoteId), "later takeover succeeds");
+        assertEq(payments.protectedUntil(first.placementId), takeover.endAt, "new guarantee is protected");
+    }
+
     function test_purchase_erc20_pulls_tokens_to_treasury() public {
         vm.prank(owner);
         payments.setTokenSupported(address(token), true);

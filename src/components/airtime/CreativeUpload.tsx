@@ -44,7 +44,11 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
         form.set("placementId", placement.id);
         form.set("ticket", ticket);
         if (clickUrl && placement.allowsClickThrough) form.set("clickUrl", clickUrl);
-        const res = await api<{ creative: CreativeDto }>("/api/creatives", { method: "POST", body: form });
+        const res = await api<{ creative: CreativeDto }>("/api/creatives", {
+          method: "POST",
+          body: form,
+          headers: { "x-airtime-placement-id": placement.id, "x-airtime-upload-ticket": ticket },
+        });
         setWarnings(res.creative.warnings ?? []);
         onCreative(res.creative);
       } catch (e) {

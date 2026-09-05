@@ -28,6 +28,28 @@ vi.mock("@/server/chain/client", () => ({
    address for the fixture host. */
 vi.mock("node:dns/promises", () => ({ lookup: async () => [{ address: "93.184.216.34", family: 4 }] }));
 
+/* The CDN the probe fetches from. It speaks node:https, because that is the
+   transport the probe uses in order to pin DNS for itself. */
+const linkMock = vi.hoisted(() => ({ status: 200, contentType: "application/vnd.apple.mpegurl", cors: true, body: "" }));
+vi.mock("node:https", async () => {
+  const { EventEmitter } = await import("node:events");
+  const { Readable } = await import("node:stream");
+  return {
+    request: (options: { method?: string }, callback: (res: unknown) => void) =>
+      Object.assign(new EventEmitter(), {
+        setTimeout: () => {},
+        destroy: () => {},
+        end: () => {
+          const headers: Record<string, string> = { "content-type": linkMock.contentType };
+          if (linkMock.cors) headers["access-control-allow-origin"] = "*";
+          const isHead = (options.method ?? "GET") === "HEAD";
+          const res = Object.assign(Readable.from(isHead ? [] : [Buffer.from(linkMock.body)]), { statusCode: linkMock.status, headers });
+          setImmediate(() => callback(res));
+        },
+      }),
+  };
+});
+
 import { boot } from "@/server/boot";
 import { db, schema, closeDb } from "@/server/db/client";
 import { createCreativeFromUpload, createLinkCreative } from "@/server/ads/creatives";
@@ -55,18 +77,13 @@ async function png(w = 1280, h = 720): Promise<Buffer> {
  * Stand in for a CDN. HEAD answers with a content type and CORS; GET returns an
  * HLS playlist whose EXTINF lines add up to `durationSec`.
  */
-function serveLink(opts: { contentType?: string; durationSec?: number; cors?: boolean; status?: number } = {}) {
+function serveLink(opts: { contentType?: string; durationSec?: number; cors?: boolean; status?: number; body?: string } = {}) {
   const contentType = opts.contentType ?? "application/vnd.apple.mpegurl";
   const durationSec = opts.durationSec ?? 600;
-  const headers = new Headers({ "content-type": contentType });
-  if (opts.cors !== false) headers.set("access-control-allow-origin", "*");
-  const playlist = ["#EXTM3U", "#EXT-X-TARGETDURATION:10", `#EXTINF:${durationSec.toFixed(3)},`, "seg0.ts", "#EXT-X-ENDLIST"].join("\n");
-  vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-    const status = opts.status ?? 200;
-    if (init?.method === "HEAD") return new Response(null, { status, headers });
-    return new Response(playlist, { status, headers, ...(url ? {} : {}) });
-  });
+  linkMock.contentType = contentType;
+  linkMock.cors = opts.cors !== false;
+  linkMock.status = opts.status ?? 200;
+  linkMock.body = opts.body ?? ["#EXTM3U", "#EXT-X-TARGETDURATION:10", `#EXTINF:${durationSec.toFixed(3)},`, "seg0.ts", "#EXT-X-ENDLIST"].join("\n");
 }
 
 async function showLink(walletAddress: `0x${string}`, name = "show", durationSec = 600) {
@@ -185,12 +202,10 @@ describe("submissions by link", () => {
   });
 
   it("refuses a live playlist: a run needs a known length", async () => {
-    const headers = new Headers({ "content-type": "application/vnd.apple.mpegurl", "access-control-allow-origin": "*" });
-    vi.stubGlobal("fetch", async (_input: RequestInfo | URL, init?: RequestInit) =>
-      init?.method === "HEAD" ? new Response(null, { status: 200, headers }) : new Response("#EXTM3U\n#EXT-X-TARGETDURATION:6\n", { status: 200, headers }),
-    );
+    // No #EXT-X-ENDLIST: the playlist is still being written, so it has no length.
+    serveLink({ body: "#EXTM3U\n#EXT-X-TARGETDURATION:6\n" });
     try {
-      await expect(createLinkCreative({ walletAddress: wallet, placementId: "SHOW", url: "https://cdn.example.com/live.m3u8" })).rejects.toThrow(/live stream/i);
+      await expect(createLinkCreative({ walletAddress: wallet, placementId: "SHOW", url: "https://cdn.example.com/live.m3u8" })).rejects.toThrow(/live or incomplete/i);
     } finally {
       vi.unstubAllGlobals();
     }
@@ -274,6 +289,38 @@ describe("quotes and holds", () => {
 });
 
 describe("payment, occupancy and takeover", () => {
+  it("authorizes only an event that matches every server-signed payment fact", async () => {
+    chainMock.blockNumber = 102n;
+    const creative = await showLink(wallet, "fully-checked");
+    const campaign = await createCampaign({ walletAddress: wallet, placementId: "SHOW", displayName: "Verified buyer", creativeId: creative.id });
+    const issued = await createQuote({ campaignId: campaign.id, walletAddress: wallet });
+    const [quote] = await db().select().from(schema.quotes).where(eq(schema.quotes.id, issued.quote.quoteId));
+    const otherWallet = "0x000000000000000000000000000000000000beef" as Address;
+    const otherBytes = keccak256(toHex("not-the-signed-value"));
+
+    const mismatches = [
+      purchasedLog({ ...quote, walletAddress: otherWallet }, ("0x" + "41".repeat(32)) as Hex, 101n),
+      purchasedLog({ ...quote, placementIdHash: otherBytes }, ("0x" + "42".repeat(32)) as Hex, 101n),
+      purchasedLog({ ...quote, creativeHash: otherBytes }, ("0x" + "43".repeat(32)) as Hex, 101n),
+      purchasedLog({ ...quote, paymentToken: "0x0000000000000000000000000000000000000001" }, ("0x" + "44".repeat(32)) as Hex, 101n),
+      purchasedLog({ ...quote, amountWei: (BigInt(quote.amountWei) + 1n).toString() }, ("0x" + "45".repeat(32)) as Hex, 101n),
+      purchasedLog({ ...quote, startsAt: new Date(quote.startsAt.getTime() + 1_000) }, ("0x" + "46".repeat(32)) as Hex, 101n),
+      purchasedLog({ ...quote, endsAt: new Date(quote.endsAt.getTime() + 1_000) }, ("0x" + "47".repeat(32)) as Hex, 101n),
+      { ...purchasedLog(quote, ("0x" + "48".repeat(32)) as Hex, 101n), address: otherWallet },
+    ];
+
+    for (const log of mismatches) {
+      chainMock.logs = [log];
+      expect(await pollAwaitingPayments()).toBe(0);
+      expect((await getCampaignDetail(campaign.id))!.campaign.status).toBe("AWAITING_PAYMENT");
+      expect(await db().select().from(schema.payments).where(eq(schema.payments.campaignId, campaign.id))).toHaveLength(0);
+    }
+
+    chainMock.logs = [purchasedLog(quote, ("0x" + "49".repeat(32)) as Hex, 101n)];
+    expect(await pollAwaitingPayments()).toBe(1);
+    expect((await getCampaignDetail(campaign.id))!.campaign.status).toBe("AIRING");
+  });
+
   it("puts a paid campaign on the surface, then hands it to whoever pays more", async () => {
     const surfaceId = "SHOW";
     const lane = "show";

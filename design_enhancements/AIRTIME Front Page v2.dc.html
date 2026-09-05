@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="./image-slot.js"></script>
+<style>
+  html, body { margin:0; height:100%; background:#050607; color:#e6e9ee; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }
+  * { box-sizing:border-box; }
+  ::selection { background:rgba(204,255,0,.35); color:#fff; }
+  a { color:#b9c1cc; text-decoration:none; }
+  a:hover { color:#ccff00; }
+  :focus-visible { outline:1.5px solid #ccff00; outline-offset:3px; }
+  [data-rv] { transition:opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1), filter .8s cubic-bezier(.16,1,.3,1); }
+  [data-w] { transition:opacity .72s cubic-bezier(.16,1,.3,1), transform .72s cubic-bezier(.16,1,.3,1), filter .72s cubic-bezier(.16,1,.3,1); }
+  @keyframes at-run { from { transform:translate3d(0,0,0) } to { transform:translate3d(-50%,0,0) } }
+  @media (max-width:1023px) { [data-lg] { display:none !important; } }
+  @media (max-width:767px) { [data-md] { display:none !important; } }
+  @media (prefers-reduced-motion: reduce) {
+    [data-rv], [data-w] { opacity:1 !important; transform:none !important; filter:none !important; transition:none !important; }
+    [data-run] { animation:none !important; }
+    [data-card] { transition:none !important; }
+  }
+</style>
+</helmet>
+
+<div style="min-height:100dvh;background:#050607;color:#e6e9ee;font-family:'Helvetica Now Display','HelveticaNowDisplay','Helvetica Neue',Helvetica,Arial,'Liberation Sans',sans-serif;font-size:14px;letter-spacing:-0.009rem;overflow-x:hidden">
+
+  <header style="position:fixed;inset-inline:0;top:0;z-index:40;display:flex;height:60px;align-items:center;justify-content:space-between;gap:16px;padding:0 24px;background:linear-gradient(180deg,rgba(5,6,7,.82),rgba(5,6,7,0));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)">
+    <a href="#top" style="display:inline-flex;align-items:center;gap:.5em;flex-shrink:0;font-size:15px;user-select:none">
+      <span aria-hidden="true" style="display:inline-block;width:3px;height:14px;border-radius:1px;background:#ccff00;box-shadow:0 0 12px rgba(204,255,0,.55)"></span>
+      <span style="font-weight:600;text-transform:uppercase;line-height:1;letter-spacing:.24em;color:#f7f8fa;font-size:12.5px">Airtime</span>
+    </a>
+    <nav data-md="1" style="display:flex;align-items:center;gap:28px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em">
+      <a href="#clock" style="color:#8b95a3">The clock</a>
+      <a href="#picture" style="color:#8b95a3">The picture</a>
+      <a href="#honesty" style="color:#8b95a3">Honesty</a>
+      <a href="#treasury" style="color:#8b95a3">Treasury</a>
+      <a href="#room" style="color:#8b95a3">The room</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+      <span data-lg="1" data-clock="1" style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:10px;letter-spacing:.16em;color:#5b6470">--:--:-- UTC</span>
+      <a href="#panels" style="display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 16px;border-radius:2px;background:#ccff00;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#0d1400;white-space:nowrap" style-hover="background:#d9ff33;color:#0d1400">Buy airtime</a>
+    </div>
+  </header>
+
+  <section id="top" data-screen-label="Fold — the display" style="position:relative;height:100svh;min-height:520px;width:100%;overflow:hidden;background:#050607">
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding-top:70px">
+
+      <div style="flex:1 1 auto;min-height:64px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:3px;align-items:stretch">
+        <div data-md="1" style="position:relative;overflow:hidden;background:#0a0b0d;border-left:1px solid rgba(255,255,255,.07);border-right:1px solid rgba(255,255,255,.07);min-width:180px">
+          <div style="position:absolute;inset:0"><image-slot id="v2-surface-left" shape="rect" fit="cover" placeholder="Left display panel"></image-slot></div>
+          <div style="pointer-events:none;position:absolute;left:10px;bottom:10px;display:inline-flex;align-items:center;gap:8px;background:rgba(5,6,7,.8);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#b9c1cc">Panel left<span style="color:#ccff00">0.01 ETH</span></div>
+        </div>
+
+        <div style="position:relative;overflow:hidden;background:#0a0b0d">
+          <div style="position:absolute;inset:0"><image-slot id="v2-surface-main" shape="rect" fit="cover" placeholder="The picture — drop a frame grab of the live station"></image-slot></div>
+          <div style="pointer-events:none;position:absolute;left:12px;top:12px;display:flex;flex-wrap:wrap;gap:8px">
+            <span style="display:inline-flex;align-items:center;gap:8px;background:rgba(5,6,7,.8);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#b9c1cc">Runtime<span style="color:#ccff00">0.01 ETH</span></span>
+            <span style="display:inline-flex;align-items:center;gap:8px;background:rgba(5,6,7,.8);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#b9c1cc">Commercial<span style="color:#ccff00">0.01 ETH</span></span>
+          </div>
+          <div style="pointer-events:none;position:absolute;right:12px;top:12px;display:inline-flex;align-items:center;gap:7px;background:rgba(5,6,7,.8);border:1px solid rgba(204,255,0,.4);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:#ccff00"><span style="width:5px;height:5px;border-radius:50%;background:#ccff00;box-shadow:0 0 8px rgba(204,255,0,.8)"></span>On air</div>
+
+        </div>
+
+        <div data-md="1" style="position:relative;overflow:hidden;background:#0a0b0d;border-left:1px solid rgba(255,255,255,.07);border-right:1px solid rgba(255,255,255,.07);min-width:180px">
+          <div style="position:absolute;inset:0"><image-slot id="v2-surface-right" shape="rect" fit="cover" placeholder="Right display panel"></image-slot></div>
+          <div style="pointer-events:none;position:absolute;right:10px;bottom:10px;display:inline-flex;align-items:center;gap:8px;background:rgba(5,6,7,.8);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#b9c1cc">Panel right<span style="color:#ccff00">0.01 ETH</span></div>
+        </div>
+      </div>
+
+      <div style="flex:0 0 auto;border-top:1px solid rgba(255,255,255,.09);padding:20px 24px 22px">
+        <div style="margin:0 auto;max-width:1560px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px 40px">
+          <div style="flex:1 1 380px;min-width:0">
+            <div data-rv="1" style="opacity:0;transform:translateY(12px);filter:blur(6px);display:flex;align-items:center;gap:12px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em">
+              <span style="color:#b9c1cc">Airtime Main</span>
+              <span style="width:1px;height:11px;background:rgba(255,255,255,.22)"></span>
+              <span style="color:#8b95a3">Four surfaces</span>
+            </div>
+            <h1 style="margin:12px 0 0;max-width:22ch;font-size:clamp(30px,4.2vw,68px);font-weight:500;line-height:.94;letter-spacing:-.05em;color:#f7f8fa;text-wrap:pretty">
+              <span style="display:inline-block;overflow:hidden;vertical-align:bottom"><span data-w="1" style="display:inline-block;opacity:0;transform:translateY(.52em);filter:blur(9px);transition-delay:.06s">Buy</span></span>
+              <span style="display:inline-block;overflow:hidden;vertical-align:bottom"><span data-w="1" style="display:inline-block;opacity:0;transform:translateY(.52em);filter:blur(9px);transition-delay:.11s">a</span></span>
+              <span style="display:inline-block;overflow:hidden;vertical-align:bottom"><span data-w="1" style="display:inline-block;opacity:0;transform:translateY(.52em);filter:blur(9px);transition-delay:.16s">piece</span></span>
+              <span style="display:inline-block;overflow:hidden;vertical-align:bottom"><span data-w="1" style="display:inline-block;opacity:0;transform:translateY(.52em);filter:blur(9px);transition-delay:.21s">of</span></span>
+              <span style="display:inline-block;overflow:hidden;vertical-align:bottom"><span data-w="1" style="display:inline-block;opacity:0;transform:translateY(.52em);filter:blur(9px);transition-delay:.26s">the</span></span>
+              <span style="display:inline-block;overflow:hidden;vertical-align:bottom"><span data-w="1" style="display:inline-block;opacity:0;transform:translateY(.52em);filter:blur(9px);transition-delay:.31s">channel.</span></span>
+            </h1>
+          </div>
+          <div style="flex:1 1 330px;min-width:0;max-width:32rem">
+            <p data-rv="1" style="opacity:0;transform:translateY(14px);filter:blur(6px);transition-delay:.3s;margin:0;font-size:13.5px;line-height:1.6;color:#b9c1cc">Every surface above is inventory. The price on each one falls until somebody takes it, payment settles on chain, and the station verifies it before a frame airs.</p>
+            <div data-rv="1" style="opacity:0;transform:translateY(14px);filter:blur(6px);transition-delay:.4s;margin-top:14px;display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+              <a href="#panels" style="display:inline-flex;align-items:center;justify-content:center;height:42px;padding:0 22px;border-radius:2px;background:#ccff00;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#0d1400;white-space:nowrap" style-hover="background:#d9ff33;color:#0d1400">Buy airtime</a>
+              <a href="#picture" style="display:inline-flex;align-items:center;justify-content:center;height:42px;padding:0 22px;border-radius:2px;border:1px solid rgba(255,255,255,.24);font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#e6e9ee;white-space:nowrap" style-hover="border-color:rgba(255,255,255,.45);color:#e6e9ee;background:rgba(255,255,255,.06)">Watch full screen</a>
+            </div>
+            <div data-rv="1" style="opacity:0;transform:translateY(14px);filter:blur(6px);transition-delay:.48s;margin-top:12px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:#8b95a3">Every surface opens at <span style="color:#ccff00">0.01 ETH</span> · a sale resets it to twice what was paid</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <sc-if value="{{ showTicker }}" hint-placeholder-val="{{ true }}">
+    <div style="position:relative;width:100%;overflow:hidden;border-top:1px solid rgba(255,255,255,.09);border-bottom:1px solid rgba(255,255,255,.09);background:#0a0b0d">
+      <div data-run="1" style="display:flex;width:max-content;animation-name:at-run;animation-timing-function:linear;animation-iteration-count:infinite;animation-duration:{{ tickerDuration }}">
+        <div style="display:flex;align-items:center">
+          <a href="#clock" style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Runtime</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></a>
+          <a href="#clock" style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Commercial</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></a>
+          <a href="#clock" style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Left display panel</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></a>
+          <a href="#clock" style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Right display panel</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></a>
+          <span style="display:inline-flex;align-items:center;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;color:#2a2f36">Prices fall until somebody takes them</span>
+        </div>
+        <div aria-hidden="true" style="display:flex;align-items:center">
+          <span style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Runtime</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></span>
+          <span style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Commercial</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></span>
+          <span style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Left display panel</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></span>
+          <span style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Right display panel</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></span>
+          <span style="display:inline-flex;align-items:center;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;color:#2a2f36">Prices fall until somebody takes them</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <section id="panels" data-screen-label="The panels" style="width:100%;background:#050607">
+    <div style="margin:0 auto;max-width:1560px;padding:120px 24px 132px">
+      <div data-rv="1" style="opacity:0;transform:translateY(14px);filter:blur(6px);display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:20px;padding-bottom:22px;border-bottom:1px solid rgba(255,255,255,.1);font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em">
+        <span style="display:inline-flex;align-items:baseline;gap:20px"><span style="color:#ccff00">The network</span><span style="color:#8b95a3">Six panels</span></span>
+        <span style="color:#b9c1cc">Click a panel to turn it over</span>
+      </div>
+
+      <div style="margin-top:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px">
+
+        <div id="clock" data-rv="1" style="opacity:0;transform:translateY(26px);filter:blur(6px);perspective:1800px">
+          <div data-card="1" style="position:relative;width:100%;min-height:540px;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.16,1,.3,1);transform:{{ flip1 }}">
+            <div style="position:absolute;inset:0;opacity:{{ f1 }};transition:opacity .2s linear .3s;border:1px solid rgba(255,255,255,.14);border-radius:4px;background:#0a0b0d;overflow:hidden">
+              <div style="position:absolute;inset:0"><image-slot id="v2-panel-1" shape="rect" fit="cover" placeholder="01 · How it works — a descending price, a clock, a trading floor"></image-slot></div>
+              <div role="button" tabindex="0" aria-label="{{ label1 }}" onClick="{{ toggle1 }}" onKeyDown="{{ key1 }}" style="position:absolute;left:0;right:0;bottom:0;cursor:pointer;padding:56px 24px 0;background:linear-gradient(0deg,rgba(0,0,0,.96) 0%,rgba(0,0,0,.82) 46%,rgba(0,0,0,0) 100%)">
+                <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ccff00">01 · How it works</div>
+                <h3 style="margin:12px 0 0;font-size:clamp(22px,2.2vw,30px);font-weight:500;line-height:1.04;letter-spacing:-.04em;color:#f7f8fa;text-wrap:pretty">The price falls until somebody takes it.</h3>
+                <div style="margin:24px -24px 0;border-top:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;white-space:nowrap">
+                  <span style="color:#b9c1cc">Buying a surface</span><span style="color:#ccff00">Turn over ↻</span>
+                </div>
+              </div>
+            </div>
+            <div role="button" tabindex="0" aria-label="{{ label1 }}" onClick="{{ toggle1 }}" onKeyDown="{{ key1 }}" style="position:absolute;inset:0;opacity:{{ b1 }};transition:opacity .2s linear .3s;transform:rotateY(180deg);cursor:pointer;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:#0f1114;overflow:hidden">
+              <div style="flex:1;min-height:0;padding:26px 26px 0;overflow:auto">
+                <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ccff00">01 · How it works</div>
+                <h2 style="margin:14px 0 0;font-size:clamp(26px,2.6vw,36px);font-weight:500;line-height:1.02;letter-spacing:-.04em;color:#f7f8fa;text-wrap:pretty">The price falls until somebody takes it.</h2>
+                <p style="margin:14px 0 0;font-size:13.5px;line-height:1.7;color:#8b95a3">No rate card, no sales call, no minimum. Every surface carries its own price clock, and the clock is the whole negotiation. Demand is the only thing that raises a price.</p>
+                <div style="margin-top:18px;display:flex;flex-direction:column">
+                  <div style="display:flex;gap:16px;padding:11px 0;border-top:1px solid rgba(255,255,255,.09)"><span style="flex-shrink:0;width:22px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;letter-spacing:.16em;color:#ccff00">01</span><span style="font-size:13px;line-height:1.5;color:#b9c1cc">Pick a surface — each one has its own price clock.</span></div>
+                  <div style="display:flex;gap:16px;padding:11px 0;border-top:1px solid rgba(255,255,255,.09)"><span style="flex-shrink:0;width:22px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;letter-spacing:.16em;color:#ccff00">02</span><span style="font-size:13px;line-height:1.5;color:#b9c1cc">Preview your creative on that exact surface. What you preview is what airs.</span></div>
+                  <div style="display:flex;gap:16px;padding:11px 0;border-top:1px solid rgba(255,255,255,.09)"><span style="flex-shrink:0;width:22px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;letter-spacing:.16em;color:#ccff00">03</span><span style="font-size:13px;line-height:1.5;color:#b9c1cc">Take it at the asking price from your own wallet.</span></div>
+                  <div style="display:flex;gap:16px;padding:11px 0;border-top:1px solid rgba(255,255,255,.09);border-bottom:1px solid rgba(255,255,255,.09)"><span style="flex-shrink:0;width:22px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;letter-spacing:.16em;color:#ccff00">04</span><span style="font-size:13px;line-height:1.5;color:#b9c1cc">Hold it until another buyer pays more.</span></div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid rgba(255,255,255,.12);background:rgba(204,255,0,.06);padding:18px 26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;white-space:nowrap;color:#ccff00">
+                <span>Take a surface →</span><span style="color:#8b95a3">Turn back ↻</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="picture" data-rv="1" style="opacity:0;transform:translateY(26px);filter:blur(6px);transition-delay:.08s;perspective:1800px">
+          <div data-card="1" style="position:relative;width:100%;min-height:540px;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.16,1,.3,1);transform:{{ flip2 }}">
+            <div style="position:absolute;inset:0;opacity:{{ f2 }};transition:opacity .2s linear .3s;border:1px solid rgba(255,255,255,.14);border-radius:4px;background:#0a0b0d;overflow:hidden">
+              <div style="position:absolute;inset:0"><image-slot id="v2-panel-2" shape="rect" fit="cover" placeholder="02 · The picture — a frame grab of the show as it goes out"></image-slot></div>
+              <div role="button" tabindex="0" aria-label="{{ label2 }}" onClick="{{ toggle2 }}" onKeyDown="{{ key2 }}" style="position:absolute;left:0;right:0;bottom:0;cursor:pointer;padding:56px 24px 0;background:linear-gradient(0deg,rgba(0,0,0,.96) 0%,rgba(0,0,0,.82) 46%,rgba(0,0,0,0) 100%)">
+                <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ccff00">02 · The picture</div>
+                <h3 style="margin:12px 0 0;font-size:clamp(22px,2.2vw,30px);font-weight:500;line-height:1.04;letter-spacing:-.04em;color:#f7f8fa;text-wrap:pretty">Whoever holds the screen is the programme.</h3>
+                <div style="margin:24px -24px 0;border-top:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;white-space:nowrap">
+                  <span style="color:#b9c1cc">Taking the picture</span><span style="color:#ccff00">Turn over ↻</span>
+                </div>
+              </div>
+            </div>
+            <div role="button" tabindex="0" aria-label="{{ label2 }}" onClick="{{ toggle2 }}" onKeyDown="{{ key2 }}" style="position:absolute;inset:0;opacity:{{ b2 }};transition:opacity .2s linear .3s;transform:rotateY(180deg);cursor:pointer;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:#0f1114;overflow:hidden">
+              <div style="flex:1;min-height:0;padding:26px 26px 0;overflow:auto">
+                <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ccff00">02 · The picture</div>
+                <h2 style="margin:14px 0 0;font-size:clamp(26px,2.6vw,36px);font-weight:500;line-height:1.02;letter-spacing:-.04em;color:#f7f8fa;text-wrap:pretty">Whoever holds the screen is the programme.</h2>
+                <p style="margin:14px 0 0;font-size:13.5px;line-height:1.7;color:#8b95a3">A show is up to half an hour, uploaded or linked from anywhere. It plays to everyone in the room in sync, from the moment it is bought until another buyer pays more for the same screen.</p>
+                <div style="margin-top:20px;display:flex;flex-direction:column;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em">
+                  <div style="display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid rgba(255,255,255,.09)"><span style="color:#5b6470">Runtime</span><span style="color:#b9c1cc">Up to 30 minutes</span></div>
+                  <div style="display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid rgba(255,255,255,.09)"><span style="color:#5b6470">Commercial</span><span style="color:#b9c1cc">30 seconds, every break</span></div>
+                  <div style="display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid rgba(255,255,255,.09);border-bottom:1px solid rgba(255,255,255,.09)"><span style="color:#5b6470">Display panels</span><span style="color:#b9c1cc">Either side, always on</span></div>
+                </div>
+                <div style="margin-top:22px;display:flex;align-items:flex-end;gap:12px">
+                  <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;font-size:44px;line-height:.86;letter-spacing:-.04em;color:#ccff00">0.01</span>
+                  <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:#8b95a3;padding-bottom:5px">ETH · nobody is holding it</span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid rgba(255,255,255,.12);background:rgba(204,255,0,.06);padding:18px 26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;white-space:nowrap;color:#ccff00">
+                <span>Put on a show →</span><span style="color:#8b95a3">Turn back ↻</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="honesty" data-rv="1" style="opacity:0;transform:translateY(26px);filter:blur(6px);transition-delay:.16s;perspective:1800px">
+          <div data-card="1" style="position:relative;width:100%;min-height:540px;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.16,1,.3,1);transform:{{ flip3 }}">
+            <div style="position:absolute;inset:0;opacity:{{ f3 }};transition:opacity .2s linear .3s;border:1px solid rgba(255,255,255,.14);border-radius:4px;background:#0a0b0d;overflow:hidden">
+              <div style="position:absolute;inset:0"><image-slot id="v2-panel-3" shape="rect" fit="cover" placeholder="03 · Honesty — a printed receipt, a signature, a paper record"></image-slot></div>
+              <div role="button" tabindex="0" aria-label="{{ label3 }}" onClick="{{ toggle3 }}" onKeyDown="{{ key3 }}" style="position:absolute;left:0;right:0;bottom:0;cursor:pointer;padding:56px 24px 0;background:linear-gradient(0deg,rgba(0,0,0,.96) 0%,rgba(0,0,0,.82) 46%,rgba(0,0,0,0) 100%)">
+                <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ccff00">03 · Honesty</div>
+                <h3 style="margin:12px 0 0;font-size:clamp(22px,2.2vw,30px);font-weight:500;line-height:1.04;letter-spacing:-.04em;color:#f7f8fa;text-wrap:pretty">What the chain proves, and what it does not.</h3>
+                <div style="margin:24px -24px 0;border-top:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;white-space:nowrap">
+                  <span style="color:#b9c1cc">Payment vs delivery</span><span style="color:#ccff00">Turn over ↻</span>
+                </div>
+              </div>
+            </div>
+            <div role="button" tabindex="0" aria-label="{{ label3 }}" onClick="{{ toggle3 }}" onKeyDown="{{ key3 }}" style="position:absolute;inset:0;opacity:{{ b3 }};transition:opacity .2s linear .3s;transform:rotateY(180deg);cursor:pointer;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:#0f1114;overflow:hidden">
+              <div style="flex:1;min-height:0;padding:26px 26px 0;overflow:auto">
+                <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ccff00">03 · Honesty</div>
+                <h2 style="margin:14px 0 0;font-size:clamp(26px,2.6vw,36px);font-weight:500;line-height:1.02;letter-spacing:-.04em;color:#f7f8fa;text-wrap:pretty">What the chain proves, and what it does not.</h2>
+                <p style="margin:14px 0 0;font-size:13.5px;line-height:1.7;color:#8b95a3">The chain proves payment: a specific buyer paid a specific amount for a quote bound to a placement, a price and a hash of the exact creative. The browser never decides that something is paid — the server reads the transaction from its own node and re-checks every field against the quote it signed.</p>
+                <div style="margin-top:18px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);border-radius:8px;padding:16px">
+                  <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8b95a3">Payment · verified on chain</div>
+                  <div style="margin-top:10px;display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;color:#8b95a3">
+                    <span>Amount</span><span style="color:#f7f8fa">—</span>
+                    <span>Network</span><span style="color:#f7f8fa">Robinhood Chain</span>
+                    <span>Transaction</span><span style="color:#f7f8fa">—</span>
+                  </div>
+                </div>
+                <div style="margin-top:12px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);border-radius:8px;padding:16px">
+                  <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8b95a3">Delivery · first-party analytics</div>
+                  <div style="margin-top:10px;display:grid;grid-template-columns:1fr auto;gap:4px 16px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;color:#8b95a3">
+                    <span>Sessions present</span><span style="color:#f7f8fa">—</span>
+                    <span>Tab visibility while airing</span><span style="color:#f7f8fa;white-space:nowrap">not measured</span>
+                    <span>Video completions</span><span style="color:#f7f8fa">—</span>
+                  </div>
+                  <p style="margin:12px 0 0;font-size:11px;line-height:1.6;color:#5b6470">Application measurements, not on-chain facts and not cryptographically verified impressions.</p>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid rgba(255,255,255,.12);background:rgba(204,255,0,.06);padding:18px 26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;white-space:nowrap;color:#ccff00">
+                <span>Read the policy →</span><span style="color:#8b95a3">Turn back ↻</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="treasury" data-rv="1" style="opacity:0;transform:translateY(26px);filter:blur(6px);transition-delay:.24s;perspective:1800px">
+          <div data-card="1" style="position:relative;width:100%;min-height:540px;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.16,1,.3,1);transform:{{ flip4 }}">
+            <div style="position:absolute;inset:0;opacity:{{ f4 }};transition:opacity .2s linear .3s;border:1px solid rgba(255,255,255,.14);border-radius:4px;background:#0a0b0d;overflow:hidden">
+              <div style="position:absolute;inset:0"><image-slot id="v2-panel-4" shape="rect" fit="cover" placeholder="04 · Treasury — a vault door, a share certificate, ticker tape"></image-slot></div>
+              <div role="button" tabindex="0" aria-label="{{ label4 }}" onClick="{{ toggle4 }}" onKeyDown="{{ key4 }}" style="position:absolute;left:0;right:0;bottom:0;cursor:pointer;padding:56px 24px 0;background:linear-gradient(0deg,rgba(0,0,0,.96) 0%,rgba(0,0,0,.82) 46%,rgba(0,0,0,0) 100%)">
+                <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ccff00">04 · Treasury</div>
+                <h3 style="margin:12px 0 0;font-size:clamp(22px,2.2vw,30px);font-weight:500;line-height:1.04;letter-spacing:-.04em;color:#f7f8fa;text-wrap:pretty">Every fee buys Anduril pre-stock.</h3>
+                <div style="margin:24px -24px 0;border-top:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;white-space:nowrap">
+                  <span style="color:#b9c1cc">Where the money goes</span><span style="color:#ccff00">Turn over ↻</span>
+                </div>
+              </div>
+            </div>
+            <div role="button" tabindex="0" aria-label="{{ label4 }}" onClick="{{ toggle4 }}" onKeyDown="{{ key4 }}" style="position:absolute;inset:0;opacity:{{ b4 }};transition:opacity .2s linear .3s;transform:rotateY(180deg);cursor:pointer;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:#0f1114;overflow:hidden">
+              <div style="flex:1;min-height:0;padding:26px 26px 0;overflow:auto">
+                <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ccff00">04 · Treasury</div>
+                <h2 style="margin:14px 0 0;font-size:clamp(26px,2.6vw,36px);font-weight:500;line-height:1.02;letter-spacing:-.04em;color:#f7f8fa;text-wrap:pretty">Every fee buys Anduril pre-stock.</h2>
+                <p style="margin:14px 0 0;font-size:13.5px;line-height:1.7;color:#8b95a3">What the network earns is used to buy Anduril pre-stock, which is then distributed to holders. Airtime revenue is derived from payments the station verified on chain and can never be typed in by hand.</p>
+                <div style="margin-top:18px;border:1px solid rgba(255,255,255,.12);border-radius:8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))">
+                  <div style="padding:16px;border-right:1px solid rgba(255,255,255,.08)">
+                    <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#5b6470">Airtime revenue</div>
+                    <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;margin-top:10px;font-size:24px;line-height:1;letter-spacing:-.03em;color:#f7f8fa">—</div>
+                    <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;margin-top:8px;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:#5b6470">Derived from chain</div>
+                  </div>
+                  <div style="padding:16px">
+                    <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#5b6470">Spent on pre-stock</div>
+                    <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;margin-top:10px;font-size:24px;line-height:1;letter-spacing:-.03em;color:#f7f8fa">—</div>
+                    <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;margin-top:8px;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:#5b6470">Operator recorded</div>
+                  </div>
+                  <div style="padding:16px;border-top:1px solid rgba(255,255,255,.08);border-right:1px solid rgba(255,255,255,.08)">
+                    <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#5b6470">Held</div>
+                    <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;margin-top:10px;font-size:24px;line-height:1;letter-spacing:-.03em;color:#f7f8fa">—</div>
+                    <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;margin-top:8px;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:#5b6470">Acquired minus distributed</div>
+                  </div>
+                  <div style="padding:16px;border-top:1px solid rgba(255,255,255,.08)">
+                    <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#5b6470">Reward cap per holder</div>
+                    <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;margin-top:10px;font-size:24px;line-height:1;letter-spacing:-.03em;color:#ccff00">0.005%</div>
+                    <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;margin-top:8px;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:#5b6470">Of the pre-IPO allocation</div>
+                  </div>
+                </div>
+                <p style="margin:14px 0 0;font-size:11.5px;line-height:1.7;color:#5b6470">This is not an offer, a prospectus, or investment advice.</p>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid rgba(255,255,255,.12);background:rgba(204,255,0,.06);padding:18px 26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;white-space:nowrap;color:#ccff00">
+                <span>Open the ledger →</span><span style="color:#8b95a3">Turn back ↻</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="room" data-rv="1" style="opacity:0;transform:translateY(26px);filter:blur(6px);transition-delay:.32s;perspective:1800px">
+          <div data-card="1" style="position:relative;width:100%;min-height:540px;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.16,1,.3,1);transform:{{ flip5 }}">
+            <div style="position:absolute;inset:0;opacity:{{ f5 }};transition:opacity .2s linear .3s;border:1px solid rgba(255,255,255,.14);border-radius:4px;background:#0a0b0d;overflow:hidden">
+              <div style="position:absolute;inset:0"><image-slot id="v2-panel-5" shape="rect" fit="cover" placeholder="05 · The room — an audience watching one screen together"></image-slot></div>
+              <div role="button" tabindex="0" aria-label="{{ label5 }}" onClick="{{ toggle5 }}" onKeyDown="{{ key5 }}" style="position:absolute;left:0;right:0;bottom:0;cursor:pointer;padding:56px 24px 0;background:linear-gradient(0deg,rgba(0,0,0,.96) 0%,rgba(0,0,0,.82) 46%,rgba(0,0,0,0) 100%)">
+                <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ccff00">05 · The room</div>
+                <h3 style="margin:12px 0 0;font-size:clamp(22px,2.2vw,30px);font-weight:500;line-height:1.04;letter-spacing:-.04em;color:#f7f8fa;text-wrap:pretty">Everyone watching is in the same room.</h3>
+                <div style="margin:24px -24px 0;border-top:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;white-space:nowrap">
+                  <span style="color:#b9c1cc">Chat and sync</span><span style="color:#ccff00">Turn over ↻</span>
+                </div>
+              </div>
+            </div>
+            <div role="button" tabindex="0" aria-label="{{ label5 }}" onClick="{{ toggle5 }}" onKeyDown="{{ key5 }}" style="position:absolute;inset:0;opacity:{{ b5 }};transition:opacity .2s linear .3s;transform:rotateY(180deg);cursor:pointer;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:#0f1114;overflow:hidden">
+              <div style="flex:1;min-height:0;padding:26px 26px 0;overflow:auto">
+                <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ccff00">05 · The room</div>
+                <h2 style="margin:14px 0 0;font-size:clamp(26px,2.6vw,36px);font-weight:500;line-height:1.02;letter-spacing:-.04em;color:#f7f8fa;text-wrap:pretty">Everyone watching is in the same room.</h2>
+                <p style="margin:14px 0 0;font-size:13.5px;line-height:1.7;color:#8b95a3">Connect a wallet to talk. The wallet is the name, so there is nobody to impersonate, and the room is rate limited rather than moderated into silence.</p>
+                <p style="margin:14px 0 0;font-size:13.5px;line-height:1.7;color:#8b95a3">Everyone asks the server for the block playing right now and seeks to the same offset, so whatever one buyer puts on the screen, the whole room sees at the same moment.</p>
+                <div style="margin-top:20px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(0,0,0,.3);padding:16px">
+                  <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8b95a3">Station chat</div>
+                  <p style="margin:12px 0 0;font-size:12.5px;line-height:1.7;color:#5b6470">Nobody has said anything yet. Connect a wallet and open the room.</p>
+                  <div style="margin-top:14px;border:1px solid rgba(255,255,255,.12);border-radius:2px;background:rgba(255,255,255,.03);padding:10px 13px;font-size:12.5px;color:#8b95a3">Connect a wallet to talk</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid rgba(255,255,255,.12);background:rgba(204,255,0,.06);padding:18px 26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;white-space:nowrap;color:#ccff00">
+                <span>Open the room →</span><span style="color:#8b95a3">Turn back ↻</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="about" data-rv="1" style="opacity:0;transform:translateY(26px);filter:blur(6px);transition-delay:.4s;perspective:1800px">
+          <div data-card="1" style="position:relative;width:100%;min-height:540px;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.16,1,.3,1);transform:{{ flip6 }}">
+            <div style="position:absolute;inset:0;opacity:{{ f6 }};transition:opacity .2s linear .3s;border:1px solid rgba(255,255,255,.14);border-radius:4px;background:#0a0b0d;overflow:hidden">
+              <div style="position:absolute;inset:0"><image-slot id="v2-panel-6" shape="rect" fit="cover" src="./assets/jeff-miller.webp" placeholder="06 · About — the founder"></image-slot></div>
+              <div role="button" tabindex="0" aria-label="{{ label6 }}" onClick="{{ toggle6 }}" onKeyDown="{{ key6 }}" style="position:absolute;left:0;right:0;bottom:0;cursor:pointer;padding:56px 24px 0;background:linear-gradient(0deg,rgba(0,0,0,.96) 0%,rgba(0,0,0,.82) 46%,rgba(0,0,0,0) 100%)">
+                <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ccff00">06 · About</div>
+                <h3 style="margin:12px 0 0;font-size:clamp(22px,2.2vw,30px);font-weight:500;line-height:1.04;letter-spacing:-.04em;color:#f7f8fa;text-wrap:pretty">Advertising you can buy from your seat.</h3>
+                <div style="margin:24px -24px 0;border-top:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;white-space:nowrap">
+                  <span style="color:#b9c1cc">Jeff Miller · founder</span><span style="color:#ccff00">Turn over ↻</span>
+                </div>
+              </div>
+            </div>
+            <div role="button" tabindex="0" aria-label="{{ label6 }}" onClick="{{ toggle6 }}" onKeyDown="{{ key6 }}" style="position:absolute;inset:0;opacity:{{ b6 }};transition:opacity .2s linear .3s;transform:rotateY(180deg);cursor:pointer;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.2);border-radius:4px;background:#0f1114;overflow:hidden">
+              <div style="flex:1;min-height:0;padding:26px 26px 0;overflow:auto">
+                <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#ccff00">06 · About</div>
+                <h2 style="margin:14px 0 0;font-size:clamp(26px,2.6vw,36px);font-weight:500;line-height:1.02;letter-spacing:-.04em;color:#f7f8fa;text-wrap:pretty">Advertising you can buy from your seat.</h2>
+                <p style="margin:14px 0 0;font-size:13.5px;line-height:1.7;color:#8b95a3">Television built the largest advertising business in history on a simple idea: a channel has a finite amount of time and space, and anyone can buy a piece of it. Buying a spot now means a rate card, a sales call, an agency, an insertion order, and a minimum spend that rules out almost everybody.</p>
+                <p style="margin:14px 0 0;font-size:13.5px;line-height:1.7;color:#8b95a3">AIRTIME puts the whole thing back in the open. The station runs around the clock in a browser, the price of every surface is on the screen, and anyone with a wallet can take one. No sales call, no minimum, no gatekeeper.</p>
+                <div style="margin-top:20px;border-left:2px solid #ccff00;padding-left:14px">
+                  <div style="font-size:15px;font-weight:500;letter-spacing:-.025em;color:#f7f8fa">Jeff Miller</div>
+                  <div style="margin-top:6px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:#8b95a3">Founder</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid rgba(255,255,255,.12);background:rgba(204,255,0,.06);padding:18px 26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em;white-space:nowrap;color:#ccff00">
+                <span>Read the mission →</span><span style="color:#8b95a3">Turn back ↻</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section data-screen-label="Closing CTA" style="width:100%;border-top:1px solid rgba(255,255,255,.08);background:#0a0b0d">
+    <div style="margin:0 auto;max-width:1560px;padding:120px 24px">
+      <div data-rv="1" style="opacity:0;transform:translateY(20px);filter:blur(6px);display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:40px">
+        <h2 style="margin:0;flex:1 1 420px;max-width:16ch;font-size:clamp(32px,4.6vw,64px);font-weight:500;line-height:.96;letter-spacing:-.05em;color:#f7f8fa;text-wrap:pretty">The channel is open right now.</h2>
+        <div style="flex:0 1 auto;display:flex;flex-wrap:wrap;align-items:center;gap:14px">
+          <a href="#panels" style="display:inline-flex;align-items:center;justify-content:center;height:52px;padding:0 30px;border-radius:2px;background:#ccff00;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#0d1400;white-space:nowrap" style-hover="background:#d9ff33;color:#0d1400">Buy airtime</a>
+          <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#5b6470">Four surfaces · opens at 0.01 ETH</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="border-top:1px solid rgba(255,255,255,.09);background:#050607">
+    <div style="margin:0 auto;max-width:1560px;padding:64px 24px 40px">
+      <div style="display:flex;flex-wrap:wrap;gap:32px">
+        <div style="flex:1.6 1 240px;max-width:22rem">
+          <span style="display:inline-flex;align-items:center;gap:.5em;font-size:16px;user-select:none">
+            <span aria-hidden="true" style="display:inline-block;width:3px;height:15px;border-radius:1px;background:#ccff00;box-shadow:0 0 12px rgba(204,255,0,.55)"></span>
+            <span style="font-weight:600;text-transform:uppercase;line-height:1;letter-spacing:.24em;color:#f7f8fa;font-size:13.2px">Airtime</span>
+          </span>
+          <p style="margin:18px 0 0;font-size:13.5px;line-height:1.75;color:#8b95a3">A browser-native television network where every display surface is programmable advertising inventory, settled on Robinhood Chain.</p>
+        </div>
+        <nav aria-label="Watch" style="flex:1 1 118px">
+          <div style="margin-bottom:16px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8b95a3">Watch</div>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:11px">
+            <li><a href="#top" style="font-size:12.5px;color:#8b95a3">The station</a></li>
+            <li><a href="#picture" style="font-size:12.5px;color:#8b95a3">2D station</a></li>
+            <li><a href="#picture" style="font-size:12.5px;color:#8b95a3">Program guide</a></li>
+            <li><a href="#clock" style="font-size:12.5px;color:#8b95a3">Broadcast log</a></li>
+          </ul>
+        </nav>
+        <nav aria-label="Advertise" style="flex:1 1 118px">
+          <div style="margin-bottom:16px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8b95a3">Advertise</div>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:11px">
+            <li><a href="#panels" style="font-size:12.5px;color:#8b95a3">Buy airtime</a></li>
+            <li><a href="#clock" style="font-size:12.5px;color:#8b95a3">How it works</a></li>
+            <li><a href="#honesty" style="font-size:12.5px;color:#8b95a3">Documentation</a></li>
+            <li><a href="#honesty" style="font-size:12.5px;color:#8b95a3">Creative specs</a></li>
+          </ul>
+        </nav>
+        <nav aria-label="Network" style="flex:1 1 118px">
+          <div style="margin-bottom:16px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8b95a3">Network</div>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:11px">
+            <li><a href="#treasury" style="font-size:12.5px;color:#8b95a3">Treasury</a></li>
+            <li><a href="#honesty" style="font-size:12.5px;color:#8b95a3">Content policy</a></li>
+            <li><a href="#honesty" style="font-size:12.5px;color:#8b95a3">How payment works</a></li>
+            <li><a href="#top" style="font-size:12.5px;color:#8b95a3">Master control</a></li>
+          </ul>
+        </nav>
+        <nav aria-label="Build" style="flex:1 1 118px">
+          <div style="margin-bottom:16px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8b95a3">Build</div>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:11px">
+            <li><a href="https://github.com/JermWang/airtime" target="_blank" rel="noreferrer noopener" style="font-size:12.5px;color:#8b95a3">Source code</a></li>
+            <li><a href="https://github.com/JermWang/airtime#readme" target="_blank" rel="noreferrer noopener" style="font-size:12.5px;color:#8b95a3">Architecture</a></li>
+            <li><a href="https://github.com/JermWang/airtime/issues" target="_blank" rel="noreferrer noopener" style="font-size:12.5px;color:#8b95a3">Report an issue</a></li>
+            <li><a href="#honesty" style="font-size:12.5px;color:#8b95a3">Routes and API</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div style="margin-top:56px;border-top:1px solid rgba(255,255,255,.09);padding-top:26px">
+        <p style="margin:0;max-width:48rem;font-size:13px;line-height:1.75;color:#5b6470">Unrated. No content ratings or viewer discretion warnings are applied to anything on this network. AIRTIME is an independent product; Robinhood Chain is used as payment infrastructure.</p>
+        <div style="margin-top:20px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+            <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;display:inline-flex;align-items:center;gap:7px;border-radius:2px;border:1px solid rgba(255,255,255,.12);padding:5px 9px;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#5b6470"><span style="color:#5b6470">Treasury</span><span style="color:#b9c1cc">Not configured</span></span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;display:inline-flex;align-items:center;gap:7px;border-radius:2px;border:1px solid rgba(255,255,255,.1);padding:5px 9px;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#5b6470"><span>Contract</span><span style="color:#8b95a3">Coming soon</span></span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:#5b6470;white-space:nowrap">© 2026 Airtime</span>
+          </div>
+          <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:#5b6470">Payment facts come from the chain · delivery numbers come from first-party analytics</div>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showTicker&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Ticker&quot;},&quot;tickerSeconds&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:90,&quot;min&quot;:40,&quot;max&quot;:180,&quot;step&quot;:5,&quot;unit&quot;:&quot;s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Ticker&quot;}}">
+const CARDS = [
+  ["c1", "How it works"],
+  ["c2", "The picture"],
+  ["c3", "Honesty"],
+  ["c4", "Treasury"],
+  ["c5", "The room"],
+  ["c6", "About"],
+];
+
+class Component extends DCLogic {
+  state = { flipped: {} };
+
+  toggle(key) {
+    this.setState((s) => ({ flipped: Object.assign({}, s.flipped, { [key]: !s.flipped[key] }) }));
+  }
+
+  renderVals() {
+    const flipped = this.state.flipped;
+    const vals = {
+      showTicker: this.props.showTicker ?? true,
+      tickerDuration: `${this.props.tickerSeconds ?? 90}s`,
+    };
+    CARDS.forEach(([key, name], i) => {
+      const n = i + 1;
+      const on = !!flipped[key];
+      vals[`flip${n}`] = on ? "rotateY(180deg)" : "rotateY(0deg)";
+      vals[`f${n}`] = on ? 0 : 1;
+      vals[`b${n}`] = on ? 1 : 0;
+      vals[`label${n}`] = on ? `${name} — back to the picture` : `${name} — read more`;
+      vals[`toggle${n}`] = () => this.toggle(key);
+      vals[`key${n}`] = (e) => {
+        if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          this.toggle(key);
+        }
+      };
+    });
+    return vals;
+  }
+
+  componentDidMount() {
+    const reveal = (el) => { el.style.opacity = "1"; el.style.transform = "none"; el.style.filter = "none"; };
+    const targets = () => Array.from(document.querySelectorAll("[data-rv],[data-w]"));
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { targets().forEach(reveal); return; }
+    this._io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { reveal(e.target); this._io.unobserve(e.target); } });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0 });
+    const attach = () => targets().forEach((n) => { if (!n.dataset.rvSeen) { n.dataset.rvSeen = "1"; this._io.observe(n); } });
+    attach();
+    this._mo = new MutationObserver(attach);
+    this._mo.observe(document.body, { childList: true, subtree: true });
+
+    const tick = () => {
+      const d = new Date();
+      const p = (n) => String(n).padStart(2, "0");
+      const s = `${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} UTC`;
+      document.querySelectorAll("[data-clock]").forEach((el) => { el.textContent = s; });
+    };
+    tick();
+    this._t = setInterval(tick, 1000);
+  }
+
+  componentWillUnmount() {
+    this._io && this._io.disconnect();
+    this._mo && this._mo.disconnect();
+    this._t && clearInterval(this._t);
+  }
+}
+
+</script>
+</body>
+</html>

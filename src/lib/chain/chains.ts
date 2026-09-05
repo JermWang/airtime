@@ -60,11 +60,11 @@ export function activeChainEnv(): ChainEnv {
 /**
  * Where a buyer may pay from.
  *
- * AIRTIME settles on Robinhood Chain, and accepts payment on Ethereum mainnet
- * as well: both are ordinary EVM transfers into the same treasury address, and
- * both are verified the same way, by the server reading the transaction from
- * its own RPC. The first entry is the network the app prefers and the one a
- * wallet is asked to switch to when nothing is chosen.
+ * Chains the station knows how to read. New quotes are restricted to the active
+ * chain because the protected payment contract is deployed there; the other
+ * entries remain available for recognizing legacy treasury-settled records.
+ * The first entry is the network the app prefers and the one a wallet is asked
+ * to switch to when nothing is chosen.
  *
  * Override the list with NEXT_PUBLIC_PAYMENT_CHAIN_IDS (comma separated).
  */

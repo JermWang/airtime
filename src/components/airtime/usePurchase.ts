@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useWriteContract, usePublicClient, useAccount, useSendTransaction } from "wagmi";
+import { useWriteContract, usePublicClient, useAccount } from "wagmi";
 import { BaseError, ContractFunctionRevertedError, type Hex } from "viem";
 import { airtimePaymentsAbi, quoteStructFromWire } from "@/lib/chain/airtimePayments";
 import { api, type QuoteDto, type CampaignDto } from "@/lib/api";
@@ -34,6 +34,8 @@ function describeError(e: unknown): string {
           return "The quote signature was rejected by the contract (wrong chain or contract).";
         case "EnforcedPause":
           return "Purchases are paused on the payment contract.";
+        case "PlacementProtected":
+          return "Another buyer completed first. Your transaction was reverted, so the payment value stayed in your wallet (network gas may still apply).";
         default:
           return `Contract rejected the purchase: ${name}`;
       }
@@ -50,7 +52,6 @@ function describeError(e: unknown): string {
  */
 export function usePurchase() {
   const { writeContractAsync } = useWriteContract();
-  const { sendTransactionAsync } = useSendTransaction();
   const client = usePublicClient();
   const { address } = useAccount();
   const [state, setState] = useState<PurchaseState>({ phase: "idle", txHash: null, error: null, outcome: null });
@@ -110,22 +111,14 @@ export function usePurchase() {
       setState({ phase: "wallet", txHash: null, error: null, outcome: null });
       let hash: Hex;
 
-      if (quote.settlement === "treasury") {
-        // No payment contract on this chain: pay the treasury directly. The quote
-        // id travels in the transaction's calldata, which is what lets the server
-        // tie an ordinary transfer to this quote and nothing else.
-        try {
-          hash = await sendTransactionAsync({
-            to: quote.payTo as `0x${string}`,
-            value: q.amount,
-            data: quote.quote.quoteId,
-            chainId: quote.chainId,
-          });
-        } catch (e) {
-          setState({ phase: "error", txHash: null, error: describeError(e), outcome: null });
-          return null;
-        }
-        return await settle(hash, quote.campaignId);
+      if (quote.settlement !== "contract") {
+        setState({
+          phase: "error",
+          txHash: null,
+          error: "This quote does not use AIRTIME's protected payment contract. Request a new quote before paying.",
+          outcome: null,
+        });
+        return null;
       }
 
       try {

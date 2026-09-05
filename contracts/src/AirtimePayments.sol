@@ -49,6 +49,11 @@ contract AirtimePayments is EIP712, Ownable2Step, Pausable, ReentrancyGuard {
     mapping(bytes32 quoteId => bool consumed) public consumedQuotes;
     mapping(address buyer => mapping(uint256 nonce => bool used)) public usedNonces;
     mapping(address token => bool supported) public supportedTokens;
+    /// @notice End of the guaranteed window for the transaction that most
+    /// recently won a placement. A second transaction for the same placement
+    /// reverts while this timestamp is in the future, so its payment never
+    /// leaves the losing buyer's wallet.
+    mapping(bytes32 placementId => uint64 until) public protectedUntil;
 
     event AirtimePurchased(
         bytes32 indexed quoteId,
@@ -75,6 +80,7 @@ contract AirtimePayments is EIP712, Ownable2Step, Pausable, ReentrancyGuard {
     error ZeroAmount();
     error ZeroAddress();
     error InvalidWindow();
+    error PlacementProtected(bytes32 placementId, uint64 protectedUntil);
     error TreasuryTransferFailed();
 
     constructor(address initialOwner, address initialQuoteSigner, address initialTreasury)
@@ -109,14 +115,24 @@ contract AirtimePayments is EIP712, Ownable2Step, Pausable, ReentrancyGuard {
         if (usedNonces[quote.buyer][quote.nonce]) revert NonceAlreadyUsed(quote.buyer, quote.nonce);
         if (!supportedTokens[quote.paymentToken]) revert UnsupportedToken(quote.paymentToken);
         if (quote.amount == 0) revert ZeroAmount();
-        if (quote.endAt <= quote.startAt) revert InvalidWindow();
+        if (quote.endAt <= quote.startAt || quote.endAt <= block.timestamp) revert InvalidWindow();
 
         bytes32 digest = hashQuote(quote);
         (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecover(digest, signature);
         if (err != ECDSA.RecoverError.NoError || recovered != quoteSigner) revert InvalidSignature();
 
+        // Transactions are totally ordered by the chain even when buyers click
+        // at the same instant. The first valid payment protects the placement
+        // for its signed guaranteed window; a competing payment reverts before
+        // any ETH or tokens move, which is an atomic refund to the loser.
+        uint64 currentProtection = protectedUntil[quote.placementId];
+        if (block.timestamp < currentProtection) {
+            revert PlacementProtected(quote.placementId, currentProtection);
+        }
+
         consumedQuotes[quote.quoteId] = true;
         usedNonces[quote.buyer][quote.nonce] = true;
+        protectedUntil[quote.placementId] = quote.endAt;
 
         if (quote.paymentToken == NATIVE_TOKEN) {
             if (msg.value != quote.amount) revert WrongPaymentAmount(quote.amount, msg.value);

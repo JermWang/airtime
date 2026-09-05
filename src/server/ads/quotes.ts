@@ -108,14 +108,17 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRespons
   const settings = await getSettings();
   if (settings.purchasesPaused) throw new HttpError(503, "Purchases are temporarily paused by the station");
 
-  // A buyer may pay on any accepted chain. Where a payment contract is
-  // deployed for that chain the quote is settled through it; otherwise the quote
-  // is settled by a native transfer into the treasury, which the server verifies
-  // from that chain's own RPC (see server/chain/treasuryTransfer.ts).
+  // New purchases must use the payment contract. A direct treasury transfer
+  // cannot atomically reject a losing same-surface transaction, so issuing one
+  // would make an automatic race refund impossible.
   const payChain = paymentChainFor(input.chainId);
   const contract = paymentContractAddress();
-  const settlement: "contract" | "treasury" = contract && payChain.id === activeChain().id ? "contract" : "treasury";
-  const payTo = settlement === "contract" ? (contract as Address) : treasuryAddress();
+  if (!contract) throw new HttpError(503, "Protected payments are not configured on this station");
+  if (payChain.id !== activeChain().id) {
+    throw new HttpError(400, `Protected payments are not deployed on ${payChain.name}`);
+  }
+  const settlement = "contract" as const;
+  const payTo = contract as Address;
 
   const paymentToken = (input.paymentToken ?? NATIVE_TOKEN).toLowerCase() as Address;
   const asset = paymentAssets().find((a) => a.address.toLowerCase() === paymentToken);

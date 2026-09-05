@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TREASURY_ADDRESS, shortenAddress } from "@/lib/chain/treasury";
 import { cn } from "@/lib/format";
+
+function shortenAddress(address: string, lead = 6, tail = 4): string {
+  return address.length <= lead + tail + 1 ? address : `${address.slice(0, lead)}…${address.slice(-tail)}`;
+}
 
 /**
  * Click-to-copy address chip.
@@ -12,13 +15,13 @@ import { cn } from "@/lib/format";
  * shortened form is display only: nothing in the app ever compares against it.
  */
 export function AddressChip({
-  address = TREASURY_ADDRESS,
-  label = "Treasury",
+  address,
+  label,
   explorerUrl,
   className,
 }: {
-  address?: string;
-  label?: string;
+  address: string;
+  label: string;
   explorerUrl?: string | null;
   className?: string;
 }) {

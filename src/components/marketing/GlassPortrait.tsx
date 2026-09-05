@@ -6,13 +6,14 @@ import { usePrefersReducedMotion } from "@/lib/hooks";
 /**
  * A portrait held in a glass disc.
  *
- * The disc tracks the pointer: it tilts on two axes, drifts a little toward the
+ * At rest it is a still portrait and nothing moves. Put the pointer on it and
+ * the disc starts tracking: it tilts on two axes, drifts a little toward the
  * cursor, and its specular highlight follows the same point, so the glass reads
  * as a physical object catching a light source rather than a CSS circle. The
  * ring behind it counter-rotates slightly, which is what sells the depth.
  *
- * Everything is damped in a single animation frame loop, and the whole effect is
- * skipped under prefers-reduced-motion, where it renders as a still portrait.
+ * Move away and it settles back to flat. The frame loop only runs while it has
+ * somewhere to go, and the whole effect is skipped under prefers-reduced-motion.
  */
 export function GlassPortrait({ src, alt, size = 300 }: { src: string; alt: string; size?: number }) {
   const wrap = useRef<HTMLDivElement>(null);
@@ -25,26 +26,37 @@ export function GlassPortrait({ src, alt, size = 300 }: { src: string; alt: stri
   const target = useRef({ x: 0, y: 0, on: 0 });
   const current = useRef({ x: 0, y: 0, on: 0 });
   const raf = useRef(0);
+  const hovering = useRef(false);
 
   const onMove = useCallback((e: PointerEvent) => {
     const el = wrap.current;
-    if (!el) return;
+    if (!el || !hovering.current) return;
     const r = el.getBoundingClientRect();
     const cx = r.left + r.width / 2;
     const cy = r.top + r.height / 2;
-    // Normalised by a radius a bit larger than the disc, so the effect keeps
-    // responding while the cursor is near it rather than only on top of it.
-    const reach = Math.max(r.width, r.height) * 0.9;
-    const x = (e.clientX - cx) / reach;
-    const y = (e.clientY - cy) / reach;
-    const dist = Math.hypot(x, y);
-    target.current.x = Math.max(-1.4, Math.min(1.4, x));
-    target.current.y = Math.max(-1.4, Math.min(1.4, y));
-    target.current.on = dist < 1.6 ? 1 : 0;
+    const reach = Math.max(r.width, r.height) / 2;
+    target.current.x = Math.max(-1, Math.min(1, (e.clientX - cx) / reach));
+    target.current.y = Math.max(-1, Math.min(1, (e.clientY - cy) / reach));
   }, []);
 
   useEffect(() => {
     if (reduced) return;
+    const el = wrap.current;
+    if (!el) return;
+
+    // Only the portrait itself drives the effect. Off it, everything returns to
+    // rest and the loop stops rather than idling for the life of the page.
+    const enter = () => {
+      hovering.current = true;
+      target.current.on = 1;
+      start();
+    };
+    const leave = () => {
+      hovering.current = false;
+      target.current = { x: 0, y: 0, on: 0 };
+      start();
+    };
+
     const tick = () => {
       const c = current.current;
       const t = target.current;
@@ -70,13 +82,29 @@ export function GlassPortrait({ src, alt, size = 300 }: { src: string; alt: stri
       if (rg) {
         rg.style.transform = `perspective(900px) rotateX(${(c.y * 7).toFixed(2)}deg) rotateY(${(-c.x * 7).toFixed(2)}deg) scale(${(1 + c.on * 0.02).toFixed(4)})`;
       }
+
+      // At rest with the pointer away, stop: there is nothing left to animate.
+      const settled = Math.abs(t.x - c.x) < 0.001 && Math.abs(t.y - c.y) < 0.001 && Math.abs(t.on - c.on) < 0.002;
+      if (settled && !hovering.current) {
+        raf.current = 0;
+        return;
+      }
       raf.current = requestAnimationFrame(tick);
     };
-    raf.current = requestAnimationFrame(tick);
-    window.addEventListener("pointermove", onMove, { passive: true });
+
+    function start() {
+      if (!raf.current) raf.current = requestAnimationFrame(tick);
+    }
+
+    el.addEventListener("pointerenter", enter);
+    el.addEventListener("pointerleave", leave);
+    el.addEventListener("pointermove", onMove, { passive: true });
     return () => {
-      cancelAnimationFrame(raf.current);
-      window.removeEventListener("pointermove", onMove);
+      if (raf.current) cancelAnimationFrame(raf.current);
+      raf.current = 0;
+      el.removeEventListener("pointerenter", enter);
+      el.removeEventListener("pointerleave", leave);
+      el.removeEventListener("pointermove", onMove);
     };
   }, [onMove, reduced]);
 

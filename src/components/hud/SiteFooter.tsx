@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Wordmark } from "./Wordmark";
 import { CONTENT_NOTICE_SHORT } from "./ContentNotice";
-import { AddressChip, TokenContractChip } from "./AddressChip";
+import { TokenContractChip } from "./AddressChip";
 import { cn } from "@/lib/format";
 
 const REPO = "https://github.com/JermWang/airtime";
@@ -96,7 +96,6 @@ export function SiteFooter({ wide = false }: { wide?: boolean }) {
           <p className="body-copy max-w-3xl text-ink-400">{CONTENT_NOTICE_SHORT}</p>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
-              <AddressChip />
               <TokenContractChip />
               <div className="mono text-[9.5px] uppercase tracking-[0.16em] text-ink-500">© {year} AIRTIME · Built on Robinhood Chain</div>
             </div>

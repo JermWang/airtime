@@ -1,300 +1,380 @@
 "use client";
 
 import Link from "next/link";
-import { useBroadcastState, useBoard } from "@/lib/hooks";
-import { usePlayer } from "./playerStore";
-import { StationPlayer } from "./StationPlayer";
-import { StatusRail } from "@/components/hud/StatusRail";
-import { MobileDock } from "@/components/hud/MobileDock";
-import { SiteFooter } from "@/components/hud/SiteFooter";
-import { ContentNotice } from "@/components/hud/ContentNotice";
-import { SoundBlockedPrompt } from "@/components/hud/SoundControl";
+import { useServerNow, useBoard } from "@/lib/hooks";
+import { useLiveAsk } from "@/components/airtime/AskTicker";
 import { StationChat } from "@/components/hud/StationChat";
+import { SoundControl, SoundBlockedPrompt } from "@/components/hud/SoundControl";
+import { ContentNotice } from "@/components/hud/ContentNotice";
+import { SiteFooter } from "@/components/hud/SiteFooter";
+import { MobileDock } from "@/components/hud/MobileDock";
+import { Wordmark } from "@/components/hud/Wordmark";
+import { Reveal, RevealWords } from "@/components/marketing/Reveal";
+import { FlipCard } from "@/components/marketing/FlipCard";
+import { SurfaceWall, PriceTicker } from "@/components/marketing/SurfaceWall";
 import { LogoRow } from "@/components/marketing/LogoRow";
-import { GlassPortrait } from "@/components/marketing/GlassPortrait";
-import { formatWei, cn } from "@/lib/format";
-import type { BoardRowDto } from "@/lib/api";
-
-/* -------------------------------------------------------------------------- */
-/*  Copy                                                                      */
-/* -------------------------------------------------------------------------- */
-
-const STEPS = [
-  { n: "01", t: "Pick a surface", d: "The picture itself, or any surface the station is selling. Each one is a row in a database with its own price clock." },
-  { n: "02", t: "Preview your creative", d: "Upload an image or a video and see it on that exact surface before you commit. What you preview is what airs." },
-  { n: "03", t: "Take it at the asking price", d: "The price walks down on its own until somebody takes it. Pay the number on screen from your own wallet." },
-  { n: "04", t: "Hold it until you are outbid", d: "You get a guaranteed minimum of runtime, then you hold the surface until another buyer pays more for it." },
-];
-
-const FOUNDER = { name: "Jeff Miller", role: "" };
-
-const MISSION = [
-  "Television built the largest advertising business in history on a simple idea: a channel has a finite amount of time and space, and anyone can buy a piece of it. Somewhere along the way that stopped being true. Buying a spot now means a rate card, a sales call, an agency, an insertion order, and a minimum spend that rules out almost everybody.",
-  "AIRTIME puts the whole thing back in the open. The station runs around the clock in a browser, the price of every surface is on the screen, and anyone with a wallet can take one. No sales call, no minimum, no gatekeeper.",
-  "Every fee the network collects goes toward Anduril pre-stock, which is distributed to holders. Revenue is derived from payments verified on chain and cannot be typed in by hand.",
-];
-
-/* -------------------------------------------------------------------------- */
-/*  Page                                                                      */
-/* -------------------------------------------------------------------------- */
+import { ClockArt, PictureArt, HonestyArt, TreasuryArt, RoomArt, PortraitArt, ProofBlocks, LedgerGrid } from "@/components/marketing/Panels";
+import { formatClock, formatWei } from "@/lib/format";
 
 /**
  * The station front page.
  *
- * The picture is the splash: it plays full-bleed behind the fold, exactly as it
- * is going out right now, and everything that explains the network is stacked
- * underneath it in full-width slices. There is no 3D room here - the programme
- * is the subject and nothing is drawn over it.
+ * The fold is the wall: the live picture with a display panel either side of it,
+ * each wearing its own price, so the first thing anybody sees is that all four
+ * surfaces are for sale and what they cost this second. Under it the prices run
+ * past on a strip, and then the whole argument is six panels you turn over — the
+ * front is the picture, the back is the detail.
+ *
+ * Nothing on this page is a drawing of the product. Every price, figure and
+ * frame is read from the same endpoints the station runs on.
  */
 export function StationHome({ channelId = "MAIN" }: { channelId?: string }) {
   return (
-    <main className="min-h-dvh bg-ink-950">
-      <StatusRail channelId={channelId} />
+    <div className="min-h-dvh overflow-x-hidden bg-ink-950 text-ink-100">
       <SoundBlockedPrompt />
       <ContentNotice />
-      <Hero channelId={channelId} />
-      <SurfaceStrip channelId={channelId} />
-      <HowItWorks />
-      <Proof />
-      <Money />
-      <ChatSlice />
-      <About />
-      <div className="py-14">
-        <LogoRow label="Runs on" />
+      <SiteHeader channelId={channelId} />
+      <Fold channelId={channelId} />
+      <PriceTicker channelId={channelId} seconds={90} />
+      <div className="border-b border-white/[0.09] bg-ink-950 py-5">
+        <LogoRow label="Partners / infrastructure" speedSec={54} />
       </div>
+      <Panels channelId={channelId} />
+      <ClosingCta />
       <SiteFooter wide />
       <MobileDock />
-    </main>
+    </div>
   );
 }
 
-/* ---- hero ---------------------------------------------------------------- */
+/* ---- header -------------------------------------------------------------- */
 
-function Hero({ channelId }: { channelId: string }) {
-  const { data } = useBroadcastState(channelId);
-  const source = usePlayer((s) => s.source);
-  const playing = usePlayer((s) => s.playing);
-  const block = data?.now;
-  const isLive = block?.type === "LIVE_HLS";
-  const onAir =
-    source?.kind === "campaign-video" || source?.kind === "campaign-image"
-      ? `${source.campaign.displayName}${source.slot === "ad" ? " · commercial" : ""}`
-      : block?.title ?? "Stand by";
+const NAV = [
+  { href: "#clock", label: "The clock" },
+  { href: "#picture", label: "The picture" },
+  { href: "#honesty", label: "Honesty" },
+  { href: "#treasury", label: "Treasury" },
+  { href: "#room", label: "The room" },
+];
 
+function SiteHeader({ channelId }: { channelId: string }) {
+  const now = useServerNow(1000);
   return (
-    <section className="relative h-[100svh] min-h-[560px] w-full overflow-hidden">
-      {/* The picture, exactly as it is going out. */}
-      <div className="absolute inset-0">
-        <StationPlayer channelId={channelId} visible fit="cover" className="h-full w-full" overlays={false} />
+    <header
+      className="fixed inset-x-0 top-0 z-40 flex items-center justify-between gap-4 px-6 backdrop-blur-[14px]"
+      style={{ height: 60, background: "linear-gradient(180deg,rgba(5,6,7,.82),rgba(5,6,7,0))" }}
+    >
+      <Link href="/" className="flex shrink-0 items-center">
+        <Wordmark size={12.5} />
+      </Link>
+      <nav className="mono hidden items-center gap-7 text-[10px] uppercase tracking-[0.18em] md:flex">
+        {NAV.map((n) => (
+          <a key={n.href} href={n.href} className="text-ink-300 transition hover:text-signal">
+            {n.label}
+          </a>
+        ))}
+      </nav>
+      <div className="flex shrink-0 items-center gap-3">
+        <SoundControl compact />
+        <span className="mono hidden whitespace-nowrap text-[10px] tracking-[0.16em] tabular-nums text-ink-400 lg:inline" suppressHydrationWarning>
+          {formatClock(now)} UTC
+        </span>
+        <a
+          href="#panels"
+          className="mono inline-flex h-[34px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-4 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
+        >
+          Buy airtime
+        </a>
       </div>
-
-      {/* Scrims: one under the top bar, one under the copy. Nothing across the
-          middle of the frame, so the programme is never veiled. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/80 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[72%] bg-gradient-to-t from-black via-black/85 to-transparent" />
-      {/* A soft wash from the left so the headline holds against a bright frame
-          without veiling the picture itself. */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-full bg-gradient-to-r from-black/75 via-black/25 to-transparent md:w-[70%]" />
-
-      <div className="absolute inset-x-0 bottom-0 px-5 pb-14 md:px-10 md:pb-16">
-        <div className="mx-auto max-w-[1400px]">
-          <div className="mono flex flex-wrap items-center gap-2.5 text-[10px] uppercase tracking-[0.18em] text-ink-200">
-            <span className={cn("chip", isLive ? "chip-live" : playing ? "chip-signal" : "")}>
-              {isLive ? <span className="dot-live" /> : <span className={cn("h-1.5 w-1.5 rounded-full", playing ? "bg-signal" : "bg-ink-400")} />}
-              {isLive ? "Live" : playing ? "On air" : "Stand by"}
-            </span>
-            <span className="truncate text-ink-300">{onAir}</span>
-          </div>
-
-          <h1 className="mt-5 max-w-[18ch] text-[clamp(34px,7vw,84px)] font-medium leading-[0.95] tracking-[-0.05em] text-ink-50">
-            Buy a piece of the channel.
-          </h1>
-          <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-200">
-            A 24/7 television network in your browser where every display surface is advertising inventory. The price is on the screen, the payment settles on
-            chain, and the station verifies it before a single frame airs.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-2.5">
-            <Link href="/airtime" className="btn btn-primary">
-              Buy airtime
-            </Link>
-            <Link href="/watch" className="btn">
-              Watch full screen
-            </Link>
-            <Link href="/docs" className="btn btn-ghost">
-              How it works
-            </Link>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---- inventory strip ----------------------------------------------------- */
-
-/** The row under the fold: what is for sale, and what it costs right now. */
-function SurfaceStrip({ channelId }: { channelId: string }) {
-  const { data } = useBoard(channelId);
-  const rows = (data?.rows ?? []).filter((r) => r.placement.isActive);
-  if (!rows.length) return null;
-  return (
-    <section className="border-y border-white/8 bg-ink-900">
-      <div className="mx-auto max-w-[1400px] px-5 py-4 md:px-10">
-        <div className="scrollbar-thin flex gap-8 overflow-x-auto md:gap-12">
-          {rows.map((r: BoardRowDto) => (
-            <Link key={r.placement.id} href={`/airtime/${r.placement.id}`} className="group flex shrink-0 items-baseline gap-3 py-1">
-              <span className="mono text-[10px] uppercase tracking-[0.16em] text-ink-400 transition group-hover:text-signal">{r.placement.name}</span>
-              <span className="mono text-[12px] tracking-tight text-ink-100">{formatWei(r.surface.askWei)}</span>
-              <span className="mono text-[9px] uppercase tracking-[0.14em] text-ink-600">{r.occupant ? "held" : r.surface.forSale ? "open" : "closed"}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---- slices -------------------------------------------------------------- */
-
-function Slice({ children, tone = "base", className }: { children: React.ReactNode; tone?: "base" | "raised"; className?: string }) {
-  return (
-    <section className={cn("w-full border-b border-white/8", tone === "raised" ? "bg-ink-900" : "bg-ink-950", className)}>
-      <div className="mx-auto max-w-[1400px] px-5 py-20 md:px-10 md:py-28">{children}</div>
-    </section>
-  );
-}
-
-function SliceHead({ label, title, lede }: { label: string; title: string; lede?: string }) {
-  return (
-    <header className="max-w-3xl">
-      <div className="eyebrow">{label}</div>
-      <h2 className="mt-4 text-[clamp(24px,3.6vw,40px)] font-medium leading-[1.05] tracking-[-0.035em] text-ink-50">{title}</h2>
-      {lede && <p className="mt-4 max-w-2xl text-[14.5px] leading-relaxed text-ink-300">{lede}</p>}
     </header>
   );
 }
 
-function HowItWorks() {
-  return (
-    <Slice tone="raised">
-      <SliceHead label="How it works" title="Take a surface, put your own creative on it, hold it until somebody pays more." />
-      <ol className="mt-12 grid gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 md:grid-cols-4">
-        {STEPS.map((s) => (
-          <li key={s.n} className="bg-ink-900 p-6">
-            <div className="step-index">{s.n}</div>
-            <div className="mt-3 text-[15.5px] font-medium tracking-tight text-ink-50">{s.t}</div>
-            <p className="mt-2 text-[13px] leading-relaxed text-ink-300">{s.d}</p>
-          </li>
-        ))}
-      </ol>
-    </Slice>
-  );
-}
+/* ---- the fold ------------------------------------------------------------ */
 
-function Proof() {
+function Fold({ channelId }: { channelId: string }) {
   return (
-    <Slice>
-      <SliceHead
-        label="Honesty"
-        title="What the chain proves, and what it does not."
-        lede="Payment facts and delivery numbers come from different places, so they are never mixed together."
-      />
-      <div className="mt-12 grid gap-4 md:grid-cols-2">
-        <div className="card p-6">
-          <div className="label-strong">Payment facts · on chain</div>
-          <p className="mt-3 text-[13.5px] leading-relaxed text-ink-300">
-            A specific buyer paid a specific amount for a quote bound to a placement, a price and a hash of the exact creative. The browser never decides that
-            something is paid: the server reads the transaction from its own node and re-checks every field against the quote it signed.
-          </p>
-        </div>
-        <div className="card p-6">
-          <div className="label-strong">Delivery numbers · application</div>
-          <p className="mt-3 text-[13.5px] leading-relaxed text-ink-300">
-            How many sessions had the station open, whether the creative loaded, whether the tab was visible, completions and clicks. First-party analytics,
-            always shown separately from the payment, never dressed up as on-chain impressions.
-          </p>
+    <section id="top" className="relative h-[100svh] min-h-[760px] w-full overflow-hidden bg-ink-950">
+      <div className="absolute inset-0 flex flex-col pt-[70px]">
+        <SurfaceWall channelId={channelId} />
+
+        <div className="shrink-0 border-t border-white/[0.09] px-6 pb-20 pt-4 md:pb-4">
+          <div className="mx-auto flex max-w-[1560px] flex-wrap items-end justify-between gap-x-10 gap-y-4">
+            <div className="min-w-0 flex-[1_1_380px]">
+              <Reveal y={12} immediate>
+                <div className="mono flex items-center gap-3 text-[10px] uppercase tracking-[0.2em]">
+                  <span className="text-ink-200">Airtime Main</span>
+                  <span className="h-[11px] w-px bg-white/20" />
+                  <span className="text-ink-300">Four surfaces</span>
+                </div>
+              </Reveal>
+              <h1 className="mt-3 max-w-[22ch] text-[clamp(30px,4.2vw,68px)] font-medium leading-[0.94] tracking-[-0.05em] text-ink-50 [text-wrap:pretty]">
+                <RevealWords text="Buy a piece of the channel." immediate />
+              </h1>
+            </div>
+
+            <div className="min-w-0 max-w-lg flex-[1_1_330px]">
+              <Reveal delay={0.3} y={14} immediate>
+                <p className="text-[13.5px] leading-relaxed text-ink-200">
+                  Every surface above is inventory. The price on each one falls until somebody takes it, payment settles on chain, and the station verifies it
+                  before a frame airs.
+                </p>
+              </Reveal>
+              <Reveal delay={0.4} y={14} immediate>
+                <div className="mt-3.5 flex flex-wrap items-center gap-3">
+                  <Link
+                    href="/airtime"
+                    className="mono inline-flex h-[42px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-[22px] text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
+                  >
+                    Buy airtime
+                  </Link>
+                  <Link
+                    href="/watch"
+                    className="mono inline-flex h-[42px] items-center justify-center whitespace-nowrap rounded-sm border border-white/25 px-[22px] text-[11px] uppercase tracking-[0.16em] text-ink-100 transition hover:border-white/45 hover:bg-white/[0.06]"
+                  >
+                    Watch full screen
+                  </Link>
+                </div>
+              </Reveal>
+              <Reveal delay={0.48} y={14} immediate>
+                <div className="mono mt-3 text-[9.5px] uppercase tracking-[0.16em] text-ink-300">
+                  Every surface opens at <span className="text-signal">0.01 ETH</span> · a sale resets it to twice what was paid
+                </div>
+              </Reveal>
+            </div>
+          </div>
         </div>
       </div>
-      <p className="mt-6 max-w-3xl text-[13.5px] leading-relaxed text-ink-400">
-        No viewer counts are invented anywhere in this product. Programming is unrated: everything in station time is a user submission that was paid for, and no
-        content rating or viewer discretion warning is applied to any of it.
-      </p>
-    </Slice>
+    </section>
   );
 }
 
-function Money() {
-  return (
-    <Slice tone="raised">
-      <div className="grid gap-10 md:grid-cols-[1.1fr_1fr] md:gap-16">
-        <div>
-          <SliceHead label="Treasury" title="Every fee buys Anduril pre-stock." />
-          <p className="mt-5 max-w-xl text-[14px] leading-relaxed text-ink-300">
-            What the network earns is used to buy Anduril pre-stock, which is then distributed to holders. Airtime revenue is derived from payments the station
-            verified on chain and can never be typed in by hand. Token tax, pre-stock purchases and distributions happen off this chain through a broker, so they
-            are recorded by the operator and always labelled as recorded figures rather than proven ones.
-          </p>
-          <Link href="/treasury" className="btn btn-sm mt-7">
-            Open the treasury
-          </Link>
-        </div>
-        <div className="card p-6">
-          <div className="label-strong">Creative rules</div>
-          <ul className="mt-4 flex flex-col gap-2.5 text-[13.5px] leading-relaxed text-ink-300">
-            <li>Images and MP4 video only. No advertiser HTML, JavaScript or iframes, anywhere.</li>
-            <li>Uploads are typed from their magic bytes, decoded, re-encoded and re-hashed on the server.</li>
-            <li>The creative that airs is the one whose hash was signed into the quote.</li>
-            <li>Some surfaces need a moderator to approve the creative before it can be quoted.</li>
-          </ul>
-        </div>
-      </div>
-    </Slice>
-  );
-}
+/* ---- the panels ---------------------------------------------------------- */
 
-function ChatSlice() {
+function Panels({ channelId }: { channelId: string }) {
   return (
-    <Slice>
-      <div className="grid gap-10 md:grid-cols-[1fr_460px] md:gap-16">
-        <div>
-          <SliceHead
-            label="The room"
-            title="Everyone watching is in the same room."
-            lede="Connect a wallet to talk. The wallet is the name, so there is nobody to impersonate, and the room is rate limited rather than moderated into silence."
-          />
-        </div>
-        <div className="card flex h-[420px] flex-col p-4">
-          <StationChat className="h-full" />
-        </div>
-      </div>
-    </Slice>
-  );
-}
+    <section id="panels" className="w-full bg-ink-950">
+      <div className="mx-auto max-w-[1560px] px-6 pb-[132px] pt-[120px]">
+        <Reveal y={14}>
+          <div className="mono flex flex-wrap items-baseline justify-between gap-5 border-b border-white/10 pb-[22px] text-[10px] uppercase tracking-[0.2em]">
+            <span className="inline-flex items-baseline gap-5">
+              <span className="text-signal">The network</span>
+              <span className="text-ink-300">Six panels</span>
+            </span>
+            <span className="text-ink-200">Click a panel to turn it over</span>
+          </div>
+        </Reveal>
 
-function About() {
-  return (
-    <Slice tone="raised">
-      <div className="grid items-center gap-12 md:grid-cols-[300px_minmax(0,1fr)] md:gap-16">
-        <div className="flex justify-center md:justify-start">
-          <GlassPortrait src="/team/jeff-miller.webp" alt={FOUNDER.role ? `${FOUNDER.name}, ${FOUNDER.role}` : FOUNDER.name} size={280} />
-        </div>
-        <div>
-          <SliceHead label="About us" title="Advertising should be something you can buy from your seat." />
-          <div className="mt-6 flex flex-col gap-4">
-            {MISSION.map((p) => (
-              <p key={p.slice(0, 24)} className="max-w-2xl text-[13.5px] leading-relaxed text-ink-300">
-                {p}
+        <div className="mt-7 grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(340px,1fr))]">
+          <Reveal y={26}>
+            <FlipCard
+              id="clock"
+              index="01"
+              eyebrow="How it works"
+              title="The price falls until somebody takes it."
+              frontNote="Buying a surface"
+              media={<ClockArt />}
+              cta={{ href: "/airtime", label: "Take a surface" }}
+            >
+              <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
+                No rate card, no sales call, no minimum. Every surface carries its own price clock, and the clock is the whole negotiation. Demand is the only
+                thing that raises a price.
               </p>
-            ))}
-          </div>
-          <div className="mt-7 border-l border-signal/50 pl-4">
-            <div className="text-[14px] font-medium tracking-tight text-ink-50">{FOUNDER.name}</div>
-            {FOUNDER.role && <div className="mono mt-1 text-[10px] uppercase tracking-[0.16em] text-ink-400">{FOUNDER.role}</div>}
-          </div>
+              <div className="mt-4 flex flex-col">
+                {[
+                  "Pick a surface — each one has its own price clock.",
+                  "Preview your creative on that exact surface. What you preview is what airs.",
+                  "Take it at the asking price from your own wallet.",
+                  "Hold it until another buyer pays more.",
+                ].map((step, i) => (
+                  <div key={step} className="flex gap-4 border-t border-white/[0.09] py-[11px] last:border-b">
+                    <span className="mono w-[22px] shrink-0 text-[9.5px] tracking-[0.16em] text-signal">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="text-[13px] leading-normal text-ink-200">{step}</span>
+                  </div>
+                ))}
+              </div>
+            </FlipCard>
+          </Reveal>
+
+          <Reveal y={26} delay={0.08}>
+            <FlipCard
+              id="picture"
+              index="02"
+              eyebrow="The picture"
+              title="Whoever holds the screen is the programme."
+              frontNote="Taking the picture"
+              media={<PictureArt channelId={channelId} />}
+              cta={{ href: "/airtime/SHOW", label: "Put on a show" }}
+            >
+              <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
+                A show is up to half an hour, uploaded or linked from anywhere. It plays to everyone in the room in sync, from the moment it is bought until
+                another buyer pays more for the same screen.
+              </p>
+              <div className="mono mt-5 flex flex-col text-[10px] uppercase tracking-[0.14em]">
+                {[
+                  ["Runtime", "Up to 30 minutes"],
+                  ["Commercial", "30 seconds, every break"],
+                  ["Display panels", "Either side, always on"],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-3.5 border-t border-white/[0.09] py-3 last:border-b">
+                    <span className="text-ink-400">{k}</span>
+                    <span className="text-ink-200">{v}</span>
+                  </div>
+                ))}
+              </div>
+              <ShowPrice channelId={channelId} />
+            </FlipCard>
+          </Reveal>
+
+          <Reveal y={26} delay={0.16}>
+            <FlipCard
+              id="honesty"
+              index="03"
+              eyebrow="Honesty"
+              title="What the chain proves, and what it does not."
+              frontNote="Payment vs delivery"
+              media={<HonestyArt />}
+              cta={{ href: "/docs#content", label: "Read the policy" }}
+            >
+              <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
+                The chain proves payment: a specific buyer paid a specific amount for a quote bound to a placement, a price and a hash of the exact creative. The
+                browser never decides that something is paid — the server reads the transaction from its own node and re-checks every field against the quote it
+                signed.
+              </p>
+              <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
+                What it does not prove is delivery. How many sessions had the station open, whether the creative loaded, whether the tab was visible: those are
+                application measurements, kept separate and never dressed up as on-chain impressions.
+              </p>
+              <ProofBlocks channelId={channelId} />
+              <p className="mono mt-4 text-[10px] uppercase leading-relaxed tracking-[0.14em] text-ink-500">
+                No viewer count on this network is invented. The number in the bar is a count of open station tabs and nothing else.
+              </p>
+            </FlipCard>
+          </Reveal>
+
+          <Reveal y={26} delay={0.24}>
+            <FlipCard
+              id="treasury"
+              index="04"
+              eyebrow="Treasury"
+              title="Every fee buys Anduril pre-stock."
+              frontNote="Where the money goes"
+              media={<TreasuryArt />}
+              cta={{ href: "/treasury", label: "Open the ledger" }}
+            >
+              <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
+                What the network earns is used to buy Anduril pre-stock, which is then distributed to holders. Airtime revenue is derived from payments the
+                station verified on chain and can never be typed in by hand.
+              </p>
+              <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
+                Token tax, pre-stock purchases and distributions happen off this chain through a broker, so they are recorded by the operator and always labelled
+                as recorded figures rather than proven ones.
+              </p>
+              <LedgerGrid />
+              <p className="mt-3.5 text-[11.5px] leading-[1.7] text-ink-500">This is not an offer, a prospectus, or investment advice.</p>
+            </FlipCard>
+          </Reveal>
+
+          <Reveal y={26} delay={0.32}>
+            <FlipCard
+              id="room"
+              index="05"
+              eyebrow="The room"
+              title="Everyone watching is in the same room."
+              frontNote="Chat and sync"
+              media={<RoomArt />}
+              cta={{ href: "/watch", label: "Open the room" }}
+            >
+              <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
+                Connect a wallet to talk. The wallet is the name, so there is nobody to impersonate, and the room is rate limited rather than moderated into
+                silence.
+              </p>
+              <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
+                Everyone asks the server for the block playing right now and seeks to the same offset, so whatever one buyer puts on the screen, the whole room
+                sees at the same moment.
+              </p>
+              <div className="mt-5 rounded-lg border border-white/12 bg-black/30 p-4">
+                <div className="mono text-[10px] uppercase tracking-[0.18em] text-ink-300">Station chat</div>
+                <div className="mt-3 h-[220px]">
+                  <StationChat className="h-full" />
+                </div>
+              </div>
+            </FlipCard>
+          </Reveal>
+
+          <Reveal y={26} delay={0.4}>
+            <FlipCard
+              id="about"
+              index="06"
+              eyebrow="About"
+              title="Advertising you can buy from your seat."
+              frontNote="Jeff Miller · founder"
+              media={<PortraitArt />}
+              cta={{ href: "/info", label: "Read the mission" }}
+            >
+              <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
+                Television built the largest advertising business in history on a simple idea: a channel has a finite amount of time and space, and anyone can buy
+                a piece of it. Buying a spot now means a rate card, a sales call, an agency, an insertion order, and a minimum spend that rules out almost
+                everybody.
+              </p>
+              <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
+                AIRTIME puts the whole thing back in the open. The station runs around the clock in a browser, the price of every surface is on the screen, and
+                anyone with a wallet can take one. No sales call, no minimum, no gatekeeper.
+              </p>
+              <div className="mt-5 border-l-2 border-signal pl-3.5">
+                <div className="text-[15px] font-medium tracking-[-0.025em] text-ink-50">Jeff Miller</div>
+                <div className="mono mt-1.5 text-[9.5px] uppercase tracking-[0.16em] text-ink-300">Founder</div>
+              </div>
+            </FlipCard>
+          </Reveal>
         </div>
       </div>
-    </Slice>
+    </section>
   );
 }
 
+/**
+ * The picture's ask, at the size the design gives it: the number alone, with
+ * whoever is holding the screen named beside it.
+ */
+function ShowPrice({ channelId }: { channelId: string }) {
+  const { data } = useBoard(channelId);
+  const show = (data?.rows ?? []).find((r) => r.placement.kind === "show");
+  const live = useLiveAsk(show?.placement, show?.surface);
+  const occupant = show?.surface.occupant ?? null;
+  return (
+    <div className="mt-5 flex items-end gap-3">
+      <span className="mono text-[44px] leading-[0.86] tracking-[-0.04em] text-signal tabular-nums">{live ? formatWei(live.askWei).replace(" ETH", "") : "—"}</span>
+      <span className="mono pb-[5px] text-[11px] uppercase tracking-[0.2em] text-ink-300">
+        {occupant ? `ETH · to take it from ${occupant.displayName}` : "ETH · nobody is holding it"}
+      </span>
+    </div>
+  );
+}
+
+/* ---- closing ------------------------------------------------------------- */
+
+function ClosingCta() {
+  return (
+    <section className="w-full border-t border-white/[0.08] bg-ink-900">
+      <div className="mx-auto max-w-[1560px] px-6 py-[120px]">
+        <Reveal y={20}>
+          <div className="flex flex-wrap items-end justify-between gap-10">
+            <h2 className="max-w-[16ch] flex-[1_1_420px] text-[clamp(32px,4.6vw,64px)] font-medium leading-[0.96] tracking-[-0.05em] text-ink-50 [text-wrap:pretty]">
+              The channel is open right now.
+            </h2>
+            <div className="flex flex-[0_1_auto] flex-wrap items-center gap-3.5">
+              <Link
+                href="/airtime"
+                className="mono inline-flex h-[52px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-[30px] text-[11.5px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
+              >
+                Buy airtime
+              </Link>
+              <span className="mono text-[10px] uppercase tracking-[0.16em] text-ink-400">Four surfaces · opens at 0.01 ETH</span>
+            </div>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
