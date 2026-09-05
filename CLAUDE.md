@@ -63,6 +63,33 @@ Note: Next 16 allows only one dev server per directory. Stop `pnpm dev` before `
 
 Delete Namecheap's parking CNAME and its URL-redirect record first; they conflict. Set `NEXT_PUBLIC_APP_URL=https://airtime.media` on the Railway service once the certificate is issued, because the same-origin check and the CSP are derived from it.
 
+## Chain
+
+`AirtimePayments` on Robinhood testnet (chain id 46630), deployed 2026-09-05:
+
+| | |
+| --- | --- |
+| Address | `0x8e5F3d24eaFEB4B5Df72673D65cbF4803c649F07` |
+| Deploy block | `113553774` |
+| Owner / treasury | `0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f` |
+| Quote signer | `0x9059Fb9e9dbcc06d9258FFC15Faa5128499ABaeB` |
+
+`forge` writes its record to `contracts/broadcast`, which is ignored (its sibling
+`contracts/cache` holds the deployer key), so this table is the only copy in the
+repo. Both `NEXT_PUBLIC_AIRTIME_PAYMENT_CONTRACT` and
+`AIRTIME_PAYMENT_CONTRACT_DEPLOY_BLOCK` must be set or `paymentContractAddress()`
+returns null and every purchase is refused at boot — the log line to look for is
+`contract  NOT CONFIGURED – purchases disabled`.
+
+The quote signer here must stay equal to the address derived from
+`AIRTIME_QUOTE_SIGNER_PRIVATE_KEY` on the server. If they drift the contract
+rejects every quote the backend signs, and the failure looks like a wallet
+problem rather than a configuration one.
+
+It was broadcast from Anvil's account #1, whose key is public. That is harmless
+for a deploy but never acceptable as an owner, so ownership was set to the
+treasury. Never deploy leaving the owner defaulted to that deployer.
+
 ## Hosting
 
 The repo root is the Next.js app; Vercel needs no root override. On any serverless host (`isServerless()` in `src/server/platform.ts`) three things change: the embedded database and local storage are refused outright, and the scheduler runs from `/api/cron/tick` plus an opportunistic tick on read endpoints instead of `setInterval`. Never reintroduce a disk write or a resident timer on a code path that runs there.
