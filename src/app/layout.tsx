@@ -15,11 +15,32 @@ const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrai
  */
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
+const DESCRIPTION =
+  "A browser-native 24/7 television network where every surface is programmable advertising inventory. Built on Robinhood Chain.";
+
+/**
+ * The icon and the social card are the files beside this one — Next picks up
+ * icon.png, apple-icon.png, opengraph-image.png and twitter-image.png by name.
+ * metadataBase is what turns them into the absolute URLs a crawler needs, so it
+ * has to match the origin the station is actually served from.
+ */
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   title: { default: "AIRTIME", template: "%s · AIRTIME" },
-  description: "A browser-native 24/7 television network where every surface is programmable advertising inventory. Built on Robinhood Chain.",
+  description: DESCRIPTION,
   applicationName: "AIRTIME",
   robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    siteName: "AIRTIME",
+    title: "AIRTIME",
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AIRTIME",
+    description: DESCRIPTION,
+  },
 };
 
 /**
