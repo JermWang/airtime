@@ -49,6 +49,17 @@ function PriceChip({ row, label, stack }: { row: BoardRowDto | undefined; label:
   );
 }
 
+/** Four corner brackets, turned inward once the wall already fills the screen. */
+function ExpandGlyph({ expanded }: { expanded?: boolean }) {
+  const out = "M1 4.5V1h3.5M8.5 1H12v3.5M12 8.5V12H8.5M4.5 12H1V8.5";
+  const inward = "M4.5 1v3.5H1M12 4.5H8.5V1M8.5 12V8.5H12M1 8.5h3.5V12";
+  return (
+    <svg viewBox="0 0 13 13" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" aria-hidden="true">
+      <path d={expanded ? inward : out} />
+    </svg>
+  );
+}
+
 /** A display panel: the creative on it, or the fact that it is free. */
 function PanelSurface({ row, occupant, side }: { row: BoardRowDto | undefined; occupant: QueueEntryDto | null; side: "left" | "right" }) {
   const creative = occupant?.creative ?? null;
@@ -95,7 +106,20 @@ function PanelSurface({ row, occupant, side }: { row: BoardRowDto | undefined; o
   );
 }
 
-export function SurfaceWall({ channelId = "MAIN" }: { channelId?: string }) {
+export interface SurfaceWallProps {
+  channelId?: string;
+  /**
+   * Sizing for the wall itself. The wall normally takes whatever height is left
+   * over beside the copy under it; expanded, the fold hands it a fixed height
+   * instead, so this replaces the flex rule rather than fighting it — `cn` here
+   * is a plain join and would emit both.
+   */
+  sizeClassName?: string;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+}
+
+export function SurfaceWall({ channelId = "MAIN", sizeClassName, expanded, onToggleExpand }: SurfaceWallProps) {
   const { data: board } = useBoard(channelId);
   const { data: activations } = useActivations(channelId);
   const playing = usePlayer((s) => s.playing);
@@ -114,7 +138,12 @@ export function SurfaceWall({ channelId = "MAIN" }: { channelId?: string }) {
   const right = byId.get("PANEL_RIGHT");
 
   return (
-    <div className="grid min-h-16 flex-1 grid-cols-2 grid-rows-[minmax(0,1fr)_96px] items-stretch justify-items-stretch gap-[3px] sm:grid-cols-[clamp(96px,18vw,120px)_minmax(0,1fr)_clamp(96px,18vw,120px)] sm:grid-rows-1 md:grid-cols-[clamp(120px,15vw,180px)_minmax(0,1fr)_clamp(120px,15vw,180px)]">
+    <div
+      className={cn(
+        "grid min-h-16 grid-cols-2 grid-rows-[minmax(0,1fr)_96px] items-stretch justify-items-stretch gap-[3px] sm:grid-cols-[clamp(96px,18vw,120px)_minmax(0,1fr)_clamp(96px,18vw,120px)] sm:grid-rows-1 md:grid-cols-[clamp(120px,15vw,180px)_minmax(0,1fr)_clamp(120px,15vw,180px)]",
+        sizeClassName ?? "flex-1",
+      )}
+    >
       <PanelSurface row={left} occupant={occupantByPlacement.get("PANEL_LEFT") ?? null} side="left" />
 
       <div className="relative min-w-0 w-full overflow-hidden bg-ink-900 max-sm:col-span-2 max-sm:col-start-1 max-sm:row-start-1">
@@ -128,11 +157,24 @@ export function SurfaceWall({ channelId = "MAIN" }: { channelId?: string }) {
           <PriceChip row={show} label="Runtime" />
           <PriceChip row={ad} label="Commercial" />
         </div>
-        <div className="pointer-events-none absolute bottom-2 right-2 sm:bottom-auto sm:right-3 sm:top-3">
+        <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2 sm:bottom-auto sm:right-3 sm:top-3">
           <span className="mono inline-flex items-center gap-[7px] rounded-sm border border-signal/40 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-signal">
             <span className="h-[5px] w-[5px] rounded-full bg-signal shadow-[0_0_8px_rgba(204,255,0,0.8)]" />
             {playing ? "On air" : "Stand by"}
           </span>
+          {onToggleExpand && (
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              aria-pressed={expanded}
+              aria-label={expanded ? "Collapse the wall" : "Expand the wall to fill the screen"}
+              data-testid="wall-expand"
+              className="mono pointer-events-auto inline-flex items-center gap-[7px] rounded-sm border border-white/20 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-ink-200 transition hover:border-white/45 hover:text-ink-50 max-sm:px-2.5 max-sm:py-2"
+            >
+              <ExpandGlyph expanded={expanded} />
+              {expanded ? "Collapse" : "Expand"}
+            </button>
+          )}
         </div>
       </div>
 

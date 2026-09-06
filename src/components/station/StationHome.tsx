@@ -1,4 +1,5 @@
 "use client";
+import { useCallback, useRef, useState } from "react";
 
 import Link from "next/link";
 import { useServerNow, useBoard } from "@/lib/hooks";
@@ -95,10 +96,35 @@ function SiteHeader() {
 /* ---- the fold ------------------------------------------------------------ */
 
 function Fold({ channelId }: { channelId: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const section = useRef<HTMLElement>(null);
+
+  const toggle = useCallback(() => {
+    setExpanded((wasExpanded) => {
+      // Expanding is only worth anything if the wall is what you are looking at.
+      if (!wasExpanded) requestAnimationFrame(() => section.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      return !wasExpanded;
+    });
+  }, []);
+
   return (
-    <section id="top" className="relative h-[100svh] min-h-[760px] w-full overflow-hidden bg-ink-950">
-      <div className="absolute inset-0 flex flex-col pt-[70px]">
-        <SurfaceWall channelId={channelId} />
+    <section id="top" ref={section} className="relative w-full bg-ink-950">
+      {/*
+        Laid out in flow rather than as an overlay inside a clipped, fixed-height
+        fold. The copy under the wall used to be absolutely positioned in a
+        100svh box with overflow hidden, so on a shorter screen the headline was
+        simply cut off at the bottom edge instead of pushing the page taller.
+
+        Expanded, the wall is given the whole viewport and the copy starts below
+        it, so it is off the fold entirely rather than half on screen.
+      */}
+      <div className="flex min-h-[max(100svh,760px)] flex-col pt-[70px]">
+        <SurfaceWall
+          channelId={channelId}
+          sizeClassName={expanded ? "h-[max(calc(100svh-70px),690px)] shrink-0" : "flex-1"}
+          expanded={expanded}
+          onToggleExpand={toggle}
+        />
 
         <div className="shrink-0 border-t border-white/[0.09] px-6 pb-20 pt-4 md:pb-4">
           <div className="mx-auto flex max-w-[1560px] flex-wrap items-end justify-between gap-x-10 gap-y-4">
