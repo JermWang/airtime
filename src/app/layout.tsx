@@ -1,9 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
 const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
+
+/**
+ * The station ships its own sans so every visitor reads the same face. The
+ * design is drawn against Helvetica Now, which is a licensed Monotype family
+ * and cannot be served here; without it the page fell through to Helvetica Neue
+ * on macOS and Arial on Windows, so the type looked different per platform.
+ * next/font self-hosts this at build time, which is also what keeps it inside
+ * the "font-src 'self'" CSP.
+ */
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "AIRTIME", template: "%s · AIRTIME" },
@@ -29,7 +39,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={jetbrains.variable}>
+    <html lang="en" className={`${inter.variable} ${jetbrains.variable}`}>
       <body className="min-h-full bg-ink-950 text-ink-100 antialiased">
         <Providers>{children}</Providers>
       </body>

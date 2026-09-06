@@ -25,14 +25,19 @@
   --color-line-strong: rgba(255, 255, 255, 0.16);
 
   /*
-   * Anduril's own stack: HelveticaNowDisplay, Helvetica, Arial, sans-serif.
-   * Helvetica Now Display is a licensed Monotype face, so it is named rather
-   * than shipped — anyone who has it installed (or who drops the licensed
-   * woff2 files into public/fonts and enables the @font-face block below) gets
-   * the real thing. macOS falls through to Helvetica Neue, Windows to Arial,
-   * both very close; Liberation Sans covers Linux metric-compatibly.
+   * The station ships its own sans rather than naming one it cannot serve.
+   *
+   * The design is drawn against Anduril's stack, which starts at Helvetica Now
+   * Display — a licensed Monotype face. Naming it first meant only a viewer who
+   * already owned it saw it, and everyone else fell through to Helvetica Neue on
+   * macOS or Arial on Windows, so the page set differently per platform and the
+   * people designing it were not looking at what visitors got. Inter is
+   * self-hosted by next/font, so every viewer now reads the same face.
+   *
+   * Licensing Helvetica Now is what makes this exact: put the woff2 files in
+   * public/fonts, add the @font-face block below, and name it ahead of Inter.
    */
-  --font-sans: "Helvetica Now Display", "HelveticaNowDisplay", "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
+  --font-sans: var(--font-inter), "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
 
   --shadow-glass: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 20px 60px rgba(0, 0, 0, 0.45);
@@ -48,8 +53,9 @@
 
 /*
  * To use the real Helvetica Now Display, license it from Monotype, put the
- * woff2 files in public/fonts/ and uncomment this. Nothing else needs to change
- * — it is already first in --font-sans.
+ * woff2 files in public/fonts/, uncomment this, and name it ahead of
+ * var(--font-inter) in --font-sans above. The page uses four weights: 400 body,
+ * 500 headings and labels, 600 buttons, 700 for <strong>.
  *
  * @font-face {
  *   font-family: "Helvetica Now Display";
@@ -57,7 +63,7 @@
  *   font-weight: 400;
  *   font-display: swap;
  * }
- * …repeat for Medium (500), Bold (700), Black (900).
+ * …repeat for Medium (500), Semibold (600) and Bold (700).
  */
 
 html,
