@@ -4,6 +4,7 @@ allowBuilds:
   esbuild: true
   sharp: true
   '@electric-sql/pglite': true
+  unrs-resolver: false
 minimumReleaseAgeExclude:
   - jose@6.2.11
 verifyDepsBeforeRun: false

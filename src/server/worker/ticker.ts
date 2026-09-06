@@ -22,7 +22,6 @@ import { publish } from "../realtime/bus";
  */
 
 declare global {
-  // eslint-disable-next-line no-var
   var __airtimeTicker: { timer: NodeJS.Timeout; stop: () => void } | undefined;
 }
 

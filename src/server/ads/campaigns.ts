@@ -9,6 +9,8 @@ import { describeSurface, type SurfaceState } from "./auction";
 import { endRun, withdrawRun } from "./activation";
 import { explorerTxUrl } from "@/lib/chain/chains";
 import { shortAddress } from "@/lib/format";
+import { verifyRefund } from "../chain/refundVerifier";
+import type { Hex } from "viem";
 import type { Campaign, Placement, Creative, Payment, AirLog } from "../db/schema";
 
 export async function createCampaign(input: { walletAddress: `0x${string}`; placementId: string; displayName: string; creativeId?: string | null; fit?: "FIT" | "FILL"; clickUrl?: string | null }): Promise<Campaign> {
@@ -93,30 +95,74 @@ export async function withdrawCampaign(id: string, walletAddress: `0x${string}`)
 /*  Admin transitions                                                         */
 /* ------------------------------------------------------------------------- */
 
-export async function adminSetCampaignStatus(id: string, status: "REJECTED" | "REFUNDED" | "CANCELLED", actor: Actor, reason?: string): Promise<Campaign> {
-  return db().transaction(async (tx) => {
-    const [campaign] = await tx.select().from(schema.campaigns).where(eq(schema.campaigns.id, id));
+export async function adminSetCampaignStatus(
+  id: string,
+  status: "REJECTED" | "REFUNDED" | "CANCELLED",
+  actor: Actor,
+  options: { reason?: string; refundTxHash?: Hex } = {},
+): Promise<Campaign> {
+  const { reason, refundTxHash } = options;
+  let verifiedRefund: Extract<Awaited<ReturnType<typeof verifyRefund>>, { status: "confirmed" }> | null = null;
+  if (status === "REFUNDED") {
+    if (!refundTxHash) throw new HttpError(400, "A refund transaction hash is required");
+    const [payment] = await db().select().from(schema.payments).where(eq(schema.payments.campaignId, id));
+    if (!payment) throw new HttpError(409, "This campaign has no confirmed payment to refund");
+    if (payment.status === "REFUNDED") {
+      if (payment.refundTxHash?.toLowerCase() === refundTxHash.toLowerCase()) {
+        const [campaign] = await db().select().from(schema.campaigns).where(eq(schema.campaigns.id, id));
+        if (!campaign) throw new HttpError(404, "Campaign not found");
+        return campaign;
+      }
+      throw new HttpError(409, "This payment is already recorded as refunded");
+    }
+    if (payment.status !== "CONFIRMED") throw new HttpError(409, "Only confirmed payments can be refunded");
+    const outcome = await verifyRefund(payment, refundTxHash);
+    if (outcome.status === "pending") throw new HttpError(409, `Refund is not confirmed: ${outcome.reason}`);
+    if (outcome.status === "not_found") throw new HttpError(400, "Refund transaction was not found on the payment chain");
+    if (outcome.status === "mismatch") throw new HttpError(400, `Refund transaction does not match: ${outcome.reason}`);
+    verifiedRefund = outcome;
+  }
+
+  const row = await db().transaction(async (tx) => {
+    const [initial] = await tx.select().from(schema.campaigns).where(eq(schema.campaigns.id, id));
+    if (!initial) throw new HttpError(404, "Campaign not found");
+    await tx.select().from(schema.placements).where(eq(schema.placements.id, initial.placementId)).for("update");
+    const [campaign] = await tx.select().from(schema.campaigns).where(eq(schema.campaigns.id, id)).for("update");
     if (!campaign) throw new HttpError(404, "Campaign not found");
     if (["COMPLETED"].includes(campaign.status) && status !== "REFUNDED") throw new HttpError(409, "Completed campaigns can only be marked refunded");
     const now = serverNow();
     // A live run is taken off air properly: AirLog written, surface freed, the
     // descending clock restarted from the price it last cleared at.
     if (campaign.status === "AIRING") {
-      await tx.select().from(schema.placements).where(eq(schema.placements.id, campaign.placementId)).for("update");
       await endRun(tx, campaign, { reason: "REMOVED", now, actor });
     }
     await tx.update(schema.reservations).set({ status: "RELEASED" }).where(and(eq(schema.reservations.campaignId, id), inArray(schema.reservations.status, ["HELD", "CONFIRMED"])));
     await tx.update(schema.quotes).set({ status: "CANCELLED" }).where(and(eq(schema.quotes.campaignId, id), eq(schema.quotes.status, "ACTIVE")));
     await tx.update(schema.adActivations).set({ status: "FAILED", failureReason: `Campaign ${status.toLowerCase()}` }).where(and(eq(schema.adActivations.campaignId, id), inArray(schema.adActivations.status, ["SCHEDULED", "ACTIVE"])));
     if (status === "REFUNDED") {
-      await tx.update(schema.payments).set({ status: "REFUNDED", refundNote: reason ?? null }).where(eq(schema.payments.campaignId, id));
+      const [payment] = await tx.select().from(schema.payments).where(eq(schema.payments.campaignId, id)).for("update");
+      if (!payment || payment.status !== "CONFIRMED" || !verifiedRefund) throw new HttpError(409, "Payment refund state changed; verify it again");
+      const [used] = await tx.select({ id: schema.payments.id }).from(schema.payments).where(and(eq(schema.payments.refundTxHash, verifiedRefund.txHash), eq(schema.payments.refundLogIndex, verifiedRefund.logIndex)));
+      if (used && used.id !== payment.id) throw new HttpError(409, "This refund transfer is already attached to another payment");
+      await tx
+        .update(schema.payments)
+        .set({
+          status: "REFUNDED",
+          refundTxHash: verifiedRefund.txHash,
+          refundBlockNumber: verifiedRefund.blockNumber,
+          refundLogIndex: verifiedRefund.logIndex,
+          refundedAt: now,
+          refundNote: reason ?? null,
+        })
+        .where(eq(schema.payments.id, payment.id));
     }
     const [row] = await tx.update(schema.campaigns).set({ status, rejectionReason: reason ?? null, activeQuoteId: null, updatedAt: now }).where(eq(schema.campaigns.id, id)).returning();
-    await audit(actor, `campaign.${status.toLowerCase()}`, { type: "campaign", id }, { reason: reason ?? null }, tx);
-    publish({ type: "campaign.updated", campaignId: id, status, placementId: campaign.placementId });
-    publish({ type: "queue.updated", channelId: campaign.channelId });
+    await audit(actor, `campaign.${status.toLowerCase()}`, { type: "campaign", id }, { reason: reason ?? null, refundTxHash: verifiedRefund?.txHash ?? null }, tx);
     return row;
   });
+  publish({ type: "campaign.updated", campaignId: id, status, placementId: row.placementId });
+  publish({ type: "queue.updated", channelId: row.channelId });
+  return row;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -310,7 +356,20 @@ export function campaignView(detail: CampaignDetail, opts: { owner: boolean }) {
     clickUrl: campaign.clickUrl,
     wallet: opts.owner ? campaign.walletAddress : shortAddress(campaign.walletAddress),
     payment: payment
-      ? { txHash: payment.txHash, txUrl: explorerTxUrl(payment.txHash), blockNumber: payment.blockNumber.toString(), amountWei: payment.amountWei, paymentToken: payment.paymentToken, status: payment.status, confirmedAt: payment.confirmedAt.toISOString(), chainId: payment.chainId }
+      ? {
+          txHash: payment.txHash,
+          txUrl: explorerTxUrl(payment.txHash),
+          blockNumber: payment.blockNumber.toString(),
+          amountWei: payment.amountWei,
+          paymentToken: payment.paymentToken,
+          status: payment.status,
+          confirmedAt: payment.confirmedAt.toISOString(),
+          chainId: payment.chainId,
+          refundTxHash: payment.refundTxHash,
+          refundTxUrl: payment.refundTxHash ? explorerTxUrl(payment.refundTxHash) : null,
+          refundBlockNumber: payment.refundBlockNumber?.toString() ?? null,
+          refundedAt: payment.refundedAt?.toISOString() ?? null,
+        }
       : null,
     airLogId: airLog?.id ?? null,
     rejectionReason: campaign.rejectionReason,

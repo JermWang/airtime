@@ -22,7 +22,6 @@ const TTL_MS = 45_000;
 const SWEEP_MS = 10_000;
 
 declare global {
-  // eslint-disable-next-line no-var
   var __airtimePresence: { seen: Map<string, number>; timer: ReturnType<typeof setInterval> | null; last: number } | undefined;
 }
 

@@ -317,8 +317,10 @@ describe("payment, occupancy and takeover", () => {
     }
 
     chainMock.logs = [purchasedLog(quote, ("0x" + "49".repeat(32)) as Hex, 101n)];
-    expect(await pollAwaitingPayments()).toBe(1);
+    await expect(Promise.all([pollAwaitingPayments(), pollAwaitingPayments()])).resolves.toBeDefined();
     expect((await getCampaignDetail(campaign.id))!.campaign.status).toBe("AIRING");
+    expect(await db().select().from(schema.payments).where(eq(schema.payments.campaignId, campaign.id))).toHaveLength(1);
+    expect(await db().select().from(schema.adActivations).where(eq(schema.adActivations.campaignId, campaign.id))).toHaveLength(1);
   });
 
   it("puts a paid campaign on the surface, then hands it to whoever pays more", async () => {
@@ -396,6 +398,11 @@ describe("payment, occupancy and takeover", () => {
     expect(after.lastClearingPriceWei).toBe(quoteRow2.amountWei);
     expect((await getCampaignDetail(second.id))!.campaign.status).toBe("AIRING");
     expect(await activeHold(lane, serverNow())).toBeNull();
+
+    // A late withdrawal from the displaced buyer must leave the new run intact.
+    await withdrawRun(first.id, { type: "WALLET", id: wallet });
+    expect((await placement(surfaceId)).currentCampaignId).toBe(second.id);
+    expect((await getCampaignDetail(first.id))!.campaign.endedReason).toBe("OUTBID");
 
     /* ---- withdrawing hands the surface back and restarts the descent ----- */
     await withdrawRun(second.id, { type: "WALLET", id: rival });

@@ -3,6 +3,26 @@ import { storage, assertSafeKey } from "@/server/media/storage";
 
 export const dynamic = "force-dynamic";
 
+export interface ByteRange {
+  start: number;
+  end: number;
+}
+
+/** Parse one RFC 7233 byte range. Multiple ranges are intentionally unsupported. */
+export function parseByteRange(value: string, size: number): ByteRange | null {
+  const match = /^bytes=(\d*)-(\d*)$/.exec(value.trim());
+  if (!match || size <= 0 || (!match[1] && !match[2])) return null;
+  if (!match[1]) {
+    const suffixLength = Number(match[2]);
+    if (!Number.isSafeInteger(suffixLength) || suffixLength <= 0) return null;
+    return { start: Math.max(0, size - suffixLength), end: size - 1 };
+  }
+  const start = Number(match[1]);
+  const requestedEnd = match[2] ? Number(match[2]) : size - 1;
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(requestedEnd) || start < 0 || requestedEnd < start || start >= size) return null;
+  return { start, end: Math.min(requestedEnd, size - 1) };
+}
+
 const TYPES: Record<string, string> = {
   png: "image/png",
   jpg: "image/jpeg",
@@ -28,10 +48,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
   const ext = key.split(".").pop()?.toLowerCase() ?? "";
   const type = TYPES[ext];
   if (!type) return new Response("Not found", { status: 404 });
-  if (storage().kind !== "local") return Response.redirect(storage().publicUrl(key), 302);
-
-  const bytes = await storage().get(key);
-  if (!bytes) return new Response("Not found", { status: 404 });
+  const store = storage();
+  if (store.kind !== "local") return Response.redirect(store.publicUrl(key), 302);
 
   const headers: Record<string, string> = {
     "content-type": type,
@@ -45,19 +63,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
 
   const range = req.headers.get("range");
   if (range) {
-    const m = /^bytes=(\d*)-(\d*)$/.exec(range);
-    if (m) {
-      const start = m[1] ? parseInt(m[1], 10) : 0;
-      const end = m[2] ? Math.min(parseInt(m[2], 10), bytes.length - 1) : bytes.length - 1;
-      if (start <= end && start < bytes.length) {
-        const chunk = bytes.subarray(start, end + 1);
-        return new Response(new Uint8Array(chunk), {
-          status: 206,
-          headers: { ...headers, "content-range": `bytes ${start}-${end}/${bytes.length}`, "content-length": String(chunk.length) },
-        });
-      }
-      return new Response(null, { status: 416, headers: { "content-range": `bytes */${bytes.length}` } });
-    }
+    const size = await store.size(key);
+    if (size === null) return new Response("Not found", { status: 404 });
+    const parsed = parseByteRange(range, size);
+    if (!parsed) return new Response(null, { status: 416, headers: { ...headers, "content-range": `bytes */${size}` } });
+    const chunk = await store.getRange(key, parsed.start, parsed.end);
+    if (!chunk) return new Response("Not found", { status: 404 });
+    return new Response(new Uint8Array(chunk), {
+      status: 206,
+      headers: { ...headers, "content-range": `bytes ${parsed.start}-${parsed.end}/${size}`, "content-length": String(chunk.length) },
+    });
   }
+  const bytes = await store.get(key);
+  if (!bytes) return new Response("Not found", { status: 404 });
   return new Response(new Uint8Array(bytes), { status: 200, headers: { ...headers, "content-length": String(bytes.length) } });
 }

@@ -30,9 +30,7 @@ interface DbHandle {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var __airtimeDb: DbHandle | undefined;
-  // eslint-disable-next-line no-var
   var __airtimeMigrated: Promise<void> | undefined;
 }
 

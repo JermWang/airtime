@@ -22,11 +22,15 @@ import type { BoardRowDto, QueueEntryDto } from "@/lib/api";
  * the panels show whatever creative is actually running on them.
  */
 
-function Chip({ children, className }: { children: React.ReactNode; className?: string }) {
+function Chip({ children, className, stack }: { children: React.ReactNode; className?: string; stack?: boolean }) {
   return (
     <span
       className={cn(
-        "mono inline-flex items-center gap-2 whitespace-nowrap rounded-sm border border-white/10 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.14em] text-ink-200",
+        "mono inline-flex whitespace-nowrap rounded-sm border border-white/10 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.14em] text-ink-200",
+        // A side panel is narrower than this chip is long, and the surface
+        // clips its own overflow, so on a panel the price sits under its label
+        // rather than beside it.
+        stack ? "flex-col items-start gap-[3px]" : "items-center gap-2",
         className,
       )}
     >
@@ -35,10 +39,10 @@ function Chip({ children, className }: { children: React.ReactNode; className?: 
   );
 }
 
-function PriceChip({ row, label }: { row: BoardRowDto | undefined; label: string }) {
+function PriceChip({ row, label, stack }: { row: BoardRowDto | undefined; label: string; stack?: boolean }) {
   const live = useLiveAsk(row?.placement, row?.surface);
   return (
-    <Chip>
+    <Chip stack={stack}>
       {label}
       <span className="text-signal">{live ? formatWei(live.askWei) : "—"}</span>
     </Chip>
@@ -75,9 +79,16 @@ function PanelSurface({ row, occupant, side }: { row: BoardRowDto | undefined; o
           </div>
         )}
       </div>
-      <div className={cn("pointer-events-none absolute bottom-2.5 max-md:bottom-2", side === "left" ? "left-2.5 max-md:left-1.5" : "right-2.5 max-md:right-1.5")}>
-        <span className="[&>span]:max-md:gap-1 [&>span]:max-md:px-1.5 [&>span]:max-md:text-[8px] [&>span]:max-md:tracking-[0.08em]">
-          <PriceChip row={row} label={side === "left" ? "Panel left" : "Panel right"} />
+      {/* Anchored to both edges so the chip can never run past the surface;
+          the compact size holds until lg, where the column is wide enough. */}
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-x-2.5 bottom-2.5 flex max-lg:inset-x-1.5 max-lg:bottom-2",
+          side === "left" ? "justify-start" : "justify-end",
+        )}
+      >
+        <span className="min-w-0 max-w-full [&>span]:max-w-full [&>span]:max-lg:gap-[2px] [&>span]:max-lg:px-1.5 [&>span]:max-lg:text-[8px] [&>span]:max-lg:tracking-[0.08em]">
+          <PriceChip row={row} label={side === "left" ? "Panel left" : "Panel right"} stack />
         </span>
       </div>
     </Link>
@@ -89,7 +100,7 @@ export function SurfaceWall({ channelId = "MAIN" }: { channelId?: string }) {
   const { data: activations } = useActivations(channelId);
   const playing = usePlayer((s) => s.playing);
 
-  const rows = board?.rows ?? [];
+  const rows = useMemo(() => board?.rows ?? [], [board]);
   const byId = useMemo(() => new Map(rows.map((r) => [r.placement.id, r])), [rows]);
   const occupantByPlacement = useMemo(() => {
     const m = new Map<string, QueueEntryDto>();

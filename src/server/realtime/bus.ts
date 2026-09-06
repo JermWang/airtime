@@ -26,9 +26,7 @@ export type RealtimeEvent =
 export type RealtimeEnvelope = RealtimeEvent & { id: number; at: number };
 
 declare global {
-  // eslint-disable-next-line no-var
   var __airtimeBus: EventEmitter | undefined;
-  // eslint-disable-next-line no-var
   var __airtimeBusSeq: number | undefined;
 }
 

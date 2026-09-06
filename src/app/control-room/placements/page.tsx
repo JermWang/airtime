@@ -79,7 +79,8 @@ export default function PlacementsPage() {
       : api(`/api/admin/placements/${body.id}`, {
           method: "PATCH",
           json: (() => {
-            const { id: _id, ...rest } = body;
+            const rest = { ...body };
+            delete (rest as Partial<PlacementDto>).id;
             return rest;
           })(),
         }),

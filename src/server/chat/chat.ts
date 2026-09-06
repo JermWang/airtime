@@ -41,7 +41,6 @@ export function sanitiseBody(raw: string): string | null {
   const cleaned = raw
     // Control characters, zero-width joiners and bidi overrides: invisible text
     // that can reorder or hide what a message actually says.
-    // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, "")
     .replace(/\s+/g, " ")
     .trim();

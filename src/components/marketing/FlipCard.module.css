@@ -1,0 +1,15 @@
+.panel { scroll-margin-top: 85px; }
+.front { transition: border-color .3s, box-shadow .3s; }
+.panel:hover .front { border-color: #ccff0060; box-shadow: 0 0 0 1px #ccff0012, 0 24px 65px #0008; }
+.art { transition: transform .8s cubic-bezier(.16,1,.3,1); }
+.panel:hover .art { transform: scale(1.035); }
+.registration { position: absolute; inset: 14px; pointer-events: none; z-index: 1; border-top: 1px solid #ffffff28; }
+.registration::before, .registration::after { content: ""; position: absolute; top: -1px; width: 9px; height: 9px; border-top: 1px solid #ccff0090; }
+.registration::before { left: 0; border-left: 1px solid #ccff0090; }
+.registration::after { right: 0; border-right: 1px solid #ccff0090; }
+.chapter { position: absolute; left: 24px; top: 28px; font-family: var(--font-mono); font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: #f2f4f5; text-shadow: 0 2px 8px #000; }
+.chapterNumber { display: block; margin-top: 6px; font-family: var(--font-sans); font-size: 60px; line-height: 1; letter-spacing: -.065em; font-weight: 500; color: #ffffffb0; }
+.readMark { position: absolute; top: 28px; right: 24px; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid #ffffff50; border-radius: 50%; background: #0003; color: white; transition: background .25s, color .25s; }
+.panel:hover .readMark { background: #ccff00; border-color: #ccff00; color: #101500; }
+.back { background-image: radial-gradient(ellipse at 100% 0, #ccff000a, transparent 65%), linear-gradient(#ffffff02 1px, transparent 1px); background-size: auto, 100% 28px; }
+@media (prefers-reduced-motion: reduce) { .art, .front, .readMark { transition: none; } .panel:hover .art { transform: none; } }

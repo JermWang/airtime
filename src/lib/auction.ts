@@ -12,6 +12,17 @@
 
 export const BPS = 10_000n;
 
+/**
+ * The floor under every surface on the station: 0.01 ETH.
+ *
+ * Nothing is ever asked for less than this, whatever a placement's stored rules
+ * say. Configuration is validated against it and the seed opens there, but the
+ * clamp lives here as well because this is the one function both the server and
+ * the browser derive a price from: a row written before the rule existed, or by
+ * hand, still cannot put a surface on sale below the station's minimum.
+ */
+export const MIN_PRICE_WEI = 10_000_000_000_000_000n;
+
 export interface AuctionRules {
   openingPriceWei: string;
   floorPriceWei: string;
@@ -62,17 +73,23 @@ export interface Ask {
  *  free again  – last clearing price    → floor price
  */
 export function descentBounds(rules: AuctionRules, lastClearingPriceWei: bigint, occupied: boolean): { anchorWei: bigint; floorWei: bigint } {
+  // The station minimum applies to the bottom of every descent, so no path
+  // through this function can put a surface on sale below it.
+  const bounds = (floor: bigint, anchor: bigint) => {
+    const floorWei = maxBig(floor, MIN_PRICE_WEI);
+    return { floorWei, anchorWei: maxBig(anchor, floorWei) };
+  };
+
   const configFloor = BigInt(rules.floorPriceWei || "0");
   if (lastClearingPriceWei <= 0n) {
-    const floorWei = configFloor;
-    return { floorWei, anchorWei: maxBig(BigInt(rules.openingPriceWei || "0"), floorWei) };
+    return bounds(configFloor, BigInt(rules.openingPriceWei || "0"));
   }
   if (occupied) {
     const floorWei = lastClearingPriceWei + minIncrement(lastClearingPriceWei, rules.minIncrementBps);
     const premium = (lastClearingPriceWei * BigInt(Math.max(10_000, rules.takeoverPremiumBps))) / BPS;
-    return { floorWei, anchorWei: maxBig(premium, floorWei) };
+    return bounds(floorWei, premium);
   }
-  return { floorWei: configFloor, anchorWei: maxBig(lastClearingPriceWei, configFloor) };
+  return bounds(configFloor, lastClearingPriceWei);
 }
 
 /** The ask at a moment in time. Pure: same inputs, same number, on both sides. */

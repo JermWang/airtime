@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeAsk, descentBounds, descentProgress, minIncrement, type AuctionRules } from "@/lib/auction";
+import { computeAsk, descentBounds, descentProgress, minIncrement, MIN_PRICE_WEI, type AuctionRules } from "@/lib/auction";
 
 const eth = (n: number) => (10n ** 18n * BigInt(Math.round(n * 1000))) / 1000n;
 
@@ -113,5 +113,55 @@ describe("holder reward cap", () => {
     expect(formatPercentFromPpm(12_500)).toBe("1.25");
     expect(formatPercentFromPpm(1)).toBe("0.0001");
     expect(formatPercentFromPpm(0)).toBe("0");
+  });
+});
+
+describe("the station minimum", () => {
+  // Rules written before the minimum existed, or by hand: a tenth of it.
+  const cheap: AuctionRules = { ...rules, openingPriceWei: eth(0.002).toString(), floorPriceWei: eth(0.001).toString() };
+
+  it("is the floor of a surface that has never been sold", () => {
+    const bounds = descentBounds(cheap, 0n, false);
+    expect(bounds.floorWei).toBe(MIN_PRICE_WEI);
+    expect(bounds.anchorWei).toBe(MIN_PRICE_WEI);
+    for (const t of [0, 60, 1800, 3600, 3600 * 24]) {
+      expect(at(t, { auction: cheap }).askWei).toBe(MIN_PRICE_WEI);
+    }
+  });
+
+  it("is the floor of a surface whose occupant paid less than it", () => {
+    const paid = eth(0.0001); // what the panels in the seeded DB had been sold for
+    const held = descentBounds(cheap, paid, true);
+    expect(held.floorWei).toBe(MIN_PRICE_WEI);
+    // A takeover still costs the minimum rather than the occupant's price + 5%.
+    expect(held.floorWei).toBeGreaterThan(paid + minIncrement(paid, cheap.minIncrementBps));
+    expect(at(3600 * 9, { auction: cheap, lastClearingPriceWei: paid, occupied: true }).askWei).toBe(MIN_PRICE_WEI);
+  });
+
+  it("is the floor of a surface that has come free again", () => {
+    expect(descentBounds(cheap, eth(0.0005), false).floorWei).toBe(MIN_PRICE_WEI);
+    expect(at(3600 * 9, { auction: cheap, lastClearingPriceWei: eth(0.0005) }).askWei).toBe(MIN_PRICE_WEI);
+  });
+
+  it("never lowers a price that is already above it", () => {
+    expect(at(0).askWei).toBe(eth(1));
+    expect(at(3600).askWei).toBe(eth(0.1));
+    const paid = eth(0.4);
+    expect(descentBounds(rules, paid, true).floorWei).toBe(eth(0.42));
+  });
+
+  it("holds for every state the curve can be in", () => {
+    for (const auction of [rules, cheap, { ...rules, openingPriceWei: "0", floorPriceWei: "0" }]) {
+      for (const paid of [0n, 1n, eth(0.0001), eth(0.01), eth(3)]) {
+        for (const occupied of [true, false]) {
+          for (const t of [0, 1, 599, 600, 3599, 3600, 100_000]) {
+            const ask = computeAsk({ auction, lastClearingPriceWei: paid, askResetAtMs: T0, occupied, nowMs: T0 + t * 1000 });
+            expect(ask.askWei).toBeGreaterThanOrEqual(MIN_PRICE_WEI);
+            expect(ask.floorWei).toBeGreaterThanOrEqual(MIN_PRICE_WEI);
+            expect(ask.anchorWei).toBeGreaterThanOrEqual(ask.floorWei);
+          }
+        }
+      }
+    }
   });
 });

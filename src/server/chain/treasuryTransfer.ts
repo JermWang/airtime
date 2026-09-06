@@ -1,8 +1,8 @@
 import { getAddress, type Hex } from "viem";
-import { TREASURY_ADDRESS } from "@/lib/chain/treasury";
 import { NATIVE_TOKEN } from "@/lib/chain/chains";
 import { clientFor } from "./clients";
 import { requiredConfirmations } from "./client";
+import { env } from "../env";
 import type { Quote } from "../db/schema";
 
 /**
@@ -32,7 +32,8 @@ export type TransferOutcome =
   | { status: "mismatch"; reason: string };
 
 export function treasuryAddress(): `0x${string}` {
-  return getAddress(TREASURY_ADDRESS);
+  const configured = env().TREASURY_ADDRESS || env().NEXT_PUBLIC_TREASURY_ADDRESS;
+  return getAddress(configured);
 }
 
 /** The calldata a buyer must attach: the 32-byte quote id, nothing else. */

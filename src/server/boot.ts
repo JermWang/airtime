@@ -9,7 +9,6 @@ import { paymentContractAddress } from "./chain/client";
 import { canRunInProcessTicker, configurationProblems, isServerless, platformName } from "./platform";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __airtimeBooted: Promise<void> | undefined;
 }
 

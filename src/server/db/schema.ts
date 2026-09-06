@@ -11,7 +11,6 @@ import {
   uuid,
   index,
   uniqueIndex,
-  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -421,10 +420,20 @@ export const payments = pgTable(
     amountWei: numeric("amount_wei", { precision: 78, scale: 0 }).notNull(),
     status: paymentStatus("status").notNull().default("CONFIRMED"),
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Treasury-originated refund independently verified from the chain RPC. */
+    refundTxHash: text("refund_tx_hash"),
+    refundBlockNumber: bigint("refund_block_number", { mode: "bigint" }),
+    /** Transfer log index for ERC-20 refunds; zero for a native transfer. */
+    refundLogIndex: integer("refund_log_index"),
+    refundedAt: timestamp("refunded_at", { withTimezone: true }),
     refundNote: text("refund_note"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("payments_quote_unique").on(t.quoteId), uniqueIndex("payments_tx_log_unique").on(t.txHash, t.logIndex)],
+  (t) => [
+    uniqueIndex("payments_quote_unique").on(t.quoteId),
+    uniqueIndex("payments_tx_log_unique").on(t.txHash, t.logIndex),
+    uniqueIndex("payments_refund_tx_log_unique").on(t.refundTxHash, t.refundLogIndex),
+  ],
 );
 
 export const adActivations = pgTable(

@@ -14,6 +14,8 @@ export interface StorageProvider {
   readonly kind: "local" | "s3";
   put(key: string, bytes: Buffer, contentType: string): Promise<{ url: string }>;
   get(key: string): Promise<Buffer | null>;
+  size(key: string): Promise<number | null>;
+  getRange(key: string, start: number, end: number): Promise<Buffer | null>;
   delete(key: string): Promise<void>;
   publicUrl(key: string): string;
 }
@@ -35,7 +37,7 @@ class LocalStorageProvider implements StorageProvider {
     return abs;
   }
 
-  async put(key: string, bytes: Buffer, _contentType: string): Promise<{ url: string }> {
+  async put(key: string, bytes: Buffer): Promise<{ url: string }> {
     const abs = this.resolve(key);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, bytes);
@@ -47,6 +49,28 @@ class LocalStorageProvider implements StorageProvider {
       return await fs.readFile(this.resolve(key));
     } catch {
       return null;
+    }
+  }
+
+  async size(key: string): Promise<number | null> {
+    try {
+      return (await fs.stat(this.resolve(key))).size;
+    } catch {
+      return null;
+    }
+  }
+
+  async getRange(key: string, start: number, end: number): Promise<Buffer | null> {
+    let handle: Awaited<ReturnType<typeof fs.open>> | null = null;
+    try {
+      handle = await fs.open(this.resolve(key), "r");
+      const bytes = Buffer.allocUnsafe(end - start + 1);
+      const { bytesRead } = await handle.read(bytes, 0, bytes.length, start);
+      return bytes.subarray(0, bytesRead);
+    } catch {
+      return null;
+    } finally {
+      await handle?.close();
     }
   }
 
@@ -73,7 +97,7 @@ class S3StorageProvider implements StorageProvider {
     private readonly cfg: { bucket: string; region: string; endpoint: string; accessKeyId: string; secretAccessKey: string; publicBaseUrl: string },
   ) {}
 
-  private async sign(method: string, key: string, body: Buffer | null, contentType?: string): Promise<{ url: string; headers: Record<string, string> }> {
+  private async sign(method: string, key: string, body: Buffer | null, contentType?: string, extraHeaders: Record<string, string> = {}): Promise<{ url: string; headers: Record<string, string> }> {
     const { createHash, createHmac } = await import("node:crypto");
     const host = new URL(this.cfg.endpoint).host;
     const url = `${this.cfg.endpoint.replace(/\/$/, "")}/${this.cfg.bucket}/${key}`;
@@ -81,7 +105,7 @@ class S3StorageProvider implements StorageProvider {
     const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
     const dateStamp = amzDate.slice(0, 8);
     const payloadHash = createHash("sha256").update(body ?? Buffer.alloc(0)).digest("hex");
-    const headers: Record<string, string> = { host, "x-amz-date": amzDate, "x-amz-content-sha256": payloadHash };
+    const headers: Record<string, string> = { host, "x-amz-date": amzDate, "x-amz-content-sha256": payloadHash, ...extraHeaders };
     if (contentType) headers["content-type"] = contentType;
     const signedHeaders = Object.keys(headers).sort().join(";");
     const canonicalHeaders = Object.keys(headers)
@@ -114,6 +138,26 @@ class S3StorageProvider implements StorageProvider {
     const res = await fetch(url, { headers });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`S3 get failed: ${res.status}`);
+    return Buffer.from(await res.arrayBuffer());
+  }
+
+  async size(key: string): Promise<number | null> {
+    assertSafeKey(key);
+    const { url, headers } = await this.sign("HEAD", key, null);
+    const res = await fetch(url, { method: "HEAD", headers });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`S3 head failed: ${res.status}`);
+    const value = Number(res.headers.get("content-length"));
+    return Number.isSafeInteger(value) && value >= 0 ? value : null;
+  }
+
+  async getRange(key: string, start: number, end: number): Promise<Buffer | null> {
+    assertSafeKey(key);
+    const range = `bytes=${start}-${end}`;
+    const { url, headers } = await this.sign("GET", key, null, undefined, { range });
+    const res = await fetch(url, { headers });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`S3 range get failed: ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
   }
 
@@ -151,7 +195,9 @@ export function storage(): StorageProvider {
         "STORAGE_PROVIDER=local writes creatives to the local disk, which is read-only on a serverless host. Set STORAGE_PROVIDER=s3 with STORAGE_S3_* credentials and STORAGE_PUBLIC_BASE_URL.",
       );
     }
-    provider = new LocalStorageProvider(path.resolve(process.cwd(), e.STORAGE_LOCAL_DIR));
+    // Keep a runtime-configured storage directory out of Turbopack's static
+    // dependency graph; tracing it can otherwise pull the entire repository in.
+    provider = new LocalStorageProvider(path.resolve(/* turbopackIgnore: true */ process.cwd(), e.STORAGE_LOCAL_DIR));
   }
   return provider;
 }

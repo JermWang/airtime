@@ -4,6 +4,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePrefersReducedMotion } from "@/lib/hooks";
 import { cn } from "@/lib/format";
+import styles from "./FlipCard.module.css";
 
 /**
  * A panel that turns over.
@@ -41,7 +42,7 @@ export function FlipCard({ index, eyebrow, title, frontNote, media, children, ct
   const toggle = useCallback(() => setFlipped((f) => !f), []);
 
   return (
-    <div id={id} className={cn("[perspective:1800px]", className)}>
+    <div id={id} className={cn("[perspective:1800px]", styles.panel, className)}>
       <div
         className="relative min-h-[540px] w-full [transform-style:preserve-3d]"
         style={{
@@ -51,11 +52,13 @@ export function FlipCard({ index, eyebrow, title, frontNote, media, children, ct
       >
         {/* ---- front ---------------------------------------------------- */}
         <div
-          className="absolute inset-0 overflow-hidden rounded border border-white/[0.14] bg-ink-900"
+          className={cn("absolute inset-0 overflow-hidden rounded border border-white/[0.14] bg-ink-900", styles.front)}
           style={{ opacity: flipped ? 0 : 1, transition: "opacity .2s linear .3s", pointerEvents: flipped ? "none" : "auto" }}
           aria-hidden={flipped}
         >
-          <div className="absolute inset-0">{media}</div>
+          <div className={cn("absolute inset-0", styles.art)}>{media}</div>
+          <div className={styles.registration} aria-hidden="true" />
+          <div className={styles.chapter} aria-hidden="true">Field notes<span className={styles.chapterNumber}>{index}</span></div>
           <button
             type="button"
             onClick={toggle}
@@ -64,6 +67,7 @@ export function FlipCard({ index, eyebrow, title, frontNote, media, children, ct
             tabIndex={flipped ? -1 : 0}
             data-testid={id ? `${id}-panel-front` : undefined}
           >
+            <span className={styles.readMark} aria-hidden="true">↗</span>
             <span
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 bottom-0 h-[62%]"
@@ -84,7 +88,7 @@ export function FlipCard({ index, eyebrow, title, frontNote, media, children, ct
 
         {/* ---- back ------------------------------------------------------ */}
         <div
-          className="absolute inset-0 flex flex-col overflow-hidden rounded border border-white/20 bg-ink-850"
+          className={cn("absolute inset-0 flex flex-col overflow-hidden rounded border border-white/20 bg-ink-850", styles.back)}
           style={{
             opacity: flipped ? 1 : 0,
             transition: "opacity .2s linear .3s",

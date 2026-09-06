@@ -6,7 +6,7 @@ import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import type { PlacementDto, QueueEntryDto } from "@/lib/api";
 import type { SurfaceInfo } from "./surfaceRegistry";
-import { formatWei, formatDurationSec } from "@/lib/format";
+import { formatWei } from "@/lib/format";
 
 interface Props {
   surface: SurfaceInfo;

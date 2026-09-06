@@ -12,7 +12,6 @@ import { env } from "../env";
  */
 
 declare global {
-  // eslint-disable-next-line no-var
   var __airtimeChainClients: Map<number, PublicClient> | undefined;
 }
 

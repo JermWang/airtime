@@ -422,8 +422,10 @@ table.data tr:hover td {
 /* ---- logo row ---------------------------------------------------------- */
 
 /*
- * A full-bleed scrolling row with no container. The track holds the list twice
- * and translates by exactly half its width, so the loop never shows a seam.
+ * A full-bleed scrolling row with no container. The track holds the list as
+ * many times as it takes to outrun the viewport and translates by exactly one
+ * copy, so the loop never shows a seam. LogoRow measures that copy and sets
+ * --marquee-shift; the 50% fallback is the two-copy track it renders first.
  */
 .marquee {
   position: relative;
@@ -448,7 +450,7 @@ table.data tr:hover td {
     transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translate3d(-50%, 0, 0);
+    transform: translate3d(calc(-1 * var(--marquee-shift, 50%)), 0, 0);
   }
 }
 

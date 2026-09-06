@@ -1,13 +1,21 @@
 import { z } from "zod";
 import { MAX_DIRECT_UPLOAD_BYTES } from "@/lib/upload";
-
-const bps = z.number().int().min(0).max(1_000_000);
+import { MIN_PRICE_WEI } from "@/lib/auction";
 
 const weiString = z.string().regex(/^\d+$/, "Amounts are integer wei");
 
+/**
+ * No surface may be listed below the station minimum. The curve clamps to it
+ * regardless, so accepting a lower number here would only store a price the
+ * station would never actually ask.
+ */
+const startingPriceWei = weiString.refine((v) => BigInt(v) >= MIN_PRICE_WEI, {
+  message: "Prices start at 0.01 ETH (10000000000000000 wei)",
+});
+
 export const auctionSchema = z.object({
-  openingPriceWei: weiString,
-  floorPriceWei: weiString,
+  openingPriceWei: startingPriceWei,
+  floorPriceWei: startingPriceWei,
   decaySeconds: z.number().int().min(60).max(30 * 24 * 3600),
   takeoverPremiumBps: z.number().int().min(10_000).max(1_000_000),
   minIncrementBps: z.number().int().min(0).max(1_000_000),

@@ -103,8 +103,6 @@ export function useRealtimeConnection(): void {
               void qc.invalidateQueries({ queryKey: ["board"] });
               break;
             case "queue.updated":
-            case "placement.activated":
-            case "placement.released":
               void qc.invalidateQueries({ queryKey: ["queue"] });
               void qc.invalidateQueries({ queryKey: ["activations"] });
               void qc.invalidateQueries({ queryKey: ["availability"] });
@@ -119,6 +117,8 @@ export function useRealtimeConnection(): void {
             case "placements.updated":
             case "placement.activated":
             case "placement.released":
+              void qc.invalidateQueries({ queryKey: ["queue"] });
+              void qc.invalidateQueries({ queryKey: ["availability"] });
               void qc.invalidateQueries({ queryKey: ["placements"] });
               void qc.invalidateQueries({ queryKey: ["surface"] });
               void qc.invalidateQueries({ queryKey: ["board"] });
@@ -126,7 +126,9 @@ export function useRealtimeConnection(): void {
               break;
             case "clock.updated":
               // Re-sync immediately when the dev clock moves.
-              void api<{ serverTime: number }>("/api/time").then((r) => setOffset(r.serverTime - Date.now()));
+              void api<{ serverTime: number }>("/api/time").then((r) => {
+                if (!stopped) setOffset(r.serverTime - Date.now());
+              }).catch(() => { /* periodic clock sync will retry */ });
               void qc.invalidateQueries();
               break;
             case "chat.message":

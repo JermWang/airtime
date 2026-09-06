@@ -41,7 +41,7 @@ export function BillboardSurface({ placement, surface, campaign, preview, allowV
   const focused = useStation((s) => s.focusedPlacementId) === placement.id;
   const mode = useStation((s) => s.mode);
 
-  const [current, setCurrent] = useState<SurfaceTexture | null>(null);
+  const [, setCurrent] = useState<SurfaceTexture | null>(null);
   const currentRef = useRef<SurfaceTexture | null>(null);
   const fade = useRef(0);
 

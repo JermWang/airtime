@@ -60,11 +60,13 @@ interface PaymentRef {
 async function recordPayment(quote: Quote, log: PaymentRef): Promise<void> {
   const now = serverNow();
   await db().transaction(async (tx) => {
-    const [existing] = await tx.select().from(schema.payments).where(eq(schema.payments.quoteId, quote.id));
-    if (existing) return;
     // Lock the surface before the campaign: takeSurface decides here whether this
     // payment displaces whoever is currently running.
     const [placement] = await tx.select().from(schema.placements).where(eq(schema.placements.id, quote.placementId)).for("update");
+    // Another verifier may have committed while this request waited for the
+    // surface. Check idempotency only after acquiring the shared lock.
+    const [existing] = await tx.select().from(schema.payments).where(eq(schema.payments.quoteId, quote.id));
+    if (existing) return;
     const [campaign] = await tx.select().from(schema.campaigns).where(eq(schema.campaigns.id, quote.campaignId)).for("update");
     if (!campaign || !placement) return;
 

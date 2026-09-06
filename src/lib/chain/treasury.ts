@@ -2,9 +2,9 @@
  * The AIRTIME treasury.
  *
  * Every airtime payment is sent to this address and confirmed from it. It is a
- * public fact about the network, so it is readable in the browser: the address
- * chip in the bottom bar and the purchase flow both show the same value the
- * server verifies against.
+ * public fact about the network. It is only shown as part of the transaction
+ * review when a buyer is ready to pay; the general site chrome does not expose
+ * a copyable treasury control.
  *
  * Override with NEXT_PUBLIC_TREASURY_ADDRESS.
  */

@@ -74,6 +74,7 @@ export function paymentChains(): Chain[] {
     testnet: [robinhoodChainTestnet, sepolia],
     local: [localChain],
   };
+  const active = chainForEnv(activeChainEnv());
   const all = byEnv[activeChainEnv()];
   const configured = process.env.NEXT_PUBLIC_PAYMENT_CHAIN_IDS;
   if (!configured) return all;
@@ -83,7 +84,11 @@ export function paymentChains(): Chain[] {
     .filter((n) => Number.isInteger(n));
   const known = [robinhoodChain, robinhoodChainTestnet, mainnet, sepolia, localChain];
   const picked = wanted.map((id) => known.find((c) => c.id === id)).filter((c): c is Chain => Boolean(c));
-  return picked.length ? picked : all;
+  if (!picked.length) return all;
+  // A configuration override may add legacy/read-only chains, but it can never
+  // remove the deployment's active payment chain. The purchase UI and verifier
+  // must always agree on at least one usable network.
+  return [active, ...picked.filter((chain) => chain.id !== active.id)];
 }
 
 export function isPaymentChain(chainId: number): boolean {

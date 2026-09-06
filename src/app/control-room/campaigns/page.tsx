@@ -11,8 +11,9 @@ const FILTERS = ["ACTIVE", "COMPLETED", "AWAITING_PAYMENT", "REFUNDED", "REJECTE
 
 export default function CampaignsPage() {
   const [status, setStatus] = useState("ACTIVE");
+  const [refundHashes, setRefundHashes] = useState<Record<string, string>>({});
   const { data } = useAdminCampaigns(status);
-  const setState = useAdminMutation((v: { id: string; status: "REJECTED" | "REFUNDED" | "CANCELLED"; reason?: string }) => api(`/api/admin/campaigns/${v.id}`, { method: "PATCH", json: { status: v.status, reason: v.reason } }));
+  const setState = useAdminMutation((v: { id: string; status: "REJECTED" | "REFUNDED" | "CANCELLED"; reason?: string; refundTxHash?: string }) => api(`/api/admin/campaigns/${v.id}`, { method: "PATCH", json: v }));
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -64,7 +65,18 @@ export default function CampaignsPage() {
                       ) : (
                         shortHash(c.payment.txHash)
                       )}
-                      {c.payment.status === "REFUNDED" && <span className="chip chip-amber ml-1">refunded</span>}
+                      {c.payment.status === "REFUNDED" && (
+                        <span className="ml-1">
+                          <span className="chip chip-amber">refunded</span>{" "}
+                          {c.payment.refundTxUrl ? (
+                            <a href={c.payment.refundTxUrl} target="_blank" rel="noreferrer" className="text-signal" title="Verified refund transaction">
+                              {shortHash(c.payment.refundTxHash ?? "")}
+                            </a>
+                          ) : c.payment.refundTxHash ? (
+                            shortHash(c.payment.refundTxHash)
+                          ) : null}
+                        </span>
+                      )}
                     </>
                   ) : (
                     "—"
@@ -77,9 +89,22 @@ export default function CampaignsPage() {
                     </button>
                   )}
                   {c.payment && c.payment.status !== "REFUNDED" && ["COMPLETED", "CANCELLED", "REJECTED", "QUEUED", "PAID"].includes(c.status) && (
-                    <button className="btn btn-sm ml-1" onClick={() => setState.mutate({ id: c.id, status: "REFUNDED", reason: "Refund issued off-chain by operator" })}>
-                      Mark refunded
-                    </button>
+                    <span className="ml-1 inline-flex items-center gap-1">
+                      <input
+                        className="field mono w-44 text-[10px]"
+                        aria-label={`Refund transaction for ${c.displayName}`}
+                        placeholder="Refund tx hash"
+                        value={refundHashes[c.id] ?? ""}
+                        onChange={(event) => setRefundHashes((current) => ({ ...current, [c.id]: event.target.value.trim() }))}
+                      />
+                      <button
+                        className="btn btn-sm"
+                        disabled={setState.isPending || !/^0x[0-9a-fA-F]{64}$/.test(refundHashes[c.id] ?? "")}
+                        onClick={() => setState.mutate({ id: c.id, status: "REFUNDED", reason: "Verified treasury refund", refundTxHash: refundHashes[c.id] })}
+                      >
+                        Verify refund
+                      </button>
+                    </span>
                   )}
                   {c.airLogId && (
                     <Link href={`/airlog/${c.airLogId}`} className="btn btn-sm btn-ghost ml-1">

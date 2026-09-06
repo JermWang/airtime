@@ -102,7 +102,6 @@ export async function parseFormDataLimited(req: Request, maxBytes: number): Prom
 /* ------------------------------------------------------------------------- */
 
 declare global {
-  // eslint-disable-next-line no-var
   var __airtimeRate: Map<string, { tokens: number; at: number }> | undefined;
 }
 

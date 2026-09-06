@@ -2,7 +2,7 @@ import { test, expect, type Page, type APIRequestContext } from "@playwright/tes
 import sharp from "sharp";
 import { createPublicClient, http, parseAbiItem } from "viem";
 import { foundry } from "viem/chains";
-import { E2E_CONTRACT } from "../../playwright.config";
+import { E2E_CONTRACT, E2E_RPC } from "../../playwright.config";
 
 /**
  * Primary vertical slice:
@@ -103,6 +103,27 @@ test("full purchase → on-chain verification → queue → air → AirLog", asy
   // WYSIWYG preview is rendered on the surface
   await expect(page.locator("img[src*='/media/creatives/']").first()).toBeVisible();
 
+  // A failed replacement must keep the buyer on the creative step, and the
+  // same file must be selectable again after the server recovers.
+  await page.getByRole("button", { name: "Change", exact: true }).click();
+  await page.getByTestId("tab-file").click();
+  await page.route("**/api/campaigns/*", async (route) => {
+    if (route.request().method() === "PATCH") {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Temporary campaign save failure" }) });
+    } else await route.continue();
+  });
+  await page.getByTestId("creative-file-input").setInputFiles({ name: "spot.png", mimeType: "image/png", buffer: png });
+  await expect(page.getByTestId("flow-error")).toContainText("Temporary campaign save failure");
+  await expect(page.getByTestId("purchase-flow")).toHaveAttribute("data-step", "creative");
+  await page.unroute("**/api/campaigns/*");
+  await expect(page.getByTestId("creative-file-input")).toBeEnabled();
+  await page.getByTestId("creative-file-input").setInputFiles({ name: "spot.png", mimeType: "image/png", buffer: png });
+  await expect(page.getByTestId("purchase-flow")).toHaveAttribute("data-step", "price");
+  const framing = page.getByRole("group", { name: "Creative framing" });
+  const selectedFit = await framing.getByRole("button", { name: "FIT", exact: true }).getAttribute("aria-pressed");
+  const desiredFit = selectedFit === "true" ? "FILL" : "FIT";
+  await framing.getByRole("button", { name: desiredFit, exact: true }).click();
+
   // 3. the surface is asking a live, falling price
   const ticker = page.getByTestId("ask-ticker");
   await expect(ticker).toBeVisible({ timeout: 30_000 });
@@ -129,8 +150,9 @@ test("full purchase → on-chain verification → queue → air → AirLog", asy
   // Backend state: PAID→AIRING with a payment whose event exists on chain.
   const campaign = await request.get(`/api/campaigns/${campaignId}`).then((r) => r.json());
   expect(["PAID", "AIRING"]).toContain(campaign.status);
+  expect(campaign.fit).toBe(desiredFit);
   expect(campaign.payment.txHash).toMatch(/^0x[0-9a-f]{64}$/);
-  const client = createPublicClient({ chain: foundry, transport: http("http://127.0.0.1:8545") });
+  const client = createPublicClient({ chain: foundry, transport: http(E2E_RPC) });
   const logs = await client.getLogs({
     address: E2E_CONTRACT,
     event: parseAbiItem("event AirtimePurchased(bytes32 indexed quoteId, address indexed buyer, bytes32 indexed placementId, bytes32 creativeHash, uint64 startAt, uint64 endAt, address paymentToken, uint256 amount)"),
@@ -159,7 +181,16 @@ test("full purchase → on-chain verification → queue → air → AirLog", asy
   expect(surface.status).toBe("PROTECTED");
   expect(BigInt(surface.askWei)).toBeGreaterThan(BigInt(live.pricePaidWei));
 
-  // The studio shows the creative on the left billboard placement (activation feed drives the texture).
+  // Verify actual delivery in the viewer, not just the campaign's database state.
+  const adBreak = await request.post("/api/admin/schedule", {
+    data: { channelId: "MAIN", type: "AD_BREAK", title: "Delivery verification", durationSec: 120 },
+  });
+  expect(adBreak.ok()).toBeTruthy();
+  await page.goto("/watch");
+  const onAirCreative = page.locator(`img[src="${campaign.creative.url}"]`).first();
+  await expect(onAirCreative).toBeVisible();
+  await expect.poll(() => onAirCreative.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+
   await page.goto("/queue");
   await expect(page.getByText("Playwright Motors").first()).toBeVisible();
 

@@ -222,6 +222,7 @@ export async function releaseCappedRuns(now = serverNow()): Promise<number> {
     if (!cap || cap <= 0 || !campaign.startsAt) continue;
     if (now.getTime() - campaign.startsAt.getTime() < cap * 1000) continue;
     await db().transaction(async (tx) => {
+      await tx.select().from(schema.placements).where(eq(schema.placements.id, placement.id)).for("update");
       const [fresh] = await tx.select().from(schema.campaigns).where(eq(schema.campaigns.id, campaign.id));
       if (!fresh || fresh.status !== "AIRING") return;
       await endRun(tx, fresh, { reason: "CAP_REACHED", now });
@@ -238,6 +239,9 @@ export async function withdrawRun(campaignId: string, actor: Actor, reason: EndR
     const [campaign] = await tx.select().from(schema.campaigns).where(eq(schema.campaigns.id, campaignId));
     if (!campaign || campaign.status !== "AIRING") return;
     await tx.select().from(schema.placements).where(eq(schema.placements.id, campaign.placementId)).for("update");
-    await endRun(tx, campaign, { reason, now, actor });
+    // A takeover may have completed while we waited for the surface lock.
+    const [fresh] = await tx.select().from(schema.campaigns).where(eq(schema.campaigns.id, campaignId));
+    if (!fresh || fresh.status !== "AIRING") return;
+    await endRun(tx, fresh, { reason, now, actor });
   });
 }

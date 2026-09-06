@@ -6,7 +6,7 @@ import { cn } from "@/lib/format";
 
 interface Props {
   placement: PlacementDto;
-  onCreative: (c: CreativeDto) => void;
+  onCreative: (c: CreativeDto) => void | Promise<void>;
   current: CreativeDto | null;
 }
 
@@ -50,7 +50,7 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
           headers: { "x-airtime-placement-id": placement.id, "x-airtime-upload-ticket": ticket },
         });
         setWarnings(res.creative.warnings ?? []);
-        onCreative(res.creative);
+        await onCreative(res.creative);
       } catch (e) {
         if (e instanceof ApiError && e.status === 422) {
           const details = e.details as { creative?: CreativeDto } | undefined;
@@ -70,7 +70,7 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
     setErrors([]);
     try {
       const res = await api<{ creative: CreativeDto }>("/api/creatives/text", { method: "POST", json: { placementId: placement.id, text, clickUrl: clickUrl || null } });
-      onCreative(res.creative);
+      await onCreative(res.creative);
     } catch (e) {
       setErrors([(e as Error).message]);
     } finally {
@@ -85,7 +85,7 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
     try {
       const creative = await api<CreativeDto>("/api/creatives/link", { method: "POST", json: { placementId: placement.id, url: link.trim() } });
       setWarnings(creative.warnings ?? []);
-      onCreative(creative);
+      await onCreative(creative);
     } catch (e) {
       const details = e instanceof ApiError ? (e.details as string[] | undefined) : undefined;
       setErrors(Array.isArray(details) && details.length ? details : [(e as Error).message]);
@@ -158,16 +158,24 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
             e.preventDefault();
             setDrag(false);
             const f = e.dataTransfer.files?.[0];
-            if (f) void upload(f);
+            if (f && !busy) void upload(f);
           }}
-          onClick={() => inputRef.current?.click()}
+          onClick={() => { if (!busy) inputRef.current?.click(); }}
+          aria-disabled={busy}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              if (!busy) inputRef.current?.click();
+            }
           }}
         >
-          <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={(e) => e.target.files?.[0] && void upload(e.target.files[0])} data-testid="creative-file-input" />
+          <input ref={inputRef} type="file" accept={accept} disabled={busy} className="hidden" onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void upload(file);
+          }} data-testid="creative-file-input" />
           {busy ? (
             <div className="label">Validating creative…</div>
           ) : (

@@ -50,8 +50,9 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
   const [quote, setQuote] = useState<QuoteDto | null>(null);
   // Only expose chains with this deployment's protected payment contract.
   // Direct treasury transfers cannot provide atomic loser refunds.
-  const chains = paymentChains().filter((chain) => chain.id === activeChain().id);
-  const [payChainId, setPayChainId] = useState<number>(chains[0].id);
+  const preferredChain = activeChain();
+  const chains = paymentChains().filter((chain) => chain.id === preferredChain.id);
+  const [payChainId, setPayChainId] = useState<number>(preferredChain.id);
   const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,15 +84,14 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
 
   const quoteSecondsLeft = quote ? Math.max(0, Math.floor((new Date(quote.expiresAt).getTime() - now) / 1000)) : 0;
   useEffect(() => {
-    if (quote && quoteSecondsLeft === 0 && purchase.state.phase === "idle") {
+    if (quote && quoteSecondsLeft === 0 && !purchase.state.txHash && ["idle", "error"].includes(purchase.state.phase)) {
       setQuote(null);
       setError("The quote expired and the hold on this surface was released. The ask has moved on; take a new one.");
     }
-  }, [quote, quoteSecondsLeft, purchase.state.phase]);
+  }, [quote, quoteSecondsLeft, purchase.state.phase, purchase.state.txHash]);
 
   const onCreative = useCallback(
     async (c: CreativeDto) => {
-      setCreative(c);
       setError(null);
       try {
         if (campaign) {
@@ -101,6 +101,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
           const created = await api<CampaignDto>("/api/campaigns", { method: "POST", json: { placementId: placement.id, displayName: displayName || "Untitled campaign", creativeId: c.id, fit } });
           setCampaign(created);
         }
+        setCreative(c);
       } catch (e) {
         setError((e as Error).message);
       }
@@ -113,8 +114,12 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
     setQuoting(true);
     setError(null);
     try {
-      if (displayName && displayName !== campaign.displayName) {
-        await api(`/api/campaigns/${campaign.id}`, { method: "PATCH", json: { displayName, fit } });
+      const name = displayName.trim() || campaign.displayName;
+      if (name !== campaign.displayName || fit !== campaign.fit) {
+        const updated = await api<CampaignDto>(`/api/campaigns/${campaign.id}`, {
+          method: "PATCH", json: { displayName: name, fit },
+        });
+        setCampaign(updated);
       }
       // Never pay more than the number on screen: if somebody outbids between the
       // click and the quote, the server refuses instead of quietly charging more.
@@ -267,6 +272,14 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
 
               {step === "price" && (
                 <>
+                  {creative.type !== "TEXT" && placement.type !== "OVERLAY" && (
+                    <div className="flex items-center gap-2" role="group" aria-label="Creative framing">
+                      <span className="label">Framing</span>
+                      {(["FIT", "FILL"] as const).map((value) => (
+                        <button key={value} className={cn("btn btn-sm", fit === value && "bg-white/10")} aria-pressed={fit === value} disabled={quoting} onClick={() => setFit(value)}>{value}</button>
+                      ))}
+                    </div>
+                  )}
                   <AskTicker placement={placement} surface={surface} />
                   {chains.length > 1 && (
                     <div>
@@ -345,7 +358,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                       <button className="btn btn-ghost" onClick={() => { setQuote(null); purchase.reset(); }}>
                         Back
                       </button>
-                      <button className="btn btn-primary flex-1" onClick={() => void pay()} data-testid="pay">
+                      <button className="btn btn-primary flex-1" disabled={quoteSecondsLeft === 0} onClick={() => void pay()} data-testid="pay">
                         Pay {formatWei(quote.amountWei)} on {chainLabel(quote.chainId)}
                       </button>
                     </div>

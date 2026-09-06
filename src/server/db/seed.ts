@@ -4,6 +4,7 @@ import { db, schema } from "./client";
 import { env, devDataAllowed, isProduction } from "../env";
 import { ensureScheduleHorizon } from "../broadcast/schedule";
 import { MAX_DIRECT_UPLOAD_BYTES } from "@/lib/upload";
+import { MIN_PRICE_WEI } from "@/lib/auction";
 import type { NewPlacement, PlacementAuctionRules, PlacementAvailabilityRules } from "./schema";
 
 /**
@@ -23,6 +24,15 @@ const adBreak = (): PlacementAvailabilityRules => ({ inventoryMode: "AD_BREAK", 
 const eth = (n: number) => ((ETH * BigInt(Math.round(n * 1000))) / 1000n).toString();
 
 /**
+ * A configured price, never below the station minimum. Defaults to it, which is
+ * what every placement here opens at.
+ */
+const startingPrice = (n?: number) => {
+  const wei = n === undefined ? MIN_PRICE_WEI : BigInt(eth(n));
+  return (wei > MIN_PRICE_WEI ? wei : MIN_PRICE_WEI).toString();
+};
+
+/**
  * Auction rules.
  *
  * Everything opens at 0.01 ETH and stays there until somebody buys it. A sale
@@ -32,8 +42,8 @@ const eth = (n: number) => ((ETH * BigInt(Math.round(n * 1000))) / 1000n).toStri
  * here, and time is the only thing that lowers one.
  */
 const auction = (opts: { opening?: number; floor?: number; decayHours: number; minHoldMinutes: number; takeoverPremiumBps?: number; minIncrementBps?: number; maxHoldSeconds?: number }): PlacementAuctionRules => ({
-  openingPriceWei: eth(opts.opening ?? 0.01),
-  floorPriceWei: eth(opts.floor ?? 0.01),
+  openingPriceWei: startingPrice(opts.opening),
+  floorPriceWei: startingPrice(opts.floor),
   decaySeconds: Math.round(opts.decayHours * 3600),
   takeoverPremiumBps: opts.takeoverPremiumBps ?? 20_000,
   minIncrementBps: opts.minIncrementBps ?? 500,

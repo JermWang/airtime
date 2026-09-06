@@ -208,7 +208,20 @@ export interface CampaignDto {
   fit: "FIT" | "FILL";
   clickUrl: string | null;
   wallet: string;
-  payment: { txHash: string; txUrl: string | null; blockNumber: string; amountWei: string; paymentToken: string; status: string; confirmedAt: string; chainId: number } | null;
+  payment: {
+    txHash: string;
+    txUrl: string | null;
+    blockNumber: string;
+    amountWei: string;
+    paymentToken: string;
+    status: string;
+    confirmedAt: string;
+    chainId: number;
+    refundTxHash: string | null;
+    refundTxUrl: string | null;
+    refundBlockNumber: string | null;
+    refundedAt: string | null;
+  } | null;
   airLogId: string | null;
   rejectionReason: string | null;
   activeQuoteId: string | null;

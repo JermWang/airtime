@@ -52,7 +52,6 @@ export function CameraRig({ reducedMotion, mobile, mode }: Props) {
   const focused = useStation((s) => s.focusedPlacementId);
   const surfaces = useSurfaces((s) => s.byName);
   const introStarted = useStation((s) => s.introStarted);
-  const placementMesh = useStation((s) => s.focusedPlacementId);
   const pos = useRef(INTRO_FROM.clone());
   const target = useRef(SCREEN_CENTRE.clone());
   const pointer = useRef({ x: 0, y: 0 });
@@ -96,7 +95,7 @@ export function CameraRig({ reducedMotion, mobile, mode }: Props) {
     const direct = surfaces[focused];
     if (direct) return direct;
     return null;
-  }, [focused, surfaces, placementMesh]);
+  }, [focused, surfaces]);
 
   const focusMeshName = useStation((s) => s.focusedPlacementId);
   const meshNameById = useSurfaceLookup();

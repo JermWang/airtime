@@ -13,6 +13,7 @@ import { Reveal, RevealWords } from "@/components/marketing/Reveal";
 import { FlipCard } from "@/components/marketing/FlipCard";
 import { SurfaceWall, PriceTicker } from "@/components/marketing/SurfaceWall";
 import { LogoRow } from "@/components/marketing/LogoRow";
+import { SignalStory } from "@/components/marketing/SignalStory";
 import { ClockArt, PictureArt, HonestyArt, TreasuryArt, RoomArt, PortraitArt, ProofBlocks, LedgerGrid } from "@/components/marketing/Panels";
 import { formatClock, formatWei } from "@/lib/format";
 
@@ -33,12 +34,13 @@ export function StationHome({ channelId = "MAIN" }: { channelId?: string }) {
     <div className="min-h-dvh overflow-x-hidden bg-ink-950 text-ink-100">
       <SoundBlockedPrompt />
       <ContentNotice />
-      <SiteHeader channelId={channelId} />
+      <SiteHeader />
       <Fold channelId={channelId} />
       <PriceTicker channelId={channelId} seconds={90} />
       <div className="border-b border-white/[0.09] bg-ink-950 py-5">
         <LogoRow label="Partners / infrastructure" speedSec={54} />
       </div>
+      <SignalStory />
       <Panels channelId={channelId} />
       <ClosingCta />
       <SiteFooter wide />
@@ -57,7 +59,7 @@ const NAV = [
   { href: "#room", label: "The room" },
 ];
 
-function SiteHeader({ channelId }: { channelId: string }) {
+function SiteHeader() {
   const now = useServerNow(1000);
   return (
     <header
@@ -165,7 +167,9 @@ function Panels({ channelId }: { channelId: string }) {
           </div>
         </Reveal>
 
-        <div className="mt-7 grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(340px,1fr))]">
+        {/* Six panels, so the column count has to divide six: an auto-fit track
+            lands on four at wide viewports and orphans the last two. */}
+        <div className="mt-7 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
           <Reveal y={26}>
             <FlipCard
               id="clock"

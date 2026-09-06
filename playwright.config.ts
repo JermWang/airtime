@@ -10,6 +10,7 @@ import path from "node:path";
  */
 export const E2E_PORT = 3100;
 export const E2E_CONTRACT = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+export const E2E_RPC = "http://127.0.0.1:8546";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -32,7 +33,7 @@ export default defineConfig({
     // setup: both of those can run while a reused server already owns the directory.
     command: "pnpm exec tsx tests/e2e/prepare-state.ts && pnpm exec next build && pnpm exec next start -p 3100",
     url: `http://localhost:${E2E_PORT}/api/time`,
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 600_000,
     stdout: "pipe",
     stderr: "pipe",
@@ -47,7 +48,8 @@ export default defineConfig({
       ADMIN_EMAIL: "admin@airtime.local",
       ADMIN_PASSWORD: "e2e-admin",
       AIRTIME_SEED_DEV_DATA: "true",
-      LOCAL_RPC_URL: "http://127.0.0.1:8545",
+      LOCAL_RPC_URL: E2E_RPC,
+      NEXT_PUBLIC_RPC_URL: E2E_RPC,
       NEXT_PUBLIC_APP_URL: `http://localhost:${E2E_PORT}`,
       TREASURY_ADDRESS: "0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
       // Production build ⇒ real secrets are required. These are throwaway test values;
