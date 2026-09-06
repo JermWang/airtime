@@ -359,12 +359,16 @@ select.field {
   white-space: nowrap;
   animation: ticker 28s linear infinite;
 }
+/*
+ * Travels exactly one copy of the list. PriceTicker measures that copy and sets
+ * --marquee-shift; the 50% fallback is the two-copy track it renders first.
+ */
 @keyframes ticker {
   from {
     transform: translateX(0);
   }
   to {
-    transform: translateX(-50%);
+    transform: translateX(calc(-1 * var(--marquee-shift, 50%)));
   }
 }
 

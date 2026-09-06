@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 import Link from "next/link";
 import { useBoard, useActivations } from "@/lib/hooks";
 import { useLiveAsk } from "@/components/airtime/AskTicker";
 import { StationPlayer } from "@/components/station/StationPlayer";
 import { usePlayer } from "@/components/station/playerStore";
 import { formatWei, cn } from "@/lib/format";
+import { useMarquee } from "@/lib/useMarquee";
 import type { BoardRowDto, QueueEntryDto } from "@/lib/api";
 
 /**
@@ -186,17 +187,21 @@ export function SurfaceWall({ channelId = "MAIN", sizeClassName, expanded, onTog
 /**
  * The strip under the fold: every surface and its price, running past.
  *
- * The list is doubled and the track is translated by half its width, which is
- * what makes the loop seamless; the copy is hidden from assistive technology so
- * the prices are not announced twice.
+ * The list repeats as many times as it takes to outrun the strip and the track
+ * is translated by exactly one copy, which is what makes the loop seamless: two
+ * copies alone leave a gap once the list is narrower than the screen. Every copy
+ * after the first is hidden from assistive technology so prices are not
+ * announced twice.
  */
 export function PriceTicker({ channelId = "MAIN", seconds = 90 }: { channelId?: string; seconds?: number }) {
   const { data } = useBoard(channelId);
   const rows = (data?.rows ?? []).filter((r) => r.placement.isActive);
+  // Measured before the empty check, because a hook cannot sit behind a return.
+  const { copies, shift, setViewport, setFirstRun } = useMarquee(rows.length);
   if (!rows.length) return null;
 
-  const Run = ({ hidden }: { hidden?: boolean }) => (
-    <div className="flex items-center" aria-hidden={hidden}>
+  const Run = ({ hidden, innerRef }: { hidden?: boolean; innerRef?: (node: HTMLElement | null) => void }) => (
+    <div ref={innerRef} className="flex shrink-0 items-center" aria-hidden={hidden}>
       {rows.map((r) => (
         <TickerItem key={r.placement.id} row={r} />
       ))}
@@ -207,10 +212,14 @@ export function PriceTicker({ channelId = "MAIN", seconds = 90 }: { channelId?: 
   );
 
   return (
-    <div className="relative w-full overflow-hidden border-y border-white/[0.09] bg-ink-900">
-      <div className="ticker-track flex w-max" style={{ animationDuration: `${seconds}s` }}>
-        <Run />
-        <Run hidden />
+    <div ref={setViewport} className="relative w-full overflow-hidden border-y border-white/[0.09] bg-ink-900">
+      <div
+        className="ticker-track flex w-max"
+        style={{ animationDuration: `${seconds}s`, ...(shift === null ? null : { "--marquee-shift": `${shift}px` }) } as CSSProperties}
+      >
+        {Array.from({ length: copies }, (_, i) => (
+          <Run key={i} hidden={i > 0} innerRef={i === 0 ? setFirstRun : undefined} />
+        ))}
       </div>
     </div>
   );
