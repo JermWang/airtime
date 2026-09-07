@@ -22,8 +22,10 @@ export function HouseCard({ card, size = "panel" }: { card: Pick<ShowcaseDto, "l
     return (
       <div className="flex h-full w-full flex-col gap-1 overflow-hidden bg-[linear-gradient(135deg,#07090c,#12161b)] p-1.5 pb-0">
         <div className="flex min-w-0 items-start gap-1.5">
-          <span className="mt-[1px] h-2.5 w-[3px] shrink-0 rounded-[1px] bg-signal" />
-          <span className="readout min-w-0 flex-1 truncate text-[8px] uppercase tracking-[0.14em] text-signal">{card.label}</span>
+          <span className="h-2 w-[3px] shrink-0 rounded-[1px] bg-signal" />
+          {/* leading-none so the line box hugs the glyphs: at the inherited
+              line height it reached into the name's row below it. */}
+          <span className="readout min-w-0 flex-1 truncate text-[8px] uppercase leading-none tracking-[0.14em] text-signal">{card.label}</span>
         </div>
         {/*
           The name takes whatever room is left and fades out at the bottom edge

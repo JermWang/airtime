@@ -159,7 +159,10 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
           the compact size holds until lg, where the column is wide enough. */}
       <div
         className={cn(
-          "flex items-end gap-1.5",
+          // The tower is 95px wide: the price and the stamp do not always fit
+          // on one line there, so the row wraps rather than letting them run
+          // into each other.
+          "flex flex-wrap items-end gap-x-1.5 gap-y-1",
           overlaid
             ? "pointer-events-none absolute inset-x-2.5 bottom-2.5 max-lg:inset-x-1.5 max-lg:bottom-2"
             : "relative z-10 shrink-0 px-1.5 pb-1.5",
