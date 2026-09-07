@@ -30,7 +30,8 @@ describe("the control room cannot list a surface below the minimum", () => {
 
 describe("the seeded surfaces", () => {
   it("all open at the minimum and floor there", () => {
-    expect(BASE_PLACEMENTS).toHaveLength(4);
+    // The picture's two products, and the six panels around it.
+    expect(BASE_PLACEMENTS).toHaveLength(8);
     for (const p of BASE_PLACEMENTS) {
       expect(BigInt(p.auction.openingPriceWei), p.id).toBe(MIN_PRICE_WEI);
       expect(BigInt(p.auction.floorPriceWei), p.id).toBe(MIN_PRICE_WEI);

@@ -59,14 +59,15 @@ function add(def: MeshDef) {
 /*
  * A theatre, not an office.
  *
- * One picture, centred on the back wall, with a display panel either side of it
- * at the same eye line. Everything else is material — polished marble underfoot,
- * brushed metal panels, a machined bezel around each screen and a cove washing
- * the wall behind them.
+ * One picture, centred on the back wall, with display panels around it: one
+ * either side at the same eye line, a row of three above it, and a tall one
+ * standing outboard at the full height of the picture. Everything else is
+ * material — polished marble underfoot, brushed metal panels, a machined bezel
+ * around each screen and a cove washing the wall behind them.
  *
- * Three meshes are inventory: Screen_Main (the show and the commercial break)
- * and Panel_Left / Panel_Right (spots only). The textures are generated at
- * runtime from the `role` extras below, so this file stays pure geometry.
+ * Seven meshes are inventory: Screen_Main (the show and the commercial break)
+ * and the six panels (spots only). The textures are generated at runtime from
+ * the `role` extras below, so this file stays pure geometry.
  */
 
 const ROOM_W = 30;
@@ -85,7 +86,7 @@ add({ name: "Wall_Right", geometry: plane(ROOM_D, ROOM_H), material: "MetalPanel
 /* --------------------------------------------------------------------- */
 
 /* Dead centre of the back wall, horizontally and vertically. */
-const MAIN_W = 14.4;
+const MAIN_W = 12.6;
 const MAIN_H = MAIN_W * (9 / 16);
 const MAIN_Y = ROOM_H / 2;
 const MAIN_Z = BACK_Z + 0.3;
@@ -99,9 +100,9 @@ add({ name: "Screen_Main", geometry: plane(MAIN_W, MAIN_H), material: "Screen", 
 
 /* Same eye line as the picture, turned a few degrees inward so they read as
  * part of the room rather than as posters stuck on the wall. */
-const PANEL_W = 3;
+const PANEL_W = 2.4;
 const PANEL_H = PANEL_W * (9 / 16);
-const PANEL_X = MAIN_W / 2 + 0.5 + PANEL_W / 2;
+const PANEL_X = MAIN_W / 2 + 0.4 + PANEL_W / 2;
 
 for (const side of [-1, 1] as const) {
   const name = side < 0 ? "Left" : "Right";
@@ -111,12 +112,49 @@ for (const side of [-1, 1] as const) {
   add({ name: `Panel_${name}`, geometry: plane(PANEL_W, PANEL_H), material: "Screen", position: [x, MAIN_Y, MAIN_Z], rotation: rot, extras: { surface: true, aspect: "16:9" } });
 }
 
+/* --------------------------------------------------------------------- */
+/*  The row above the picture, and the tower outboard of it                */
+/* --------------------------------------------------------------------- */
+
+/* Three panels across the top, sitting in the gap between the picture and the
+ * ceiling, and one portrait panel standing off the right-hand end of the wall
+ * at the full height of the picture. The row is laid out across the width of
+ * the picture so the whole cluster reads as one wall of screens rather than
+ * as panels drifting in space. */
+const TOP_H = 1.25;
+const TOP_Y = MAIN_Y + MAIN_H / 2 + 0.42 + TOP_H / 2;
+const TOP_GAP = 0.32;
+
+const topRow: Array<{ name: string; w: number; aspect: string }> = [
+  { name: "TopLeft", w: TOP_H * (16 / 9), aspect: "16:9" },
+  { name: "TopMid", w: TOP_H * (16 / 9), aspect: "16:9" },
+  { name: "TopRight", w: TOP_H, aspect: "1:1" },
+];
+
+const topSpan = topRow.reduce((sum, p) => sum + p.w, 0) + TOP_GAP * (topRow.length - 1);
+let cursor = -topSpan / 2;
+for (const panel of topRow) {
+  const x = cursor + panel.w / 2;
+  cursor += panel.w + TOP_GAP;
+  add({ name: `Bezel_${panel.name}`, geometry: box(panel.w + 0.12, TOP_H + 0.12, 0.18), material: "Anodized", position: [x, TOP_Y, MAIN_Z - 0.1], extras: { role: "metal" } });
+  add({ name: `Panel_${panel.name}`, geometry: plane(panel.w, TOP_H), material: "Screen", position: [x, TOP_Y, MAIN_Z], extras: { surface: true, aspect: panel.aspect } });
+}
+
+/* Portrait, so it is bought for something a landscape panel cannot hold. Turned
+ * inward like the side panels, and stood at the same eye line as the picture. */
+const TOWER_H = MAIN_H * 0.76;
+const TOWER_W = TOWER_H * (9 / 16);
+const TOWER_X = PANEL_X + PANEL_W / 2 + 0.4 + TOWER_W / 2;
+const TOWER_ROT: Vec3 = [0, -0.2, 0];
+add({ name: "Bezel_Tower", geometry: box(TOWER_W + 0.16, TOWER_H + 0.16, 0.22), material: "Anodized", position: [TOWER_X, MAIN_Y, MAIN_Z - 0.12], rotation: TOWER_ROT, extras: { role: "metal" } });
+add({ name: "Panel_Tower", geometry: plane(TOWER_W, TOWER_H), material: "Screen", position: [TOWER_X, MAIN_Y, MAIN_Z], rotation: TOWER_ROT, extras: { surface: true, aspect: "9:16" } });
+
 /* A low plinth under the whole wall so the screens stand on something. */
 add({ name: "Plinth", geometry: box(ROOM_W - 4, 0.55, 0.9), material: "BrushedMetal", position: [0, 0.275, BACK_Z + 0.45], extras: { role: "metal" } });
 
 /* Cove light behind the top of the picture: the wall glows, the fixture never
  * appears in shot. */
-add({ name: "Cove_Back", geometry: box(ROOM_W - 8, 0.05, 0.14), material: "Cove", position: [0, MAIN_Y + MAIN_H / 2 + 0.9, BACK_Z + 0.1], extras: { role: "light", intensity: 1 } });
+add({ name: "Cove_Back", geometry: box(ROOM_W - 8, 0.05, 0.14), material: "Cove", position: [0, TOP_Y + TOP_H / 2 + 0.5, BACK_Z + 0.1], extras: { role: "light", intensity: 1 } });
 
 /* --------------------------------------------------------------------- */
 /*  GLB writer                                                             */

@@ -2,7 +2,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import Link from "next/link";
-import { useServerNow, useBoard } from "@/lib/hooks";
+import { useBoard } from "@/lib/hooks";
 import { useLiveAsk } from "@/components/airtime/AskTicker";
 import { StationChat } from "@/components/hud/StationChat";
 import { SoundControl, SoundBlockedPrompt } from "@/components/hud/SoundControl";
@@ -16,7 +16,7 @@ import { SurfaceWall, PriceTicker } from "@/components/marketing/SurfaceWall";
 import { LogoRow } from "@/components/marketing/LogoRow";
 import { SignalStory } from "@/components/marketing/SignalStory";
 import { ClockArt, PictureArt, HonestyArt, TreasuryArt, RoomArt, PortraitArt, ProofBlocks, LedgerGrid } from "@/components/marketing/Panels";
-import { formatClock, formatWei } from "@/lib/format";
+import { formatWei } from "@/lib/format";
 
 /**
  * The station front page.
@@ -66,7 +66,6 @@ const NAV = [
 ];
 
 function SiteHeader() {
-  const now = useServerNow(1000);
   return (
     <header
       className="fixed inset-x-0 top-0 z-40 flex items-center justify-between gap-4 px-6 backdrop-blur-[14px]"
@@ -75,7 +74,7 @@ function SiteHeader() {
       <Link href="/" className="flex shrink-0 items-center">
         <Wordmark size={12.5} />
       </Link>
-      <nav className="mono hidden items-center gap-7 text-[10px] uppercase tracking-[0.18em] md:flex">
+      <nav className="readout hidden items-center gap-7 text-[10px] uppercase tracking-[0.18em] md:flex">
         {NAV.map((n) => (
           <Link key={n.href} href={n.href} className="text-ink-300 transition hover:text-signal">
             {n.label}
@@ -84,12 +83,9 @@ function SiteHeader() {
       </nav>
       <div className="flex shrink-0 items-center gap-3">
         <SoundControl compact />
-        <span className="mono hidden whitespace-nowrap text-[10px] tracking-[0.16em] tabular-nums text-ink-400 lg:inline" suppressHydrationWarning>
-          {formatClock(now)} UTC
-        </span>
         <Link
           href="/airtime"
-          className="mono inline-flex h-[34px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-4 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
+          className="readout inline-flex h-[34px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-4 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
         >
           Buy airtime
         </Link>
@@ -135,10 +131,10 @@ function Fold({ channelId }: { channelId: string }) {
           <div className="mx-auto flex max-w-[1560px] flex-wrap items-end justify-between gap-x-10 gap-y-4">
             <div className="min-w-0 flex-[1_1_380px]">
               <Reveal y={12} immediate>
-                <div className="mono flex items-center gap-3 text-[10px] uppercase tracking-[0.2em]">
+                <div className="readout flex items-center gap-3 text-[10px] uppercase tracking-[0.2em]">
                   <span className="text-ink-200">Airtime Main</span>
                   <span className="h-[11px] w-px bg-white/20" />
-                  <span className="text-ink-300">Four surfaces</span>
+                  <span className="text-ink-300">Eight surfaces</span>
                 </div>
               </Reveal>
               <h1 className="mt-3 max-w-[22ch] text-[clamp(30px,4.2vw,68px)] font-medium leading-[0.94] tracking-[-0.05em] text-ink-50 [text-wrap:pretty]">
@@ -157,20 +153,20 @@ function Fold({ channelId }: { channelId: string }) {
                 <div className="mt-3.5 flex flex-wrap items-center gap-3">
                   <Link
                     href="/airtime"
-                    className="mono inline-flex h-[42px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-[22px] text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
+                    className="readout inline-flex h-[42px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-[22px] text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
                   >
                     Buy airtime
                   </Link>
                   <Link
                     href="/watch"
-                    className="mono inline-flex h-[42px] items-center justify-center whitespace-nowrap rounded-sm border border-white/25 px-[22px] text-[11px] uppercase tracking-[0.16em] text-ink-100 transition hover:border-white/45 hover:bg-white/[0.06]"
+                    className="readout inline-flex h-[42px] items-center justify-center whitespace-nowrap rounded-sm border border-white/25 px-[22px] text-[11px] uppercase tracking-[0.16em] text-ink-100 transition hover:border-white/45 hover:bg-white/[0.06]"
                   >
                     Watch full screen
                   </Link>
                 </div>
               </Reveal>
               <Reveal delay={0.48} y={14} immediate>
-                <div className="mono mt-3 text-[9.5px] uppercase tracking-[0.16em] text-ink-300">
+                <div className="readout mt-3 text-[9.5px] uppercase tracking-[0.16em] text-ink-300">
                   Every surface opens at <span className="text-signal">0.01 ETH</span> · a sale resets it to twice what was paid
                 </div>
               </Reveal>
@@ -189,7 +185,7 @@ function Panels({ channelId }: { channelId: string }) {
     <section id="panels" className="w-full bg-ink-950">
       <div className="mx-auto max-w-[1560px] px-6 pb-[132px] pt-[120px]">
         <Reveal y={14}>
-          <div className="mono flex flex-wrap items-baseline justify-between gap-5 border-b border-white/10 pb-[22px] text-[10px] uppercase tracking-[0.2em]">
+          <div className="readout flex flex-wrap items-baseline justify-between gap-5 border-b border-white/10 pb-[22px] text-[10px] uppercase tracking-[0.2em]">
             <span className="inline-flex items-baseline gap-5">
               <span className="text-signal">The network</span>
               <span className="text-ink-300">Six panels</span>
@@ -223,7 +219,7 @@ function Panels({ channelId }: { channelId: string }) {
                   "Hold it until another buyer pays more.",
                 ].map((step, i) => (
                   <div key={step} className="flex gap-4 border-t border-white/[0.09] py-[11px] last:border-b">
-                    <span className="mono w-[22px] shrink-0 text-[9.5px] tracking-[0.16em] text-signal">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="readout w-[22px] shrink-0 text-[9.5px] tracking-[0.16em] text-signal">{String(i + 1).padStart(2, "0")}</span>
                     <span className="text-[13px] leading-normal text-ink-200">{step}</span>
                   </div>
                 ))}
@@ -245,7 +241,7 @@ function Panels({ channelId }: { channelId: string }) {
                 A show is up to half an hour, uploaded or linked from anywhere. It plays to everyone in the room in sync, from the moment it is bought until
                 another buyer pays more for the same screen.
               </p>
-              <div className="mono mt-5 flex flex-col text-[10px] uppercase tracking-[0.14em]">
+              <div className="readout mt-5 flex flex-col text-[10px] uppercase tracking-[0.14em]">
                 {[
                   ["Runtime", "Up to 30 minutes"],
                   ["Commercial", "30 seconds, every break"],
@@ -281,7 +277,7 @@ function Panels({ channelId }: { channelId: string }) {
                 application measurements, kept separate and never dressed up as on-chain impressions.
               </p>
               <ProofBlocks channelId={channelId} />
-              <p className="mono mt-4 text-[10px] uppercase leading-relaxed tracking-[0.14em] text-ink-500">
+              <p className="readout mt-4 text-[10px] uppercase leading-relaxed tracking-[0.14em] text-ink-500">
                 No viewer count on this network is invented. The number in the bar is a count of open station tabs and nothing else.
               </p>
             </FlipCard>
@@ -329,7 +325,7 @@ function Panels({ channelId }: { channelId: string }) {
                 sees at the same moment.
               </p>
               <div className="mt-5 rounded-lg border border-white/12 bg-black/30 p-4">
-                <div className="mono text-[10px] uppercase tracking-[0.18em] text-ink-300">Station chat</div>
+                <div className="readout text-[10px] uppercase tracking-[0.18em] text-ink-300">Station chat</div>
                 <div className="mt-3 h-[220px]">
                   <StationChat className="h-full" />
                 </div>
@@ -358,7 +354,7 @@ function Panels({ channelId }: { channelId: string }) {
               </p>
               <div className="mt-5 border-l-2 border-signal pl-3.5">
                 <div className="text-[15px] font-medium tracking-[-0.025em] text-ink-50">Jeff Miller</div>
-                <div className="mono mt-1.5 text-[9.5px] uppercase tracking-[0.16em] text-ink-300">Founder</div>
+                <div className="readout mt-1.5 text-[9.5px] uppercase tracking-[0.16em] text-ink-300">Founder</div>
               </div>
             </FlipCard>
           </Reveal>
@@ -379,8 +375,8 @@ function ShowPrice({ channelId }: { channelId: string }) {
   const occupant = show?.surface.occupant ?? null;
   return (
     <div className="mt-5 flex items-end gap-3">
-      <span className="mono text-[44px] leading-[0.86] tracking-[-0.04em] text-signal tabular-nums">{live ? formatWei(live.askWei).replace(" ETH", "") : "—"}</span>
-      <span className="mono pb-[5px] text-[11px] uppercase tracking-[0.2em] text-ink-300">
+      <span className="readout text-[44px] leading-[0.86] tracking-[-0.04em] text-signal tabular-nums">{live ? formatWei(live.askWei).replace(" ETH", "") : "—"}</span>
+      <span className="readout pb-[5px] text-[11px] uppercase tracking-[0.2em] text-ink-300">
         {occupant ? `ETH · to take it from ${occupant.displayName}` : "ETH · nobody is holding it"}
       </span>
     </div>
@@ -401,11 +397,11 @@ function ClosingCta() {
             <div className="flex flex-[0_1_auto] flex-wrap items-center gap-3.5">
               <Link
                 href="/airtime"
-                className="mono inline-flex h-[52px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-[30px] text-[11.5px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
+                className="readout inline-flex h-[52px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-[30px] text-[11.5px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
               >
                 Buy airtime
               </Link>
-              <span className="mono text-[10px] uppercase tracking-[0.16em] text-ink-400">Four surfaces · opens at 0.01 ETH</span>
+              <span className="readout text-[10px] uppercase tracking-[0.16em] text-ink-400">Eight surfaces · opens at 0.01 ETH</span>
             </div>
           </div>
         </Reveal>

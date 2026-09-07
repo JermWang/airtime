@@ -11,12 +11,24 @@
     "Panel_Left",
     "Bezel_Right",
     "Panel_Right",
+    "Bezel_TopLeft",
+    "Panel_TopLeft",
+    "Bezel_TopMid",
+    "Panel_TopMid",
+    "Bezel_TopRight",
+    "Panel_TopRight",
+    "Bezel_Tower",
+    "Panel_Tower",
     "Plinth",
     "Cove_Back"
   ],
   "surfaces": [
     "Screen_Main",
     "Panel_Left",
-    "Panel_Right"
+    "Panel_Right",
+    "Panel_TopLeft",
+    "Panel_TopMid",
+    "Panel_TopRight",
+    "Panel_Tower"
   ]
 }

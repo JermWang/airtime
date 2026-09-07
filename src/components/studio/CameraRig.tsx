@@ -188,11 +188,15 @@ export function CameraRig({ reducedMotion, mobile, mode }: Props) {
  * Keeps the room's horizontal coverage constant across viewport shapes, so the
  * wing billboards stay in frame on narrow windows instead of being cut off.
  * Vertical FOV is derived from a fixed horizontal one and clamped.
+ *
+ * The resting frame has to hold the whole wall, which is wider than the picture
+ * and its two side panels: the tower stands outboard of them and was cut off at
+ * the old coverage.
  */
 function restFov(aspect: number, mobile: boolean, focused: boolean): number {
-  const horizontalFov = THREE.MathUtils.degToRad(mobile ? 66 : focused ? 50 : 64);
+  const horizontalFov = THREE.MathUtils.degToRad(mobile ? 70 : focused ? 50 : 68);
   const derived = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(horizontalFov / 2) / aspect));
-  return THREE.MathUtils.clamp(derived, focused ? 32 : 38, mobile ? 74 : 62);
+  return THREE.MathUtils.clamp(derived, focused ? 32 : 38, mobile ? 78 : 66);
 }
 
 /** placementId to mesh name lookup fed by BroadcastStudio through the placements query cache. */

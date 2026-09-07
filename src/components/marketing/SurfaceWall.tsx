@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import styles from "./SurfaceWall.module.css";
 import Link from "next/link";
 import { useBoard, useActivations, useHousePlaceholder } from "@/lib/hooks";
 import { useLiveAsk } from "@/components/airtime/AskTicker";
@@ -13,12 +14,12 @@ import { useMarquee } from "@/lib/useMarquee";
 import type { BoardRowDto, QueueEntryDto } from "@/lib/api";
 
 /**
- * The wall, flattened.
+ * A dimensional display district with live placement previews.
  *
  * The theatre has one picture with a display panel either side of it, and this
  * is that arrangement laid out across the fold: the live programme in the
  * middle at full height, the two panels holding it. Each surface wears its own
- * price, so the first thing anybody sees is that all four are for sale and what
+ * price, so the first thing anybody sees is which surfaces are for sale and what
  * they cost right now.
  *
  * Nothing here is a mock-up of a screen. The middle is the station player and
@@ -29,7 +30,7 @@ function Chip({ children, className, stack }: { children: React.ReactNode; class
   return (
     <span
       className={cn(
-        "mono inline-flex whitespace-nowrap rounded-sm border border-white/10 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.14em] text-ink-200",
+        "readout inline-flex whitespace-nowrap rounded-sm border border-white/10 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.14em] text-ink-200",
         // A side panel is narrower than this chip is long, and the surface
         // clips its own overflow, so on a panel the price sits under its label
         // rather than beside it.
@@ -63,23 +64,60 @@ function ExpandGlyph({ expanded }: { expanded?: boolean }) {
   );
 }
 
+/**
+ * The panels around the picture and where each one sits.
+ *
+ * The wall is a cluster, not a row: three across the top, one either side of
+ * the picture, and a portrait tower standing outboard at the full height of it.
+ * Narrow screens cannot hold that, so the picture takes the first row on its
+ * own and the panels stack into two rows of three underneath.
+ *
+ * Which surfaces exist is still data — these are the places the wall keeps for
+ * them, and a panel with no placement behind it simply does not render.
+ */
+interface WallPanel {
+  id: string;
+  label: string;
+  /** Where the chip sits, so it never runs off the outboard edge. */
+  align: "start" | "end";
+  area: string;
+}
+
+/**
+ * The row above the picture keeps its own proportions rather than inheriting
+ * the columns under it: two panels of the same size and a square at the end.
+ * Sharing the picture's column would have stretched the middle one to eleven
+ * times its height, and a spot delivered to a 16:9 surface would be cropped to
+ * a letterbox slot.
+ */
+const TOP_PANELS: WallPanel[] = [
+  { id: "PANEL_TOP_LEFT", label: "Top left", align: "start", area: "max-sm:col-start-1 max-sm:row-start-2" },
+  { id: "PANEL_TOP_MID", label: "Top centre", align: "start", area: "max-sm:col-start-2 max-sm:row-start-2" },
+  { id: "PANEL_TOP_RIGHT", label: "Top right", align: "end", area: "max-sm:col-start-3 max-sm:row-start-2" },
+];
+
+const WALL_PANELS: WallPanel[] = [
+  { id: "PANEL_LEFT", label: "Panel left", align: "start", area: "max-sm:col-start-1 max-sm:row-start-3 sm:col-start-1 sm:row-start-2" },
+  { id: "PANEL_RIGHT", label: "Panel right", align: "end", area: "max-sm:col-start-2 max-sm:row-start-3 sm:col-start-3 sm:row-start-2" },
+  { id: "PANEL_TOWER", label: "Tower", align: "end", area: "max-sm:col-start-3 max-sm:row-start-3 sm:col-start-4 sm:row-start-1 sm:row-span-2" },
+];
+
 /** A display panel: the creative on it, or the fact that it is free. */
-function PanelSurface({ row, occupant, side, placementId }: { row: BoardRowDto | undefined; occupant: QueueEntryDto | null; side: "left" | "right"; placementId: string }) {
+function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { panel: WallPanel; row: BoardRowDto | undefined; occupant: QueueEntryDto | null; onSelect?: () => void; preview?: boolean }) {
   const creative = occupant?.creative ?? null;
   // House content stands on the panel while it is unbooked: the station's own
   // example, badged EXAMPLE, with the panel still reading as available.
-  const card = useHousePlaceholder(occupant ? null : placementId);
+  const card = useHousePlaceholder(occupant ? null : panel.id);
   const house = houseMedia(card);
   return (
     <Link
       href={row ? `/airtime/${row.placement.id}` : "/airtime"}
-      className={cn(
-        "group relative block h-full min-w-0 w-full overflow-hidden border-x border-white/[0.07] bg-ink-900",
-        side === "left" ? "max-sm:col-start-1 max-sm:row-start-2" : "max-sm:col-start-2 max-sm:row-start-2",
-      )}
-      aria-label={row ? `${row.placement.name} — ${occupant ? "held" : "open"}` : "Display panel"}
+      onClick={onSelect ? (event) => { event.preventDefault(); onSelect(); } : undefined}
+      data-surface={panel.id}
+      className={cn("group relative block h-full min-w-0 w-full bg-ink-900", preview ? "overflow-hidden" : styles.screen, !preview && panel.area)}
+      aria-label={`${onSelect ? "Enlarge" : "View placement"} ${row?.placement.name ?? panel.label}`}
     >
-      <div className="absolute inset-0">
+      <div className={cn("absolute inset-0 overflow-hidden", !preview && styles.face)}>
         {creative?.url ? (
           creative.type === "VIDEO" ? (
             <video src={creative.url} muted playsInline loop autoPlay className="h-full w-full object-cover" />
@@ -95,15 +133,18 @@ function PanelSurface({ row, occupant, side, placementId }: { row: BoardRowDto |
               // eslint-disable-next-line @next/next/no-img-element
               <img src={house.url} alt="" className="h-full w-full object-cover" />
             )}
-            <span className="mono absolute left-1.5 top-1.5 rounded-sm border border-white/25 bg-ink-950/80 px-1.5 py-[3px] text-[8px] uppercase tracking-[0.16em] text-ink-200">Example</span>
+            <span className="readout absolute left-1.5 top-1.5 rounded-sm border border-white/25 bg-ink-950/80 px-1.5 py-[3px] text-[8px] uppercase tracking-[0.16em] text-ink-200">Example</span>
           </>
+        ) : creative?.textContent ? (
+          <div className="flex h-full items-center justify-center p-6 text-center text-2xl">{creative.textContent}</div>
         ) : card ? (
-          <HouseCard card={card} />
+          <div className={styles.house}><HouseCard card={card} /></div>
         ) : (
           // Nothing running: the surface reads as an empty lit panel, not as a
           // picture of one.
-          <div className="h-full w-full bg-[radial-gradient(120%_80%_at_50%_0%,rgba(255,255,255,0.06),transparent_70%)]">
-            <div className="mono absolute inset-x-0 top-1/2 -translate-y-1/2 px-4 text-center text-[9.5px] uppercase leading-relaxed tracking-[0.18em] text-ink-600 transition group-hover:text-ink-400">
+          <div className={styles.idle}>
+            <span className="absolute left-2 top-2 text-[8px] uppercase tracking-widest text-white/70">Airtime / House display</span>
+            <div className="readout absolute inset-x-0 top-1/2 -translate-y-1/2 px-4 text-center text-[9.5px] uppercase leading-relaxed tracking-[0.18em] text-white transition group-hover:text-signal">
               Available
             </div>
           </div>
@@ -114,11 +155,11 @@ function PanelSurface({ row, occupant, side, placementId }: { row: BoardRowDto |
       <div
         className={cn(
           "pointer-events-none absolute inset-x-2.5 bottom-2.5 flex max-lg:inset-x-1.5 max-lg:bottom-2",
-          side === "left" ? "justify-start" : "justify-end",
+          panel.align === "start" ? "justify-start" : "justify-end",
         )}
       >
         <span className="min-w-0 max-w-full [&>span]:max-w-full [&>span]:max-lg:gap-[2px] [&>span]:max-lg:px-1.5 [&>span]:max-lg:text-[8px] [&>span]:max-lg:tracking-[0.08em]">
-          <PriceChip row={row} label={side === "left" ? "Panel left" : "Panel right"} stack />
+          <PriceChip row={row} label={panel.label} stack />
         </span>
       </div>
     </Link>
@@ -139,6 +180,7 @@ export interface SurfaceWallProps {
 }
 
 export function SurfaceWall({ channelId = "MAIN", sizeClassName, expanded, onToggleExpand }: SurfaceWallProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: board } = useBoard(channelId);
   const { data: activations } = useActivations(channelId);
   const playing = usePlayer((s) => s.playing);
@@ -153,19 +195,33 @@ export function SurfaceWall({ channelId = "MAIN", sizeClassName, expanded, onTog
 
   const show = rows.find((r) => r.placement.kind === "show");
   const ad = rows.find((r) => r.placement.kind === "ad");
-  const left = byId.get("PANEL_LEFT");
-  const right = byId.get("PANEL_RIGHT");
+  const panels = WALL_PANELS.filter((p) => byId.has(p.id));
+  const selected = rows.find((row) => row.placement.id === selectedId);
+  const topPanels = TOP_PANELS.filter((p) => byId.has(p.id));
 
   return (
+    <div className={cn(styles.district, sizeClassName ?? "flex-1")}>
+      <div className={styles.atmosphere} aria-hidden="true" />
+      <div className="readout relative z-10 flex justify-between gap-4 px-5 py-4 text-[9px] uppercase tracking-[0.18em] text-ink-200"><span>Main / Display district</span><span>Click a screen to explore ↗</span></div>
     <div
       className={cn(
-        "grid min-h-16 grid-cols-2 grid-rows-[minmax(0,1fr)_96px] items-stretch justify-items-stretch gap-[3px] sm:grid-cols-[clamp(96px,18vw,120px)_minmax(0,1fr)_clamp(96px,18vw,120px)] sm:grid-rows-1 md:grid-cols-[clamp(120px,15vw,180px)_minmax(0,1fr)_clamp(120px,15vw,180px)]",
-        sizeClassName ?? "flex-1",
+        styles.skyline,
+        "grid flex-1 grid-cols-3 grid-rows-[minmax(220px,1fr)_100px_100px] items-stretch justify-items-stretch gap-3 sm:gap-5 sm:grid-rows-[clamp(90px,10vw,150px)_minmax(230px,1fr)] sm:grid-cols-[clamp(84px,12vw,180px)_minmax(0,1fr)_clamp(84px,12vw,180px)_clamp(64px,10vw,150px)]",
       )}
     >
-      <PanelSurface row={left} occupant={occupantByPlacement.get("PANEL_LEFT") ?? null} side="left" placementId="PANEL_LEFT" />
+      {topPanels.length > 0 && (
+        <div className="max-sm:contents sm:grid sm:min-w-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.46fr)] sm:gap-3 sm:col-span-3 sm:col-start-1 sm:row-start-1">
+          {topPanels.map((panel) => (
+            <PanelSurface key={panel.id} panel={panel} row={byId.get(panel.id)} occupant={occupantByPlacement.get(panel.id) ?? null} />
+          ))}
+        </div>
+      )}
 
-      <div className="relative min-w-0 w-full overflow-hidden bg-ink-900 max-sm:col-span-2 max-sm:col-start-1 max-sm:row-start-1">
+      {panels.map((panel) => (
+        <PanelSurface key={panel.id} panel={panel} row={byId.get(panel.id)} occupant={occupantByPlacement.get(panel.id) ?? byId.get(panel.id)?.occupant ?? null} onSelect={() => setSelectedId(panel.id)} />
+      ))}
+
+      <div className={cn(styles.mainScreen, "relative min-w-0 w-full bg-ink-900 max-sm:col-span-3 max-sm:col-start-1 max-sm:row-start-1 sm:col-start-2 sm:row-start-2")}>
         <div className="absolute inset-0">
           {/* The side inventory narrows this frame at some viewport sizes. Keep
               the complete 16:9 programme visible instead of cropping it to the
@@ -173,11 +229,10 @@ export function SurfaceWall({ channelId = "MAIN", sizeClassName, expanded, onTog
           <StationPlayer channelId={channelId} visible fit="contain" className="h-full w-full" overlays={false} />
         </div>
         <div className="pointer-events-none absolute left-3 top-3 flex flex-wrap gap-2">
-          <PriceChip row={show} label="Runtime" />
-          <PriceChip row={ad} label="Commercial" />
+          {[show, ad].map((row) => row && <button type="button" key={row.placement.id} onClick={() => setSelectedId(row.placement.id)} className="pointer-events-auto" aria-label={`View ${row.placement.name} details`}><PriceChip row={row} label={row.placement.kind === "show" ? "Runtime ↗" : "Commercial ↗"} /></button>)}
         </div>
         <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2 sm:bottom-auto sm:right-3 sm:top-3">
-          <span className="mono inline-flex items-center gap-[7px] rounded-sm border border-signal/40 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-signal">
+          <span className="readout inline-flex items-center gap-[7px] rounded-sm border border-signal/40 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-signal">
             <span className="h-[5px] w-[5px] rounded-full bg-signal shadow-[0_0_8px_rgba(204,255,0,0.8)]" />
             {playing ? "On air" : "Stand by"}
           </span>
@@ -188,7 +243,7 @@ export function SurfaceWall({ channelId = "MAIN", sizeClassName, expanded, onTog
               aria-pressed={expanded}
               aria-label={expanded ? "Collapse the wall" : "Expand the wall to fill the screen"}
               data-testid="wall-expand"
-              className="mono pointer-events-auto inline-flex items-center gap-[7px] rounded-sm border border-white/20 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-ink-200 transition hover:border-white/45 hover:text-ink-50 max-sm:px-2.5 max-sm:py-2"
+              className="readout pointer-events-auto inline-flex items-center gap-[7px] rounded-sm border border-white/20 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-ink-200 transition hover:border-white/45 hover:text-ink-50 max-sm:px-2.5 max-sm:py-2"
             >
               <ExpandGlyph expanded={expanded} />
               {expanded ? "Collapse" : "Expand"}
@@ -197,8 +252,42 @@ export function SurfaceWall({ channelId = "MAIN", sizeClassName, expanded, onTog
         </div>
       </div>
 
-      <PanelSurface row={right} occupant={occupantByPlacement.get("PANEL_RIGHT") ?? null} side="right" placementId="PANEL_RIGHT" />
     </div>
+    <div className={styles.floor} aria-hidden="true" />
+    {selected && <SurfaceDetail row={selected} occupant={occupantByPlacement.get(selected.placement.id) ?? selected.occupant} onClose={() => setSelectedId(null)} />}
+    </div>
+  );
+}
+
+function SurfaceDetail({ row, occupant, onClose }: { row: BoardRowDto; occupant: QueueEntryDto | null; onClose: () => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const live = useLiveAsk(row.placement, row.surface);
+  useEffect(() => {
+    const element = dialog.current;
+    const previousOverflow = document.body.style.overflow;
+    element?.showModal();
+    document.body.style.overflow = "hidden";
+    return () => { element?.close(); document.body.style.overflow = previousOverflow; };
+  }, []);
+  const panel = WALL_PANELS.find((item) => item.id === row.placement.id) ?? { id: row.placement.id, label: row.placement.name, align: "start" as const, area: "" };
+  return (
+    <dialog ref={dialog} className={styles.detail} onCancel={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} aria-labelledby="surface-detail-title">
+      <div className="relative grid overflow-hidden rounded-lg border border-white/20 bg-[#0b1015] md:grid-cols-[minmax(0,1.6fr)_minmax(280px,1fr)]">
+        <button type="button" autoFocus onClick={onClose} aria-label="Close placement details" className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/80 text-xl text-white">×</button>
+        <div className="relative min-h-[260px] bg-black md:min-h-[480px]">
+          <PanelSurface panel={panel} row={row} occupant={occupant} preview />
+        </div>
+        <div className="px-7 py-14 text-ink-100">
+          <div className="readout text-[10px] uppercase tracking-[0.2em] text-signal">{row.surface.status} / {row.placement.kind}</div>
+          <h2 id="surface-detail-title" className="mt-4 text-3xl tracking-tight">{row.placement.name}</h2>
+          <p className="mt-4 text-sm leading-relaxed text-ink-300">{row.placement.description ?? "A place for your creative in the AIRTIME display district."}</p>
+          <div className="mt-7 border-y border-white/10 py-5"><div className="readout text-[10px] uppercase tracking-widest text-ink-300">Current asking price</div><div className="mt-2 text-3xl text-signal">{formatWei(live?.askWei ?? row.surface.askWei)}</div></div>
+          <dl className="mt-5 grid grid-cols-2 gap-5 text-sm"><div><dt className="text-ink-400">Screen format</dt><dd className="mt-1">{row.placement.aspectRatio}</dd></div><div><dt className="text-ink-400">Accepts</dt><dd className="mt-1">{row.placement.mediaTypes.join(" / ").toLowerCase()}</dd></div><div className="col-span-2"><dt className="text-ink-400">On this screen</dt><dd className="mt-1">{occupant?.displayName ?? "House display · available inventory"}</dd></div></dl>
+          {row.surface.reason && <p className="mt-4 text-sm text-ink-300">{row.surface.reason}</p>}
+          <Link href={`/airtime/${row.placement.id}`} className="mt-7 flex min-h-11 items-center justify-center rounded-sm bg-signal px-5 text-sm font-semibold text-black">{row.surface.forSale ? "Get this placement ↗" : "View placement ↗"}</Link>
+        </div>
+      </div>
+    </dialog>
   );
 }
 
@@ -223,7 +312,7 @@ export function PriceTicker({ channelId = "MAIN", seconds = 90 }: { channelId?: 
       {rows.map((r) => (
         <TickerItem key={r.placement.id} row={r} />
       ))}
-      <span className="mono inline-flex items-center whitespace-nowrap px-10 py-[13px] text-[10.5px] uppercase tracking-[0.16em] text-ink-300">
+      <span className="readout inline-flex items-center whitespace-nowrap px-10 py-[13px] text-[10.5px] uppercase tracking-[0.16em] text-ink-300">
         Prices fall until somebody takes them
       </span>
     </div>
@@ -246,7 +335,7 @@ export function PriceTicker({ channelId = "MAIN", seconds = 90 }: { channelId?: 
 function TickerItem({ row }: { row: BoardRowDto }) {
   const live = useLiveAsk(row.placement, row.surface);
   return (
-    <Link href={`/airtime/${row.placement.id}`} className="mono inline-flex items-baseline gap-3.5 whitespace-nowrap px-10 py-[13px] text-[10.5px] uppercase tracking-[0.16em]">
+    <Link href={`/airtime/${row.placement.id}`} className="readout inline-flex items-baseline gap-3.5 whitespace-nowrap px-10 py-[13px] text-[10.5px] uppercase tracking-[0.16em]">
       <span className="text-ink-300">{row.placement.name}</span>
       <span className="text-signal tabular-nums">{live ? formatWei(live.askWei) : "—"}</span>
       <span className="text-ink-300">{row.surface.occupant ? "held" : row.surface.forSale ? "open" : "closed"}</span>
