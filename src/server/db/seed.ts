@@ -310,12 +310,28 @@ export const RETIRED_PLACEMENT_IDS = [
  * there and drops `rh-` rows it no longer ships, so this list is the whole
  * story. Shipping artwork is an edit here plus a deploy.
  */
-const memeCard = (slug: string, ticker: string, name: string, placementId: string, sortOrder: number): typeof schema.showcaseCreatives.$inferInsert => ({
+const houseSublabel = (placementId: string) => (placementId === "AD" ? "Example spot · this break is available" : "Example spot · this panel is available");
+
+/** A slot with artwork: the file fills the surface and the text names it. */
+const artCard = (slug: string, label: string, name: string, placementId: string, file: string, sortOrder = 10): typeof schema.showcaseCreatives.$inferInsert => ({
   slug,
   placementId,
-  label: ticker,
+  label,
   headline: name,
-  sublabel: placementId === "AD" ? "Example spot · this break is available" : "Example spot · this panel is available",
+  sublabel: houseSublabel(placementId),
+  accent: "#ccff00",
+  mediaUrl: `/placeholders/${file}`,
+  mediaType: "IMAGE",
+  sortOrder,
+});
+
+/** A slot with no artwork yet: the station's own card, drawn from text. */
+const textCard = (slug: string, label: string, name: string, placementId: string, sortOrder = 10): typeof schema.showcaseCreatives.$inferInsert => ({
+  slug,
+  placementId,
+  label,
+  headline: name,
+  sublabel: houseSublabel(placementId),
   accent: "#ccff00",
   sortOrder,
 });
@@ -332,18 +348,22 @@ export const HOUSE_PLACEHOLDERS: Array<typeof schema.showcaseCreatives.$inferIns
     accent: "#ccff00",
     sortOrder: 1,
   },
-  // The picture during the breaks: the largest by volume and market cap.
-  memeCard("rh-pons", "$PONS", "Pons", "AD", 10),
-  memeCard("rh-cashcat", "$CASHCAT", "Cash Cat", "AD", 11),
-  // The rest spread around the picture, so no surface stands empty.
-  memeCard("rh-artificial-inu", "$AI", "Artificial Inu", "PANEL_LEFT", 10),
-  memeCard("rh-greenhood", "$HOOD", "TheGreenHood", "PANEL_LEFT", 11),
-  memeCard("rh-nasduck", "$NASDUCK", "Nasduck", "PANEL_RIGHT", 10),
-  memeCard("rh-snowball", "$SNOWBALL", "Snowball Capital", "PANEL_RIGHT", 11),
-  memeCard("rh-meme", "$MEME", "A Meme Coin", "PANEL_TOP_LEFT", 10),
-  memeCard("rh-shrub", "$SHRUB", "Lil' Shrub", "PANEL_TOP_MID", 10),
-  memeCard("rh-cyberbeer", "$CYBERBEER", "Cyberbeer", "PANEL_TOP_RIGHT", 10),
-  memeCard("rh-greatest-meme", "$GME", "Greatest Meme Ever", "PANEL_TOWER", 10),
+  // Artwork goes where its own subject survives the crop. A panel fills itself
+  // with what it is given, so a wordmark in a corner is the first thing lost:
+  // Anduril's sits bottom-right, which a tall panel cuts off entirely, and it
+  // goes on the picture instead, where the whole frame is shown. Pons and the
+  // cat are centred and hold up wherever they are put.
+  artCard("rh-anduril", "Anduril", "Anduril", "AD", "anduril.jpg"),
+  artCard("rh-dune", "Dune", "Dune Analytics", "PANEL_TOP_LEFT", "dune.jpg"),
+  artCard("rh-cashcat", "$CASHCAT", "Cash Cat", "PANEL_TOP_MID", "cashcat.jpg"),
+  artCard("rh-pons", "$PONS", "Pons", "PANEL_LEFT", "pons.jpg"),
+  // One image to a surface: the same artwork on two panels at once reads as a
+  // fault rather than a campaign. These three wait for art of their own — the
+  // last two are square and portrait, and cropping a wide image to those cuts
+  // the logo out of it.
+  textCard("rh-open-right", "Airtime", "This panel is open", "PANEL_RIGHT"),
+  textCard("rh-open-square", "Airtime", "This panel is open", "PANEL_TOP_RIGHT"),
+  textCard("rh-open-tower", "Airtime", "This panel is open", "PANEL_TOWER"),
 ];
 
 export async function ensureBaseline(): Promise<{ adminPassword: string | null }> {
