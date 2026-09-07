@@ -7,11 +7,12 @@ import { getTreasurySummary, getTreasuryLedger, recordTreasuryEntry } from "@/se
 export const dynamic = "force-dynamic";
 
 const body = z.object({
-  kind: z.enum(["TAX_INFLOW", "STOCK_PURCHASE", "DISTRIBUTION"]),
+  kind: z.enum(["TAX_INFLOW", "STOCK_PURCHASE", "DISTRIBUTION", "BUYBACK", "BURN"]),
   occurredAt: z.string().datetime().optional(),
   amountWei: z.string().regex(/^\d+$/).optional(),
   assetSymbol: z.string().min(1).max(12).optional(),
   shares: z.string().regex(/^\d+(\.\d{1,6})?$/).optional(),
+  tokenAmountWei: z.string().regex(/^\d+$/).optional(),
   pricePerShareWei: z.string().regex(/^\d+$/).optional().nullable(),
   holders: z.number().int().min(0).max(10_000_000).optional().nullable(),
   txHash: z.string().max(120).optional().nullable(),

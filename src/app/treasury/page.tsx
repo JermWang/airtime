@@ -9,14 +9,16 @@ const KIND_LABEL: Record<TreasuryLedgerRowDto["kind"], string> = {
   TAX_INFLOW: "Token tax received",
   STOCK_PURCHASE: "Anduril pre-stock bought",
   DISTRIBUTION: "Distributed to holders",
+  BUYBACK: "$AIRTIME bought back",
+  BURN: "$AIRTIME burned",
 };
 
 function Figure({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "signal" | "muted" }) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/30 p-4">
       <div className="label">{label}</div>
-      <div className={cn("mono mt-1.5 text-[22px] leading-none tracking-tight", tone === "signal" ? "text-signal" : tone === "muted" ? "text-ink-300" : "text-ink-50")}>{value}</div>
-      {sub && <div className="mono mt-1.5 text-[10px] uppercase tracking-[0.12em] text-ink-500">{sub}</div>}
+      <div className={cn("readout mt-1.5 text-[22px] leading-none tracking-tight", tone === "signal" ? "text-signal" : tone === "muted" ? "text-ink-300" : "text-ink-50")}>{value}</div>
+      {sub && <div className="readout mt-1.5 text-[10px] uppercase tracking-[0.12em] text-ink-500">{sub}</div>}
     </div>
   );
 }
@@ -33,8 +35,8 @@ export default function TreasuryPage() {
     <PageFrame title="Treasury" wide>
       <p className="mb-5 max-w-3xl text-[13px] leading-relaxed text-ink-200">
         {allocationPct}% of what this network earns is used to buy Anduril pre-stock, and every holder of the token is rewarded in pre-IPO shares — up to {holderCapPct}%
-        each. Airtime revenue is counted automatically from payments the station verified on chain. Token tax, pre-stock purchases and distributions happen off this
-        chain through a broker, so they are recorded by the station operator and shown here as recorded figures with a reference where one exists.
+        each. Airtime revenue is counted automatically from payments the station verified on chain. Token tax, pre-stock purchases, distributions, and $AIRTIME bought back or
+        burned happen off this chain, so they are recorded by the station operator and shown here as recorded figures with a reference where one exists.
       </p>
 
       {isLoading && !s && <div className="label">Loading treasury…</div>}
@@ -59,11 +61,26 @@ export default function TreasuryPage() {
             <Figure label="Reward cap per holder" value={`${holderCapPct}%`} sub="of the Anduril pre-IPO allocation" tone="signal" />
           </section>
 
+          <section className="mb-6 grid gap-3 md:grid-cols-3">
+            <Figure
+              label="$AIRTIME bought back"
+              value={formatWei(s.buybackTokens, 18, "AIRTIME")}
+              sub={`${formatWei(s.buybackSpentWei)} spent · ${s.buybacks} buyback${s.buybacks === 1 ? "" : "s"} · operator recorded`}
+              tone="signal"
+            />
+            <Figure
+              label="$AIRTIME burned"
+              value={formatWei(s.burnedTokens, 18, "AIRTIME")}
+              sub={s.burns ? `${s.burns} burn${s.burns === 1 ? "" : "s"} · operator recorded` : "none yet"}
+            />
+            <Figure label="$AIRTIME held" value={formatWei(s.tokensHeld, 18, "AIRTIME")} sub="bought back, not yet burned" tone="muted" />
+          </section>
+
           <section className="glass rounded-lg p-3">
             <div className="label mb-2">Ledger</div>
             {data!.ledger.length === 0 ? (
               <div className="rounded-md border border-dashed border-white/10 px-3 py-4 text-[12px] text-ink-400">
-                Nothing recorded yet. Entries appear here as the operator records tax inflows, pre-stock purchases and distributions.
+                Nothing recorded yet. Entries appear here as the operator records tax inflows, pre-stock purchases, distributions, and $AIRTIME bought back or burned.
               </div>
             ) : (
               <table className="data">
@@ -73,6 +90,7 @@ export default function TreasuryPage() {
                     <th>Event</th>
                     <th>Amount</th>
                     <th>Shares</th>
+                    <th>$AIRTIME</th>
                     <th>Holders</th>
                     <th>Reference</th>
                     <th>Note</th>
@@ -81,15 +99,16 @@ export default function TreasuryPage() {
                 <tbody>
                   {data!.ledger.map((r) => (
                     <tr key={r.id}>
-                      <td className="mono whitespace-nowrap text-[10.5px]">{formatDateTime(r.occurredAt)}</td>
+                      <td className="readout whitespace-nowrap text-[10.5px]">{formatDateTime(r.occurredAt)}</td>
                       <td>
-                        <span className={cn("chip", r.kind === "STOCK_PURCHASE" ? "chip-signal" : r.kind === "DISTRIBUTION" ? "chip-amber" : "")}>{KIND_LABEL[r.kind]}</span>
+                        <span className={cn("chip", r.kind === "STOCK_PURCHASE" || r.kind === "BUYBACK" ? "chip-signal" : r.kind === "DISTRIBUTION" || r.kind === "BURN" ? "chip-amber" : "")}>{KIND_LABEL[r.kind]}</span>
                         {r.isDevData && <span className="chip ml-1">dev data</span>}
                       </td>
-                      <td className="mono text-[10.5px] text-ink-50">{BigInt(r.amountWei) > 0n ? formatWei(r.amountWei, 18, r.assetSymbol) : "—"}</td>
-                      <td className="mono text-[10.5px] text-ink-50">{Number(r.shares) > 0 ? `${r.shares} sh` : "—"}</td>
-                      <td className="mono text-[10.5px]">{r.holders ?? "—"}</td>
-                      <td className="mono text-[10.5px]">
+                      <td className="readout text-[10.5px] text-ink-50">{BigInt(r.amountWei) > 0n ? formatWei(r.amountWei, 18, r.assetSymbol) : "—"}</td>
+                      <td className="readout text-[10.5px] text-ink-50">{Number(r.shares) > 0 ? `${r.shares} sh` : "—"}</td>
+                      <td className="readout text-[10.5px] text-ink-50">{BigInt(r.tokenAmountWei) > 0n ? formatWei(r.tokenAmountWei, 18, "AIRTIME") : "—"}</td>
+                      <td className="readout text-[10.5px]">{r.holders ?? "—"}</td>
+                      <td className="readout text-[10.5px]">
                         {r.txUrl ? (
                           <a className="text-signal" href={r.txUrl} target="_blank" rel="noreferrer">
                             {shortHash(r.txHash)}

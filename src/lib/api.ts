@@ -265,15 +265,24 @@ export interface TreasurySummaryDto {
   distributions: number;
   lastPurchaseAt: string | null;
   lastDistributionAt: string | null;
+  buybackTokens: string;
+  buybackSpentWei: string;
+  buybacks: number;
+  lastBuybackAt: string | null;
+  burnedTokens: string;
+  burns: number;
+  lastBurnAt: string | null;
+  tokensHeld: string;
 }
 
 export interface TreasuryLedgerRowDto {
   id: string;
-  kind: "TAX_INFLOW" | "STOCK_PURCHASE" | "DISTRIBUTION";
+  kind: "TAX_INFLOW" | "STOCK_PURCHASE" | "DISTRIBUTION" | "BUYBACK" | "BURN";
   occurredAt: string;
   amountWei: string;
   assetSymbol: string;
   shares: string;
+  tokenAmountWei: string;
   pricePerShareWei: string | null;
   holders: number | null;
   txHash: string | null;

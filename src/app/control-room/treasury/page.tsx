@@ -8,13 +8,18 @@ import { api, type TreasuryDto } from "@/lib/api";
 import { formatWei, formatDateTime, shortHash, cn } from "@/lib/format";
 import { parseEther } from "viem";
 
-type Kind = "TAX_INFLOW" | "STOCK_PURCHASE" | "DISTRIBUTION";
+type Kind = "TAX_INFLOW" | "STOCK_PURCHASE" | "DISTRIBUTION" | "BUYBACK" | "BURN";
 
 const KIND_LABEL: Record<Kind, string> = {
   TAX_INFLOW: "Token tax received",
   STOCK_PURCHASE: "Bought Anduril pre-stock",
   DISTRIBUTION: "Distributed to holders",
+  BUYBACK: "Bought back $AIRTIME",
+  BURN: "Burned $AIRTIME",
 };
+
+/** Kinds that move $AIRTIME rather than pre-stock. */
+const TOKEN_KINDS: Kind[] = ["BUYBACK", "BURN"];
 
 /** Operator ledger: record what happened off-chain so the public page can show it. */
 export default function TreasuryAdminPage() {
@@ -22,6 +27,7 @@ export default function TreasuryAdminPage() {
   const [kind, setKind] = useState<Kind>("STOCK_PURCHASE");
   const [amount, setAmount] = useState("");
   const [shares, setShares] = useState("");
+  const [tokens, setTokens] = useState("");
   const [holders, setHolders] = useState("");
   const [txHash, setTxHash] = useState("");
   const [reference, setReference] = useState("");
@@ -44,10 +50,12 @@ export default function TreasuryAdminPage() {
       if (occurredAt) body.occurredAt = new Date(occurredAt).toISOString();
       if (amount) body.amountWei = parseEther(amount as `${number}`).toString();
       if (shares) body.shares = shares;
+      if (tokens) body.tokenAmountWei = parseEther(tokens as `${number}`).toString();
       if (holders) body.holders = Number(holders);
       await record.mutateAsync(body);
       setAmount("");
       setShares("");
+      setTokens("");
       setHolders("");
       setTxHash("");
       setReference("");
@@ -61,18 +69,21 @@ export default function TreasuryAdminPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
         <Stat label="Airtime revenue" value={s ? formatWei(s.airtimeRevenueWei) : "—"} />
         <Stat label="Token tax" value={s ? formatWei(s.taxInflowWei) : "—"} />
         <Stat label="Awaiting deployment" value={s ? formatWei(s.awaitingDeploymentWei) : "—"} tone="amber" />
         <Stat label="Pre-stock held" value={s ? `${s.sharesHeld}` : "—"} tone="signal" />
         <Stat label="Distributed" value={s ? `${s.sharesDistributed}` : "—"} />
+        <Stat label="$AIRTIME bought back" value={s ? formatWei(s.buybackTokens, 18, "AIRTIME") : "—"} tone="signal" />
+        <Stat label="$AIRTIME burned" value={s ? formatWei(s.burnedTokens, 18, "AIRTIME") : "—"} />
       </div>
 
       <Panel title="Record an event">
         <p className="mb-3 max-w-2xl text-[11.5px] leading-relaxed text-ink-300">
           Airtime revenue is counted automatically from verified payments — do not enter it here. Record only what happens off this chain: token tax you received,
-          pre-stock you bought through the broker, and distributions you made to holders. These appear publicly as operator-recorded figures.
+          pre-stock you bought through the broker, distributions you made to holders, and $AIRTIME the treasury bought back or burned. These appear publicly as
+          operator-recorded figures.
         </p>
         <div className="mb-3 flex flex-wrap gap-1">
           {(Object.keys(KIND_LABEL) as Kind[]).map((k) => (
@@ -82,14 +93,22 @@ export default function TreasuryAdminPage() {
           ))}
         </div>
         <div className="grid gap-3 md:grid-cols-4">
-          {kind !== "DISTRIBUTION" && (
+          {kind !== "DISTRIBUTION" && kind !== "BURN" && (
             <Field label={kind === "TAX_INFLOW" ? "Amount received (ETH)" : "Amount spent (ETH)"}>
               <input className="field" inputMode="decimal" placeholder="0.0" value={amount} onChange={(e) => setAmount(e.target.value)} />
             </Field>
           )}
-          {kind !== "TAX_INFLOW" && (
+          {(kind === "STOCK_PURCHASE" || kind === "DISTRIBUTION") && (
             <Field label={kind === "STOCK_PURCHASE" ? "Shares acquired" : "Shares distributed"} hint={kind === "DISTRIBUTION" && s ? `${s.sharesHeld} held` : undefined}>
               <input className="field" inputMode="decimal" placeholder="0.000000" value={shares} onChange={(e) => setShares(e.target.value)} />
+            </Field>
+          )}
+          {TOKEN_KINDS.includes(kind) && (
+            <Field
+              label={kind === "BUYBACK" ? "$AIRTIME bought" : "$AIRTIME burned"}
+              hint={kind === "BURN" && s ? `${formatWei(s.tokensHeld, 18, "AIRTIME")} held` : "tokens, as you would write them"}
+            >
+              <input className="field" inputMode="decimal" placeholder="0.0" value={tokens} onChange={(e) => setTokens(e.target.value)} />
             </Field>
           )}
           {kind === "DISTRIBUTION" && (
@@ -124,6 +143,7 @@ export default function TreasuryAdminPage() {
               <th>Event</th>
               <th>Amount</th>
               <th>Shares</th>
+              <th>$AIRTIME</th>
               <th>Holders</th>
               <th>Reference</th>
               <th />
@@ -132,12 +152,13 @@ export default function TreasuryAdminPage() {
           <tbody>
             {data?.ledger.map((r) => (
               <tr key={r.id}>
-                <td className="mono whitespace-nowrap text-[10.5px]">{formatDateTime(r.occurredAt)}</td>
+                <td className="readout whitespace-nowrap text-[10.5px]">{formatDateTime(r.occurredAt)}</td>
                 <td className="text-[11.5px] text-ink-50">{KIND_LABEL[r.kind]}</td>
-                <td className="mono text-[10.5px]">{BigInt(r.amountWei) > 0n ? formatWei(r.amountWei, 18, r.assetSymbol) : "—"}</td>
-                <td className="mono text-[10.5px]">{Number(r.shares) > 0 ? r.shares : "—"}</td>
-                <td className="mono text-[10.5px]">{r.holders ?? "—"}</td>
-                <td className="mono text-[10.5px]">{r.txHash ? shortHash(r.txHash) : r.reference ?? "—"}</td>
+                <td className="readout text-[10.5px]">{BigInt(r.amountWei) > 0n ? formatWei(r.amountWei, 18, r.assetSymbol) : "—"}</td>
+                <td className="readout text-[10.5px]">{Number(r.shares) > 0 ? r.shares : "—"}</td>
+                <td className="readout text-[10.5px]">{BigInt(r.tokenAmountWei) > 0n ? formatWei(r.tokenAmountWei, 18, "AIRTIME") : "—"}</td>
+                <td className="readout text-[10.5px]">{r.holders ?? "—"}</td>
+                <td className="readout text-[10.5px]">{r.txHash ? shortHash(r.txHash) : r.reference ?? "—"}</td>
                 <td className="text-right">
                   <button className="btn btn-ghost btn-sm" onClick={() => remove.mutate(r.id)}>
                     Delete

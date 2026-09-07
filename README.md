@@ -353,6 +353,8 @@ A configured share of network income (100% by default) buys Anduril pre-stock fo
 | Anduril pre-stock bought | Recorded by the operator (happens through a broker) | No |
 | Distributed to holders | Recorded by the operator | No |
 
+The ledger also records what the treasury does with its own token: **$AIRTIME bought back** (what was spent and how much was acquired) and **$AIRTIME burned**, both shown on the dashboard beside what is still held. A burn is refused if it exceeds what is recorded as bought back and not yet burned.
+
 Nobody can type in airtime revenue, and the operator ledger never pretends to be chain data. Distributions are refused if they exceed the pre-stock recorded as held. The allocation percentage is set in **Control room → Settings**, and entries are added in **Control room → Treasury**. Every entry is written to the audit log.
 
 The page carries an explicit disclosure: it is not an offer, a prospectus, or investment advice.

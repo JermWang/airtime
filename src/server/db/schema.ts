@@ -48,7 +48,7 @@ export const paymentStatus = pgEnum("payment_status", ["PENDING", "CONFIRMED", "
 export const activationStatus = pgEnum("activation_status", ["SCHEDULED", "ACTIVE", "ENDED", "FAILED"]);
 export const actorType = pgEnum("actor_type", ["ADMIN", "SYSTEM", "WALLET"]);
 export const adminRole = pgEnum("admin_role", ["OWNER", "OPERATOR", "MODERATOR"]);
-export const treasuryEntryKind = pgEnum("treasury_entry_kind", ["TAX_INFLOW", "STOCK_PURCHASE", "DISTRIBUTION"]);
+export const treasuryEntryKind = pgEnum("treasury_entry_kind", ["TAX_INFLOW", "STOCK_PURCHASE", "DISTRIBUTION", "BUYBACK", "BURN"]);
 
 /* -------------------------------------------------------------------------- */
 /*  Identity                                                                  */
@@ -533,6 +533,12 @@ export const treasuryEntries = pgTable(
     assetSymbol: text("asset_symbol").notNull().default("ETH"),
     /** Pre-stock quantity: positive on a purchase, positive on a distribution (moving out). */
     shares: numeric("shares", { precision: 30, scale: 6 }).notNull().default("0"),
+    /**
+     * $AIRTIME moved, in base units (18 decimals), like every other quantity of
+     * money here: bought on a BUYBACK, destroyed on a BURN. Kept apart from
+     * `shares`, which counts Anduril pre-stock and nothing else.
+     */
+    tokenAmountWei: numeric("token_amount_wei", { precision: 78, scale: 0 }).notNull().default("0"),
     /** Optional recorded price per share, in wei of `assetSymbol`. */
     pricePerShareWei: numeric("price_per_share_wei", { precision: 78, scale: 0 }),
     /** Holders reached by a distribution. */

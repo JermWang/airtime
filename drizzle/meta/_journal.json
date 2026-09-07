@@ -64,6 +64,13 @@
       "when": 1788800000000,
       "tag": "0008_house_placeholders",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788805000000,
+      "tag": "0009_buybacks_and_burns",
+      "breakpoints": true
     }
   ]
 }

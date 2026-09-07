@@ -20,10 +20,12 @@ import type { TreasuryEntry } from "../db/schema";
  *   Derived   – airtime revenue. Computed from confirmed payments, each of which
  *               was verified against an on-chain AirtimePurchased event. Nobody
  *               types these in.
- *   Recorded  – token-tax inflows, pre-stock purchases and distributions. These
- *               happen off this chain (through a broker), so an operator records
- *               them with an optional reference. They are always presented as
- *               recorded figures, never as anything the chain proves.
+ *   Recorded  – token-tax inflows, pre-stock purchases, distributions, and the
+ *               $AIRTIME the treasury buys back and burns. These happen off this
+ *               chain (through a broker, or on the token's own market), so an
+ *               operator records them with an optional reference. They are
+ *               always presented as recorded figures, never as anything the
+ *               chain proves.
  */
 
 export interface TreasurySummary {
@@ -53,6 +55,17 @@ export interface TreasurySummary {
   distributions: number;
   lastPurchaseAt: string | null;
   lastDistributionAt: string | null;
+  /** $AIRTIME bought back, in base units, and what was spent doing it. */
+  buybackTokens: string;
+  buybackSpentWei: string;
+  buybacks: number;
+  lastBuybackAt: string | null;
+  /** $AIRTIME destroyed, in base units. */
+  burnedTokens: string;
+  burns: number;
+  lastBurnAt: string | null;
+  /** Bought back and not yet burned. Never below zero. */
+  tokensHeld: string;
 }
 
 export interface TreasuryLedgerRow {
@@ -62,6 +75,7 @@ export interface TreasuryLedgerRow {
   amountWei: string;
   assetSymbol: string;
   shares: string;
+  tokenAmountWei: string;
   pricePerShareWei: string | null;
   holders: number | null;
   txHash: string | null;
@@ -109,6 +123,7 @@ export async function getTreasurySummary(): Promise<TreasurySummary> {
       kind: schema.treasuryEntries.kind,
       amount: sql<string>`coalesce(sum(${schema.treasuryEntries.amountWei}), 0)::text`,
       shares: sql<string>`coalesce(sum(${schema.treasuryEntries.shares}), 0)::text`,
+      tokens: sql<string>`coalesce(sum(${schema.treasuryEntries.tokenAmountWei}), 0)::text`,
       holders: sql<number>`coalesce(sum(${schema.treasuryEntries.holders}), 0)::int`,
       count: sql<number>`count(*)::int`,
       last: sql<string | null>`max(${schema.treasuryEntries.occurredAt})::text`,
@@ -120,6 +135,8 @@ export async function getTreasurySummary(): Promise<TreasurySummary> {
   const tax = by("TAX_INFLOW");
   const buy = by("STOCK_PURCHASE");
   const dist = by("DISTRIBUTION");
+  const buyback = by("BUYBACK");
+  const burn = by("BURN");
 
   const airtimeRevenueWei = BigInt(revenue?.total ?? "0");
   const taxInflowWei = BigInt(tax?.amount ?? "0");
@@ -131,6 +148,9 @@ export async function getTreasurySummary(): Promise<TreasurySummary> {
 
   const sharesAcquired = trimDecimal(buy?.shares ?? "0");
   const sharesDistributed = trimDecimal(dist?.shares ?? "0");
+
+  const buybackTokens = BigInt(buyback?.tokens ?? "0");
+  const burnedTokens = BigInt(burn?.tokens ?? "0");
 
   return {
     allocationBps: settings.treasuryAllocationBps,
@@ -150,6 +170,14 @@ export async function getTreasurySummary(): Promise<TreasurySummary> {
     distributions: Number(dist?.count ?? 0),
     lastPurchaseAt: buy?.last ? new Date(buy.last).toISOString() : null,
     lastDistributionAt: dist?.last ? new Date(dist.last).toISOString() : null,
+    buybackTokens: buybackTokens.toString(),
+    buybackSpentWei: (buyback?.amount ? BigInt(buyback.amount) : 0n).toString(),
+    buybacks: Number(buyback?.count ?? 0),
+    lastBuybackAt: buyback?.last ? new Date(buyback.last).toISOString() : null,
+    burnedTokens: burnedTokens.toString(),
+    burns: Number(burn?.count ?? 0),
+    lastBurnAt: burn?.last ? new Date(burn.last).toISOString() : null,
+    tokensHeld: (buybackTokens > burnedTokens ? buybackTokens - burnedTokens : 0n).toString(),
   };
 }
 
@@ -162,6 +190,7 @@ export async function getTreasuryLedger(limit = 100): Promise<TreasuryLedgerRow[
     amountWei: r.amountWei,
     assetSymbol: r.assetSymbol,
     shares: trimDecimal(r.shares),
+    tokenAmountWei: r.tokenAmountWei,
     pricePerShareWei: r.pricePerShareWei,
     holders: r.holders,
     txHash: r.txHash,
@@ -178,6 +207,7 @@ export interface TreasuryEntryInput {
   amountWei?: string;
   assetSymbol?: string;
   shares?: string;
+  tokenAmountWei?: string;
   pricePerShareWei?: string | null;
   holders?: number | null;
   txHash?: string | null;
@@ -199,6 +229,17 @@ export async function recordTreasuryEntry(input: TreasuryEntryInput, actor: Acto
   if (input.kind === "TAX_INFLOW" && (!input.amountWei || BigInt(input.amountWei) <= 0n)) {
     throw new HttpError(400, "A tax inflow must record an amount");
   }
+  if (input.kind === "BUYBACK" && (!input.tokenAmountWei || BigInt(input.tokenAmountWei) <= 0n)) {
+    throw new HttpError(400, "A buyback must record how much $AIRTIME was bought");
+  }
+  if (input.kind === "BURN") {
+    if (!input.tokenAmountWei || BigInt(input.tokenAmountWei) <= 0n) throw new HttpError(400, "A burn must record how much $AIRTIME was destroyed");
+    // The treasury cannot burn what it has not bought back and still holds.
+    const summary = await getTreasurySummary();
+    if (BigInt(input.tokenAmountWei) > BigInt(summary.tokensHeld)) {
+      throw new HttpError(409, `Cannot burn that much; only ${summary.tokensHeld} base units are recorded as held`);
+    }
+  }
 
   const [row] = await db()
     .insert(schema.treasuryEntries)
@@ -208,6 +249,7 @@ export async function recordTreasuryEntry(input: TreasuryEntryInput, actor: Acto
       amountWei: input.amountWei ?? "0",
       assetSymbol: input.assetSymbol ?? "ETH",
       shares: input.shares ?? "0",
+      tokenAmountWei: input.tokenAmountWei ?? "0",
       pricePerShareWei: input.pricePerShareWei ?? null,
       holders: input.holders ?? null,
       txHash: input.txHash ?? null,
@@ -216,12 +258,12 @@ export async function recordTreasuryEntry(input: TreasuryEntryInput, actor: Acto
       createdBy: actor.id ?? null,
     })
     .returning();
-  await audit(actor, `treasury.${input.kind.toLowerCase()}`, { type: "treasuryEntry", id: row.id }, { amountWei: row.amountWei, shares: row.shares });
+  await audit(actor, `treasury.${input.kind.toLowerCase()}`, { type: "treasuryEntry", id: row.id }, { amountWei: row.amountWei, shares: row.shares, tokenAmountWei: row.tokenAmountWei });
   return row;
 }
 
 export async function deleteTreasuryEntry(id: string, actor: Actor): Promise<void> {
   const [row] = await db().delete(schema.treasuryEntries).where(eq(schema.treasuryEntries.id, id)).returning();
   if (!row) throw new HttpError(404, "Entry not found");
-  await audit(actor, "treasury.deleted", { type: "treasuryEntry", id }, { kind: row.kind, amountWei: row.amountWei, shares: row.shares });
+  await audit(actor, "treasury.deleted", { type: "treasuryEntry", id }, { kind: row.kind, amountWei: row.amountWei, shares: row.shares, tokenAmountWei: row.tokenAmountWei });
 }
