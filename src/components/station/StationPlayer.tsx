@@ -308,12 +308,10 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
           <HouseCard card={source.house} size="screen" />
         </div>
       )}
-      {/* House content in an unsold break says the break is still for sale. */}
-      {visible && (source?.kind === "house-image" || source?.kind === "house-video") && !holding && !error && (
-        <span className="readout absolute left-3 top-3 rounded-sm border border-white/25 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-ink-200">
-          This break is available
-        </span>
-      )}
+      {/* House content in an unsold break carries no badge of its own: the
+          top-left corner belongs to the surface's price chips, which already
+          say the commercial is for sale and at what. A second label there sat
+          on top of them. */}
       {visible && (slate || holding || error) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-ink-950">
           <Wordmark size={44} />

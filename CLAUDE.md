@@ -26,7 +26,7 @@ Which product a main-stream campaign bought is read off `availability.inventoryM
 - **Advertiser content is hostile.** No HTML/JS/iframe creatives, ever. Uploads are sniffed by magic bytes, decoded, re-encoded and hashed server-side.
 - **Never fabricate metrics.** No invented viewer counts. Payment facts (chain) and delivery analytics (application) are always presented separately.
 - **Treasury numbers keep their provenance.** Airtime revenue is derived from verified payments and can never be entered by hand; token tax, pre-stock purchases and distributions are operator-recorded and must always be labelled as such.
-- **House content is not a campaign.** A surface nobody has booked can carry a text card or house artwork (dropped in `public/placeholders` and listed in `HOUSE_PLACEHOLDERS`). It is named for the brand on it and captioned as available — the owner removed the EXAMPLE stamp on 2026-09-07 — and it stays excluded from the queue, from analytics and from revenue. House content never preempts a paid run: in an unsold break it plays only after the show holder has been offered the picture.
+- **House content is not a campaign.** A surface nobody has booked can carry a text card or house artwork (dropped in `public/placeholders` and listed in `HOUSE_PLACEHOLDERS`). It is named for the brand on it, and the surface's own price chip is what says it is still for sale — the owner removed the EXAMPLE stamp on 2026-09-07 — and it stays excluded from the queue, from analytics and from revenue. House content never preempts a paid run: in an unsold break it plays only after the show holder has been offered the picture.
 
 ## Commands
 
