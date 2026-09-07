@@ -313,7 +313,7 @@ export const RETIRED_PLACEMENT_IDS = [
 const houseSublabel = (placementId: string) => (placementId === "AD" ? "This break is available" : "This panel is available");
 
 /** A slot with artwork: the file fills the surface and the text names it. */
-const artCard = (slug: string, label: string, name: string, placementId: string, file: string, sortOrder = 10): typeof schema.showcaseCreatives.$inferInsert => ({
+const artCard = (slug: string, label: string, name: string, placementId: string, file: string, fit: "FIT" | "FILL" = "FILL", sortOrder = 10): typeof schema.showcaseCreatives.$inferInsert => ({
   slug,
   placementId,
   label,
@@ -322,6 +322,7 @@ const artCard = (slug: string, label: string, name: string, placementId: string,
   accent: "#ccff00",
   mediaUrl: `/placeholders/${file}`,
   mediaType: "IMAGE",
+  fit,
   sortOrder,
 });
 
@@ -360,7 +361,9 @@ export const HOUSE_PLACEHOLDERS: Array<typeof schema.showcaseCreatives.$inferIns
   // Cut to the shape of the surface they stand on: square for the small panel
   // at the end of the top row, portrait for the tower.
   artCard("rh-fomo", "FOMO", "Fomo", "PANEL_TOP_RIGHT", "fomo.jpg"),
-  artCard("rh-hype", "HYPE", "Hype", "PANEL_TOWER", "HYPE.jpg"),
+  // The tower's column is far narrower than the 9:16 this was drawn for, and
+  // filling it cut the sides off the mark, so this one is shown whole.
+  artCard("rh-hype", "HYPE", "Hype", "PANEL_TOWER", "HYPE.jpg", "FIT"),
   // One image to a surface: the same artwork on two at once reads as a fault
   // rather than a campaign. This one is still waiting for art of its own.
   textCard("rh-open-right", "Airtime", "This panel is open", "PANEL_RIGHT"),
@@ -418,6 +421,7 @@ export async function ensureBaseline(): Promise<{ adminPassword: string | null }
           mediaType: card.mediaType ?? null,
           posterUrl: card.posterUrl ?? null,
           durationSec: card.durationSec ?? null,
+          fit: card.fit ?? "FILL",
           sortOrder: card.sortOrder ?? 0,
         },
       });

@@ -14,6 +14,7 @@ const card = (over: Partial<ShowcaseDto> = {}): ShowcaseDto => ({
   mediaType: null,
   posterUrl: null,
   durationSec: null,
+  fit: "FILL",
   sortOrder: 0,
   isActive: true,
   ...over,

@@ -71,6 +71,13 @@
       "when": 1788805000000,
       "tag": "0009_buybacks_and_burns",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788820000000,
+      "tag": "0010_house_artwork_fit",
+      "breakpoints": true
     }
   ]
 }

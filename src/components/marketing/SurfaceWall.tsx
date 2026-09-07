@@ -118,6 +118,45 @@ const WALL_PANELS: WallPanel[] = [
   { id: "PANEL_TOWER", label: "Tower", align: "end", area: "max-sm:col-start-3 max-sm:row-start-3 sm:col-start-4 sm:row-start-1 sm:row-span-2" },
 ];
 
+/**
+ * The artwork's own edge colour, read from its top-left pixel.
+ *
+ * A logo shown whole on a surface that is not its shape needs ground to stand
+ * on, and the ground it was drawn against is the honest choice: the panel then
+ * looks like the mark on its own background rather than a picture with bars.
+ * Same-origin artwork only, so the canvas is never tainted; if it is, the panel
+ * keeps the background it already had.
+ */
+function useEdgeColor(url: string | null): string | null {
+  const [color, setColor] = useState<string | null>(null);
+  useEffect(() => {
+    setColor(null);
+    if (!url) return;
+    let cancelled = false;
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) return;
+        ctx.drawImage(image, 0, 0, 1, 1, 0, 0, 1, 1);
+        const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+        if (!cancelled) setColor(`rgb(${r} ${g} ${b})`);
+      } catch {
+        /* tainted canvas: leave the panel as it is */
+      }
+    };
+    image.src = url;
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+  return color;
+}
+
 /** A display panel: the creative on it, or the fact that it is free. */
 function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { panel: WallPanel; row: BoardRowDto | undefined; occupant: QueueEntryDto | null; onSelect?: () => void; preview?: boolean }) {
   const creative = occupant?.creative ?? null;
@@ -125,6 +164,10 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
   // on it, with the panel still reading as available at its asking price.
   const card = useHousePlaceholder(occupant ? null : panel.id);
   const house = houseMedia(card);
+  // Only artwork that asks to be shown whole gets a ground colour; everything
+  // else fills its surface exactly as it always has.
+  const showWhole = Boolean(house && house.kind === "image" && card?.fit === "FIT");
+  const ground = useEdgeColor(showWhole ? house!.url : null);
   return (
     <Link
       href={row ? `/airtime/${row.placement.id}` : "/airtime"}
@@ -146,22 +189,16 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
           )
         ) : house ? (
           <>
-            {/*
-              A surface is rarely the shape of the artwork on it: the tower is
-              far narrower than the 9:16 it declares, and cropping to fill it cut
-              the sides off the logo. The artwork is shown whole, over a blurred,
-              scaled copy of itself — so it still reaches every edge of the panel
-              without a bar of dead colour or a lost logo.
-            */}
             {house.kind === "video" ? (
               <video src={house.url} poster={house.posterUrl ?? undefined} muted playsInline loop autoPlay className="h-full w-full object-cover" />
             ) : (
-              <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={house.url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-125 object-cover blur-lg" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={house.url} alt="" className="relative h-full w-full object-contain" />
-              </>
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={house.url}
+                alt=""
+                className={cn("h-full w-full", showWhole ? "object-contain" : "object-cover")}
+                style={showWhole && ground ? { background: ground } : undefined}
+              />
             )}
             {card && (
               <span className="readout absolute left-1.5 top-1.5 max-w-[calc(100%-12px)] truncate rounded-sm border border-white/25 bg-ink-950/80 px-1.5 py-[3px] text-[8px] uppercase tracking-[0.16em] text-ink-200">

@@ -242,6 +242,8 @@ export interface ShowcaseDto {
   mediaType: "IMAGE" | "VIDEO" | "TEXT" | "LOGO" | null;
   posterUrl: string | null;
   durationSec: number | null;
+  /** FILL crops the artwork to the surface; FIT shows all of it. */
+  fit: "FIT" | "FILL";
   sortOrder: number;
   isActive: boolean;
 }

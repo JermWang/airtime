@@ -588,6 +588,12 @@ export const showcaseCreatives = pgTable("showcase_creatives", {
   mediaType: creativeType("media_type"),
   posterUrl: text("poster_url"),
   durationSec: integer("duration_sec"),
+  /**
+   * How the artwork meets the surface. FILL crops it to the edges, which is
+   * what a photograph wants; FIT shows all of it on its own ground, which is
+   * what a logo wants when the surface is not the shape the logo was drawn in.
+   */
+  fit: text("fit").$type<"FIT" | "FILL">().notNull().default("FILL"),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   isDevData: boolean("is_dev_data").notNull().default(false),
