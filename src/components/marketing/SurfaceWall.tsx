@@ -185,7 +185,7 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
         {/* A flex box, not an inline span: max-width on an inline wrapper does
             not reach the chip inside it, and the price ran off the tower. */}
         <span className="flex min-w-0 max-w-full">
-          <PriceChip row={row} label={panel.label} stack={overlaid} compact={!overlaid} />
+          <PriceChip row={row} label={panel.label} compact />
         </span>
       </div>
     </Link>
