@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
-import { usePlacements, useActivations, useShowcase } from "@/lib/hooks";
+import { usePlacements, useActivations } from "@/lib/hooks";
 import { useStation } from "@/lib/store";
 import { useSurfaces, describeSurface } from "./surfaceRegistry";
 import { BroadcastScreen } from "./BroadcastScreen";
@@ -11,7 +11,7 @@ import { BillboardSurface } from "./BillboardSurface";
 import { ReflectionSurface } from "./ReflectionSurface";
 import { marbleMaterial, wallMaterial, machinedMaterial, ceilingMaterial } from "./materials";
 import { usePerf, TIERS } from "./perf";
-import type { PlacementDto, QueueEntryDto, ShowcaseDto } from "@/lib/api";
+import type { PlacementDto, QueueEntryDto } from "@/lib/api";
 
 export const STUDIO_MODEL = "/models/studio.glb";
 
@@ -31,7 +31,6 @@ export function BroadcastStudio({ channelId = "MAIN", onReady }: { channelId?: s
   const cfg = TIERS[tier];
   const { data: placementsData } = usePlacements(channelId);
   const { data: activations } = useActivations(channelId);
-  const { data: showcaseData } = useShowcase();
   const focused = useStation((s) => s.focusedPlacementId);
   const preview = useStation((s) => s.preview);
 
@@ -89,11 +88,6 @@ export function BroadcastStudio({ channelId = "MAIN", onReady }: { channelId?: s
     for (const e of active) m.set(e.placementId, e);
     return m;
   }, [active]);
-  const showcaseByPlacement = useMemo(() => {
-    const m = new Map<string, ShowcaseDto>();
-    for (const c of showcaseData?.showcase ?? []) if (c.placementId) m.set(c.placementId, c);
-    return m;
-  }, [showcaseData]);
 
   return (
     <group>
@@ -110,7 +104,6 @@ export function BroadcastStudio({ channelId = "MAIN", onReady }: { channelId?: s
           campaign={activeByPlacement.get(p.id) ?? null}
           preview={focused === p.id ? preview : null}
           allowVideo={cfg.videoSurfaces}
-          showcase={showcaseByPlacement.get(p.id) ?? null}
         />
       ))}
     </group>

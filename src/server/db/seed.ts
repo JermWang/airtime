@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, like, notInArray } from "drizzle-orm";
 import { db, schema } from "./client";
 import { env, devDataAllowed, isProduction } from "../env";
 import { ensureScheduleHorizon } from "../broadcast/schedule";
@@ -185,21 +185,59 @@ export const RETIRED_PLACEMENT_IDS = [
 ];
 
 /**
- * House showcase cards. Text-only, procedurally drawn, always badged EXAMPLE.
+ * House content for surfaces nobody has booked. Always badged EXAMPLE, never a
+ * paid campaign: no queue entry, no AirLog, no analytics event, no revenue.
  *
- * They exist so an empty network still demonstrates what the billboards do, and
- * so the treasury mechanic is visible in the room. They are never presented as
- * paid campaigns: they do not appear in the public queue and produce no AirLog.
+ * The examples name the memecoins with the most volume on Robinhood Chain, so
+ * an empty surface shows what a spot on it would look like for the kind of
+ * buyer this network is for. They are text only — the station draws them from
+ * the ticker and the name, and never carries anybody else's artwork — and the
+ * EXAMPLE stamp is permanent, so no card can be read as a spot that token
+ * bought. Rankings move: this list is a snapshot taken while the placeholders
+ * stand in, not a feed.
+ *
+ * To put a clip or a still on a surface, drop the file in `public/placeholders/`
+ * and point `mediaUrl` at `/placeholders/<file>` — same origin, so the WebGL
+ * texture can read it. A hosted URL works too, as long as that host sends CORS
+ * headers. Rows pinned to the same surface rotate on a clock every viewer
+ * derives the same way, so the whole room sees the same one.
+ *
+ * Rows are keyed by `slug`: the seed inserts what is missing, refreshes what is
+ * there and drops `rh-` rows it no longer ships, so this list is the whole
+ * story. Shipping artwork is an edit here plus a deploy.
  */
-export const SHOWCASE_CARDS: Array<typeof schema.showcaseCreatives.$inferInsert> = [
+const memeCard = (slug: string, ticker: string, name: string, placementId: string, sortOrder: number): typeof schema.showcaseCreatives.$inferInsert => ({
+  slug,
+  placementId,
+  label: ticker,
+  headline: name,
+  sublabel: placementId === "AD" ? "Example spot · this break is available" : "Example spot · this panel is available",
+  accent: "#ccff00",
+  sortOrder,
+});
+
+export const HOUSE_PLACEHOLDER_PREFIX = "rh-";
+
+export const HOUSE_PLACEHOLDERS: Array<typeof schema.showcaseCreatives.$inferInsert> = [
   {
-    placementId: "PANEL_LEFT",
+    slug: "airtime-buy-the-screen",
+    placementId: null,
     label: "AIRTIME",
     headline: "Buy the screen",
     sublabel: "Runtime from 0.01 ETH · every fee buys Anduril pre-stock",
     accent: "#ccff00",
     sortOrder: 1,
   },
+  // The picture during the breaks: the three largest by volume and market cap.
+  memeCard("rh-pons", "$PONS", "Pons", "AD", 10),
+  memeCard("rh-meme", "$MEME", "A Meme Coin", "AD", 11),
+  memeCard("rh-cashcat", "$CASHCAT", "Cash Cat", "AD", 12),
+  memeCard("rh-artificial-inu", "$AI", "Artificial Inu", "PANEL_LEFT", 10),
+  memeCard("rh-greenhood", "$HOOD", "TheGreenHood", "PANEL_LEFT", 11),
+  memeCard("rh-shrub", "$SHRUB", "Lil' Shrub", "PANEL_LEFT", 12),
+  memeCard("rh-nasduck", "$NASDUCK", "Nasduck", "PANEL_RIGHT", 10),
+  memeCard("rh-snowball", "$SNOWBALL", "Snowball Capital", "PANEL_RIGHT", 11),
+  memeCard("rh-cyberbeer", "$CYBERBEER", "Cyberbeer", "PANEL_RIGHT", 12),
 ];
 
 export async function ensureBaseline(): Promise<{ adminPassword: string | null }> {
@@ -234,10 +272,36 @@ export async function ensureBaseline(): Promise<{ adminPassword: string | null }
     await database.update(schema.placements).set({ isActive: false }).where(inArray(schema.placements.id, retired));
   }
 
-  const existingShowcase = await database.select({ id: schema.showcaseCreatives.id }).from(schema.showcaseCreatives);
-  if (existingShowcase.length === 0) {
-    await database.insert(schema.showcaseCreatives).values(SHOWCASE_CARDS);
+  // House content is the station's own, not an operator's campaign, so the seed
+  // stays authoritative for it: shipping a placeholder's artwork is an edit to
+  // HOUSE_PLACEHOLDERS and a deploy. Only the copy and the media are refreshed —
+  // whether a slot is switched on stays with whoever switched it off.
+  for (const card of HOUSE_PLACEHOLDERS) {
+    await database
+      .insert(schema.showcaseCreatives)
+      .values(card)
+      .onConflictDoUpdate({
+        target: schema.showcaseCreatives.slug,
+        set: {
+          placementId: card.placementId ?? null,
+          label: card.label,
+          headline: card.headline,
+          sublabel: card.sublabel ?? null,
+          accent: card.accent ?? "#ccff00",
+          mediaUrl: card.mediaUrl ?? null,
+          mediaType: card.mediaType ?? null,
+          posterUrl: card.posterUrl ?? null,
+          durationSec: card.durationSec ?? null,
+          sortOrder: card.sortOrder ?? 0,
+        },
+      });
   }
+  // Drop house rows this seed used to ship and no longer does. Scoped to the
+  // seed's own slug prefix, so anything an operator added is left alone.
+  const shipped = HOUSE_PLACEHOLDERS.map((c) => c.slug);
+  await database
+    .delete(schema.showcaseCreatives)
+    .where(and(like(schema.showcaseCreatives.slug, `${HOUSE_PLACEHOLDER_PREFIX}%`), notInArray(schema.showcaseCreatives.slug, shipped)));
 
   let adminPassword: string | null = null;
   const admins = await database.select({ id: schema.adminUsers.id }).from(schema.adminUsers);

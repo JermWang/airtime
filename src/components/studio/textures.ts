@@ -14,6 +14,8 @@ export interface SurfaceTexture {
   dispose: () => void;
   /** For video: pause/resume when the surface leaves view. */
   setActive?: (active: boolean) => void;
+  /** For textures composited per frame (house media under its EXAMPLE badge). */
+  update?: (dt: number) => void;
 }
 
 function parseAspect(aspect: string): number {
@@ -388,32 +390,42 @@ function paintShowcaseCard(ctx: CanvasRenderingContext2D, card: ShowcaseCard, x0
     }
   }
 
-  if (badge) {
-    // EXAMPLE badge: permanent, so a showcase card is never mistaken for a sold spot.
-    const badgeSize = Math.max(9, Math.round(unit * 0.036));
-    ctx.font = `600 ${badgeSize}px ${MONO}`;
-    ctx.letterSpacing = `${badgeSize * 0.2}px`;
-    const text = "EXAMPLE";
-    const bw = ctx.measureText(text).width + badgeSize * 1.8;
-    const bh = badgeSize * 2.1;
-    const bx = x0 + w - pad - bw;
-    const by = y0 + pad;
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
-    ctx.fillRect(bx, by, bw, bh);
-    ctx.strokeStyle = "rgba(255,255,255,0.28)";
-    ctx.lineWidth = Math.max(1, badgeSize * 0.08);
-    ctx.strokeRect(bx, by, bw, bh);
-    ctx.fillStyle = "rgba(240,244,248,0.92)";
-    ctx.textBaseline = "middle";
-    ctx.textAlign = "left";
-    ctx.fillText(text, bx + badgeSize * 0.9, by + bh / 2);
+  if (badge) paintExampleBadge(ctx, x0, y0, w, h);
+}
 
-    const foot = fitText(ctx, "THIS SPACE IS AVAILABLE", { weight: 500, family: MONO, size: badgeSize, minSize: 8, maxWidth: w - pad * 2, maxLines: 1, letterSpacing: 0.12 });
-    ctx.fillStyle = "rgba(255,255,255,0.32)";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText(foot.lines[0], x0 + w - pad, y0 + h - pad * 0.7);
-  }
+/**
+ * The permanent EXAMPLE stamp.
+ *
+ * Everything the station puts on a surface nobody has booked wears it — the
+ * text cards and the house clips alike — so house content can never be read as
+ * a spot somebody paid for.
+ */
+export function paintExampleBadge(ctx: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, footer = "THIS SPACE IS AVAILABLE"): void {
+  const unit = Math.min(w, h);
+  const pad = Math.round(unit * 0.09);
+  const badgeSize = Math.max(9, Math.round(unit * 0.036));
+  ctx.font = `600 ${badgeSize}px ${MONO}`;
+  ctx.letterSpacing = `${badgeSize * 0.2}px`;
+  const text = "EXAMPLE";
+  const bw = ctx.measureText(text).width + badgeSize * 1.8;
+  const bh = badgeSize * 2.1;
+  const bx = x0 + w - pad - bw;
+  const by = y0 + pad;
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.strokeStyle = "rgba(255,255,255,0.28)";
+  ctx.lineWidth = Math.max(1, badgeSize * 0.08);
+  ctx.strokeRect(bx, by, bw, bh);
+  ctx.fillStyle = "rgba(240,244,248,0.92)";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  ctx.fillText(text, bx + badgeSize * 0.9, by + bh / 2);
+
+  const foot = fitText(ctx, footer, { weight: 500, family: MONO, size: badgeSize, minSize: 8, maxWidth: w - pad * 2, maxLines: 1, letterSpacing: 0.12 });
+  ctx.fillStyle = "rgba(255,255,255,0.32)";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(foot.lines[0], x0 + w - pad, y0 + h - pad * 0.7);
 }
 
 /**
@@ -452,6 +464,83 @@ export function createShowcaseTexture(card: ShowcaseCard, aspect: string): Surfa
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
   return { texture, aspect: sa, kind: "canvas", dispose: () => texture.dispose() };
+}
+
+/**
+ * House media on an unbooked surface: the station's own clip or still, drawn
+ * under a permanent EXAMPLE badge.
+ *
+ * The badge is composited into the texture rather than laid over the surface in
+ * the DOM, because in the room the surface is geometry: there is no overlay to
+ * hang a badge on, and house content must never read as a spot somebody bought.
+ * That is why a clip is drawn frame by frame into a canvas instead of being
+ * mapped straight onto the mesh.
+ */
+export function createHouseMediaTexture(media: { url: string; kind: "image" | "video" }, aspect: string, footer?: string): SurfaceTexture {
+  const sa = parseAspect(aspect);
+  const W = sa >= 3 ? 2560 : sa < 1 ? 720 : 1280;
+  const H = Math.max(80, Math.round(W / sa));
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+  paintLedBackdrop(ctx, W, H);
+  paintExampleBadge(ctx, 0, 0, W, H, footer);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+
+  /** Cover-fit, so a clip of any shape fills the surface without stretching. */
+  const paint = (src: CanvasImageSource, sw: number, sh: number) => {
+    if (!sw || !sh) return;
+    const scale = Math.max(W / sw, H / sh);
+    const dw = sw * scale;
+    const dh = sh * scale;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    paintExampleBadge(ctx, 0, 0, W, H, footer);
+    texture.needsUpdate = true;
+  };
+
+  if (media.kind === "image") {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => paint(img, img.naturalWidth, img.naturalHeight);
+    img.src = media.url;
+    return { texture, aspect: sa, kind: "canvas", dispose: () => texture.dispose() };
+  }
+
+  const video = document.createElement("video");
+  video.crossOrigin = "anonymous";
+  video.playsInline = true;
+  video.muted = true;
+  video.loop = true;
+  video.preload = "auto";
+  video.src = media.url;
+  void video.play().catch(() => {});
+  let active = true;
+  return {
+    texture,
+    aspect: sa,
+    kind: "canvas",
+    update: () => {
+      if (!active || video.readyState < 2) return;
+      paint(video, video.videoWidth, video.videoHeight);
+    },
+    setActive: (next) => {
+      active = next;
+      if (next) void video.play().catch(() => {});
+      else video.pause();
+    },
+    dispose: () => {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+      texture.dispose();
+    },
+  };
 }
 
 /**

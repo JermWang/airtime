@@ -57,6 +57,13 @@
       "when": 1788711676207,
       "tag": "0007_minimum_starting_price",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788800000000,
+      "tag": "0008_house_placeholders",
+      "breakpoints": true
     }
   ]
 }

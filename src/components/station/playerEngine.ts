@@ -91,7 +91,34 @@ export type MainSource =
   | { kind: "hls"; url: string; block: ProgramBlockDto; live: boolean; offsetSec: number }
   | { kind: "campaign-video"; url: string; hls: boolean; campaign: QueueEntryDto; slot: Slot; sync: PlaybackSync; offsetSec: number }
   | { kind: "campaign-image"; url: string; campaign: QueueEntryDto; slot: Slot }
+  | { kind: "house-video"; url: string; hls: boolean; house: HousePlaceholder; sync: PlaybackSync; offsetSec: number }
+  | { kind: "house-image"; url: string; house: HousePlaceholder }
+  | { kind: "house-card"; house: HousePlaceholder }
   | { kind: "slate"; title: string; subtitle: string; block: ProgramBlockDto | null };
+
+/**
+ * House content the station can put in an unsold break: its own clip, still or
+ * text card, never a campaign. It is always badged EXAMPLE where it is drawn,
+ * earns nothing, and produces no AirLog.
+ */
+export interface HousePlaceholder {
+  id: string;
+  label: string;
+  headline: string;
+  sublabel: string | null;
+  accent: string;
+  /** Null while the slot is still a text-only card. */
+  url: string | null;
+  media: "video" | "image" | null;
+  durationSec: number | null;
+}
+
+function houseSource(house: HousePlaceholder, anchorMs: number, nowMs: number): MainSource {
+  if (!house.url) return { kind: "house-card", house };
+  if (house.media !== "video") return { kind: "house-image", url: house.url, house };
+  const sync: PlaybackSync = { anchorMs, durationSec: house.durationSec };
+  return { kind: "house-video", url: house.url, hls: isHls(house.url), house, sync, offsetSec: syncOffsetSec(sync, nowMs) };
+}
 
 function campaignSource(campaign: QueueEntryDto, slot: Slot, anchorMs: number, nowMs: number): MainSource | null {
   const creative = campaign.creative;
@@ -110,8 +137,17 @@ function campaignSource(campaign: QueueEntryDto, slot: Slot, anchorMs: number, n
  * time the show plays, if anybody holds it. When nobody has bought either, the
  * station's own programming fills the room — and an unsold break never becomes
  * dead air, because the show simply keeps running through it.
+ *
+ * `house` is the station's own placeholder for the break, used only once both
+ * products are unsold: a buyer's show is never interrupted for house content.
  */
-export function resolveMainSource(block: ProgramBlockDto | null, next: ProgramBlockDto | null, campaigns: QueueEntryDto[], nowMs: number): MainSource {
+export function resolveMainSource(
+  block: ProgramBlockDto | null,
+  next: ProgramBlockDto | null,
+  campaigns: QueueEntryDto[],
+  nowMs: number,
+  house: HousePlaceholder | null = null,
+): MainSource {
   if (!block) return { kind: "slate", title: "AIRTIME", subtitle: "Stand by", block: null };
 
   const show = campaignForSlot(campaigns, "show", nowMs);
@@ -127,6 +163,9 @@ export function resolveMainSource(block: ProgramBlockDto | null, next: ProgramBl
       const source = campaignSource(show, "show", new Date(show.startsAt!).getTime(), nowMs);
       if (source) return source;
     }
+    // Neither product is sold. The station runs its own placeholder in the break
+    // rather than a slate, from the top of the break so the room stays together.
+    if (house) return houseSource(house, new Date(block.startsAt).getTime(), nowMs);
     return { kind: "slate", title: "We'll be right back", subtitle: next ? `Up next · ${next.title}` : "AIRTIME", block };
   }
 
@@ -161,6 +200,13 @@ export function sourceKey(src: MainSource): string {
       return src.slot === "show" ? `show:${src.campaign.id}` : `ad:${src.campaign.id}:${Math.floor(src.sync.anchorMs / 1000)}`;
     case "campaign-image":
       return `img:${src.campaign.id}`;
+    case "house-video":
+      // Like a commercial: reloaded per break so it starts from the top of one.
+      return `house:${src.house.id}:${Math.floor(src.sync.anchorMs / 1000)}`;
+    case "house-image":
+      return `house-img:${src.house.id}`;
+    case "house-card":
+      return `house-card:${src.house.id}`;
     default:
       return `slate:${src.block?.id ?? "none"}:${src.title}`;
   }

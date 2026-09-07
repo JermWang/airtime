@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import type { PlacementDto, QueueEntryDto, ShowcaseDto } from "@/lib/api";
+import type { PlacementDto, QueueEntryDto } from "@/lib/api";
 import type { PreviewCreative } from "@/lib/store";
 import { useStation } from "@/lib/store";
+import { useHousePlaceholder } from "@/lib/hooks";
+import { houseMedia } from "@/lib/house";
 import { useSurfaces, describeSurface, type SurfaceInfo } from "./surfaceRegistry";
-import { createHouseTexture, createShowcaseTexture, loadImageTexture, createVideoTexture, type SurfaceTexture } from "./textures";
+import { createHouseTexture, createHouseMediaTexture, createShowcaseTexture, loadImageTexture, createVideoTexture, type SurfaceTexture } from "./textures";
 import { PlacementHighlight } from "./PlacementHighlight";
 import { InteractiveMesh } from "./InteractiveMesh";
 
@@ -18,8 +20,6 @@ interface Props {
   campaign: QueueEntryDto | null;
   preview: PreviewCreative | null;
   allowVideo: boolean;
-  /** House showcase card for this surface while it is unbooked, if one is assigned. */
-  showcase?: ShowcaseDto | null;
 }
 
 /**
@@ -29,7 +29,10 @@ interface Props {
  * Texture changes cross-fade in place; nothing reloads the page. Every texture
  * is disposed when replaced or unmounted.
  */
-export function BillboardSurface({ placement, surface, campaign, preview, allowVideo, showcase }: Props) {
+export function BillboardSurface({ placement, surface, campaign, preview, allowVideo }: Props) {
+  // House content for this surface while nobody holds it: a text card, or a
+  // house clip. Rotates on the station clock when there is more than one.
+  const showcase = useHousePlaceholder(placement.id);
   const groupRef = useRef<THREE.Group>(null);
   const planeRef = useRef<THREE.Mesh>(null);
   const register = useSurfaces((s) => s.register);
@@ -77,6 +80,8 @@ export function BillboardSurface({ placement, surface, campaign, preview, allowV
       const c = campaign.creative;
       return c.type === "VIDEO" ? { kind: "video" as const, url: c.url!, fit: campaign.fit, startsAt: campaign.startsAt } : { kind: "image" as const, url: c.url!, fit: campaign.fit };
     }
+    const media = houseMedia(showcase);
+    if (media) return { kind: "house-media" as const, id: showcase!.id, url: media.url, media: media.kind, fit: "FILL" as const };
     if (showcase) return { kind: "showcase" as const, id: showcase.id, fit: "FILL" as const };
     return { kind: "house" as const, fit: "FILL" as const };
   }, [preview, campaign, showcase]);
@@ -107,6 +112,14 @@ export function BillboardSurface({ placement, surface, campaign, preview, allowV
         const offsetSec = "startsAt" in desired && desired.startsAt ? Math.max(0, (Date.now() - new Date(desired.startsAt).getTime()) / 1000) : 0;
         apply(createVideoTexture(desired.url, placement.aspectRatio, desired.fit, { loop: !campaign, offsetSec }));
       }
+    } else if (desired.kind === "house-media" && showcase) {
+      // A still is fine on any tier; a house clip is a video surface, so where
+      // video is switched off the slot falls back to its own text card.
+      if (desired.media === "video" && !allowVideo) {
+        apply(createShowcaseTexture({ label: showcase.label, headline: showcase.headline, sublabel: showcase.sublabel, accent: showcase.accent }, placement.aspectRatio));
+      } else {
+        apply(createHouseMediaTexture({ url: desired.url, kind: desired.media }, placement.aspectRatio));
+      }
     } else if (desired.kind === "showcase" && showcase) {
       apply(createShowcaseTexture({ label: showcase.label, headline: showcase.headline, sublabel: showcase.sublabel, accent: showcase.accent }, placement.aspectRatio));
     } else {
@@ -130,6 +143,7 @@ export function BillboardSurface({ placement, surface, campaign, preview, allowV
   useFrame((state, dt) => {
     const tex = currentRef.current;
     if (!tex) return;
+    tex.update?.(dt);
     if (material.map !== tex.texture) {
       material.map = tex.texture;
       material.emissiveMap = tex.texture;

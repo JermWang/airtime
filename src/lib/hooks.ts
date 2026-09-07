@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type BroadcastStateDto, type QueueDto, type ActivationsDto, type PlacementDto, type BoardDto, type SurfaceDto, type SessionDto, type CampaignDto, type ShowcaseDto, type TreasuryDto } from "./api";
 import { useClock, useRealtime } from "./store";
+import { houseForPlacement, pickHouse } from "./house";
 
 /* ------------------------------------------------------------------------- */
 /*  Server clock sync                                                         */
@@ -234,6 +235,38 @@ export function useShowcase() {
     queryFn: () => api<{ showcase: ShowcaseDto[] }>("/api/showcase"),
     staleTime: 120_000,
   });
+}
+
+/**
+ * The house placeholder standing on a surface right now, or null if the station
+ * has none for it.
+ *
+ * Which one is a function of server time, so every viewer sees the same
+ * placeholder at the same moment. The clock is read every second but state only
+ * moves when the placeholder itself changes, so a surface holding one card (or
+ * none) never re-renders on the tick.
+ */
+export function useHousePlaceholder(placementId: string | null | undefined): ShowcaseDto | null {
+  const { data } = useShowcase();
+  const now = useClock((s) => s.now);
+  const cards = placementId ? houseForPlacement(data?.showcase, placementId) : [];
+  const [card, setCard] = useState<ShowcaseDto | null>(() => pickHouse(cards, now()));
+
+  const key = cards.map((c) => c.id).join(",");
+  useEffect(() => {
+    const list = placementId ? houseForPlacement(data?.showcase, placementId) : [];
+    const sync = () => setCard((prev) => {
+      const next = pickHouse(list, now());
+      return prev?.id === next?.id ? prev : next;
+    });
+    sync();
+    if (list.length < 2) return;
+    const t = setInterval(sync, 1000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, placementId, now]);
+
+  return card;
 }
 
 export function useTreasury() {

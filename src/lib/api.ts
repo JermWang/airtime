@@ -231,11 +231,17 @@ export interface CampaignDto {
 
 export interface ShowcaseDto {
   id: string;
+  slug: string;
   placementId: string | null;
   label: string;
   headline: string;
   sublabel: string | null;
   accent: string;
+  /** House media for this slot, or null while it is still a text-only card. */
+  mediaUrl: string | null;
+  mediaType: "IMAGE" | "VIDEO" | "TEXT" | "LOGO" | null;
+  posterUrl: string | null;
+  durationSec: number | null;
   sortOrder: number;
   isActive: boolean;
 }

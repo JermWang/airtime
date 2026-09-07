@@ -2,10 +2,12 @@
 
 import { useMemo, type CSSProperties } from "react";
 import Link from "next/link";
-import { useBoard, useActivations } from "@/lib/hooks";
+import { useBoard, useActivations, useHousePlaceholder } from "@/lib/hooks";
 import { useLiveAsk } from "@/components/airtime/AskTicker";
 import { StationPlayer } from "@/components/station/StationPlayer";
 import { usePlayer } from "@/components/station/playerStore";
+import { HouseCard } from "@/components/hud/HouseCard";
+import { houseMedia } from "@/lib/house";
 import { formatWei, cn } from "@/lib/format";
 import { useMarquee } from "@/lib/useMarquee";
 import type { BoardRowDto, QueueEntryDto } from "@/lib/api";
@@ -62,8 +64,12 @@ function ExpandGlyph({ expanded }: { expanded?: boolean }) {
 }
 
 /** A display panel: the creative on it, or the fact that it is free. */
-function PanelSurface({ row, occupant, side }: { row: BoardRowDto | undefined; occupant: QueueEntryDto | null; side: "left" | "right" }) {
+function PanelSurface({ row, occupant, side, placementId }: { row: BoardRowDto | undefined; occupant: QueueEntryDto | null; side: "left" | "right"; placementId: string }) {
   const creative = occupant?.creative ?? null;
+  // House content stands on the panel while it is unbooked: the station's own
+  // example, badged EXAMPLE, with the panel still reading as available.
+  const card = useHousePlaceholder(occupant ? null : placementId);
+  const house = houseMedia(card);
   return (
     <Link
       href={row ? `/airtime/${row.placement.id}` : "/airtime"}
@@ -81,6 +87,18 @@ function PanelSurface({ row, occupant, side }: { row: BoardRowDto | undefined; o
             // eslint-disable-next-line @next/next/no-img-element
             <img src={creative.posterUrl ?? creative.url} alt="" className="h-full w-full object-cover" />
           )
+        ) : house ? (
+          <>
+            {house.kind === "video" ? (
+              <video src={house.url} poster={house.posterUrl ?? undefined} muted playsInline loop autoPlay className="h-full w-full object-cover" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={house.url} alt="" className="h-full w-full object-cover" />
+            )}
+            <span className="mono absolute left-1.5 top-1.5 rounded-sm border border-white/25 bg-ink-950/80 px-1.5 py-[3px] text-[8px] uppercase tracking-[0.16em] text-ink-200">Example</span>
+          </>
+        ) : card ? (
+          <HouseCard card={card} />
         ) : (
           // Nothing running: the surface reads as an empty lit panel, not as a
           // picture of one.
@@ -145,7 +163,7 @@ export function SurfaceWall({ channelId = "MAIN", sizeClassName, expanded, onTog
         sizeClassName ?? "flex-1",
       )}
     >
-      <PanelSurface row={left} occupant={occupantByPlacement.get("PANEL_LEFT") ?? null} side="left" />
+      <PanelSurface row={left} occupant={occupantByPlacement.get("PANEL_LEFT") ?? null} side="left" placementId="PANEL_LEFT" />
 
       <div className="relative min-w-0 w-full overflow-hidden bg-ink-900 max-sm:col-span-2 max-sm:col-start-1 max-sm:row-start-1">
         <div className="absolute inset-0">
@@ -179,7 +197,7 @@ export function SurfaceWall({ channelId = "MAIN", sizeClassName, expanded, onTog
         </div>
       </div>
 
-      <PanelSurface row={right} occupant={occupantByPlacement.get("PANEL_RIGHT") ?? null} side="right" />
+      <PanelSurface row={right} occupant={occupantByPlacement.get("PANEL_RIGHT") ?? null} side="right" placementId="PANEL_RIGHT" />
     </div>
   );
 }

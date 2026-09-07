@@ -552,20 +552,36 @@ export const treasuryEntries = pgTable(
 /* -------------------------------------------------------------------------- */
 
 /**
- * House "showcase" cards drawn on surfaces nobody has booked, so the studio
- * demonstrates what the network looks like in use. These are procedurally drawn
- * from text only – no third-party artwork – and always carry an EXAMPLE badge so
- * they can never be mistaken for a paid campaign. They never enter the public
- * broadcast queue and never produce an AirLog.
+ * House content for surfaces nobody has booked, so the room demonstrates what
+ * the network looks like in use.
+ *
+ * Two flavours, one table. A *card* is procedurally drawn from text only – no
+ * third-party artwork. A *placeholder* is house media the station itself owns,
+ * standing in on a surface until a buyer takes it. Both are house content:
+ * neither enters the public broadcast queue, neither produces an AirLog,
+ * neither counts as revenue, and both carry a permanent EXAMPLE badge wherever
+ * they are drawn, so they can never be mistaken for a paid campaign.
  */
 export const showcaseCreatives = pgTable("showcase_creatives", {
   id: uuid("id").primaryKey().defaultRandom(),
+  /** Stable key, so the seed can ship and update house content without duplicating it. */
+  slug: text("slug").notNull().unique(),
   /** Optional: pin this card to one placement. Null = usable on any free surface. */
   placementId: text("placement_id").references(() => placements.id, { onDelete: "cascade" }),
   label: text("label").notNull(),
   headline: text("headline").notNull(),
   sublabel: text("sublabel"),
   accent: text("accent").notNull().default("#ccff00"),
+  /**
+   * House media for this slot. Null leaves the text card, which is what every
+   * slot draws until its artwork has landed. Same-origin paths under
+   * `public/placeholders` or a CORS-enabled URL — a WebGL video texture cannot
+   * read a frame from an origin that does not allow it.
+   */
+  mediaUrl: text("media_url"),
+  mediaType: creativeType("media_type"),
+  posterUrl: text("poster_url"),
+  durationSec: integer("duration_sec"),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   isDevData: boolean("is_dev_data").notNull().default(false),

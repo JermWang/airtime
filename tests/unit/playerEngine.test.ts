@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { targetOffsetSec, driftCorrection, resolveMainSource, fullscreenCampaignAt, campaignForSlot, syncOffsetSec, SEEK_THRESHOLD_SEC, CATCHUP_RATE, SLOWDOWN_RATE } from "@/components/station/playerEngine";
+import type { HousePlaceholder } from "@/components/station/playerEngine";
 import type { ProgramBlockDto, QueueEntryDto } from "@/lib/api";
 
 const block = (over: Partial<ProgramBlockDto> = {}): ProgramBlockDto => ({
@@ -76,6 +77,33 @@ describe("synchronized playback", () => {
     const empty = resolveMainSource(adBreak, block({ id: "n", title: "Sintel" }), [], 1_010_000);
     expect(empty.kind).toBe("slate");
     if (empty.kind === "slate") expect(empty.subtitle).toContain("Sintel");
+  });
+
+it("runs the station's own placeholder in a break nobody bought, and never over a paid show", () => {
+    const adBreak = block({ type: "AD_BREAK", mediaUrl: null, title: "Commercial break", startsAt: new Date(1_000_000).toISOString() });
+    const house: HousePlaceholder = { id: "h1", label: "$PONS", headline: "Pons", sublabel: null, accent: "#ccff00", url: "/placeholders/reel.mp4", media: "video", durationSec: 20 };
+
+    // Nothing sold: the placeholder plays from the top of the break, in sync.
+    const empty = resolveMainSource(adBreak, null, [], 1_010_000, house);
+    expect(empty.kind).toBe("house-video");
+    if (empty.kind === "house-video") expect(empty.offsetSec).toBe(10);
+
+    // A show holder keeps the picture through an unsold break.
+    const show = campaign({ id: "s1", inventoryMode: "CONTINUOUS", placementId: "SHOW" });
+    const withShow = resolveMainSource(adBreak, null, [show], 1_010_000, house);
+    expect(withShow.kind).toBe("campaign-video");
+
+    // So does a buyer of the break itself.
+    const withAd = resolveMainSource(adBreak, null, [campaign()], 1_010_000, house);
+    expect(withAd.kind).toBe("campaign-video");
+    if (withAd.kind === "campaign-video") expect(withAd.campaign.id).toBe("c1");
+
+    // A slot with no artwork yet still stands in, as its text card.
+    const card = resolveMainSource(adBreak, null, [], 1_010_000, { ...house, url: null, media: null });
+    expect(card.kind).toBe("house-card");
+
+    // Without a placeholder configured at all the break falls back to the slate.
+    expect(resolveMainSource(adBreak, null, [], 1_010_000).kind).toBe("slate");
   });
 
   it("ignores runs that have not started, runs already outbid, and overlays entirely", () => {

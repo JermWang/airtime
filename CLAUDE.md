@@ -26,7 +26,7 @@ Which product a main-stream campaign bought is read off `availability.inventoryM
 - **Advertiser content is hostile.** No HTML/JS/iframe creatives, ever. Uploads are sniffed by magic bytes, decoded, re-encoded and hashed server-side.
 - **Never fabricate metrics.** No invented viewer counts. Payment facts (chain) and delivery analytics (application) are always presented separately.
 - **Treasury numbers keep their provenance.** Airtime revenue is derived from verified payments and can never be entered by hand; token tax, pre-stock purchases and distributions are operator-recorded and must always be labelled as such.
-- **Showcase cards are never fake ads.** They are text-only, permanently badged EXAMPLE, excluded from the queue and from revenue.
+- **House content is never a fake ad.** A surface nobody has booked can carry a text-only showcase card or a house placeholder (media the station hosts itself, dropped in `public/placeholders` and listed in `HOUSE_PLACEHOLDERS`). Both are permanently badged EXAMPLE — composited into the texture in the room — and both are excluded from the queue, from analytics and from revenue. House content never preempts a paid run: in an unsold break it plays only after the show holder has been offered the picture.
 
 ## Commands
 

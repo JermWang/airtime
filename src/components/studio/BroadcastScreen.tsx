@@ -7,7 +7,7 @@ import { usePlayer } from "@/components/station/playerStore";
 import { useStation } from "@/lib/store";
 import type { PlacementDto, QueueEntryDto } from "@/lib/api";
 import type { SurfaceInfo } from "./surfaceRegistry";
-import { textureFromVideoElement, loadImageTexture, createSlateTexture, type SurfaceTexture } from "./textures";
+import { textureFromVideoElement, loadImageTexture, createSlateTexture, createShowcaseTexture, createHouseMediaTexture, type SurfaceTexture } from "./textures";
 import { InteractiveMesh } from "./InteractiveMesh";
 import { PlacementHighlight } from "./PlacementHighlight";
 import { attentionFor, ATTENTION_LAMBDA } from "./attention";
@@ -66,9 +66,25 @@ export function BroadcastScreen({ surface, placements, active, mainPlacement }: 
     };
   }, [videoEl]);
 
-  // Full-screen preview / image ads / slates render through a canvas texture.
+  // Full-screen preview, image ads, house content and slates render through a
+  // canvas texture. A house clip plays through the shared video element like any
+  // other spot, so only the still and the card need one.
   const mainPreview = mainPlacement && focused === mainPlacement.id ? preview : null;
-  const altKey = mainPreview?.url ? `preview:${mainPreview.url}:${mainPreview.fit}` : source?.kind === "campaign-image" ? `img:${source.url}:${source.campaign.fit}` : source?.kind === "slate" ? `slate:${source.title}:${source.subtitle}` : holding ? "slate:Stand by:AIRTIME" : error ? `slate:${error}:AIRTIME` : "video";
+  const altKey = mainPreview?.url
+    ? `preview:${mainPreview.url}:${mainPreview.fit}`
+    : source?.kind === "campaign-image"
+      ? `img:${source.url}:${source.campaign.fit}`
+      : source?.kind === "house-image"
+        ? `house-img:${source.url}`
+        : source?.kind === "house-card"
+          ? `house-card:${source.house.id}`
+          : source?.kind === "slate"
+            ? `slate:${source.title}:${source.subtitle}`
+            : holding
+              ? "slate:Stand by:AIRTIME"
+              : error
+                ? `slate:${error}:AIRTIME`
+                : "video";
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +116,11 @@ export function BroadcastScreen({ surface, placements, active, mainPlacement }: 
       }
     } else if (source?.kind === "campaign-image") {
       void loadImageTexture(source.url, "16:9", source.campaign.fit).then(swap).catch(() => swap(createSlateTexture("AIRTIME", "Stand by")));
+    } else if (source?.kind === "house-image") {
+      swap(createHouseMediaTexture({ url: source.url, kind: "image" }, "16:9", "THIS BREAK IS AVAILABLE"));
+    } else if (source?.kind === "house-card") {
+      const c = source.house;
+      swap(createShowcaseTexture({ label: c.label, headline: c.headline, sublabel: c.sublabel, accent: c.accent }, "16:9"));
     } else {
       const [, title, subtitle] = altKey.split(":");
       swap(createSlateTexture(title ?? "AIRTIME", subtitle ?? ""));

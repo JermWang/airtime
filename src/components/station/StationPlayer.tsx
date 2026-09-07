@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type Hls from "hls.js";
-import { useBroadcastState, useActivations } from "@/lib/hooks";
+import { useBroadcastState, useActivations, usePlacements, useHousePlaceholder } from "@/lib/hooks";
 import { useClock, useStation } from "@/lib/store";
+import { houseMedia } from "@/lib/house";
 import { usePlayer } from "./playerStore";
-import { driftCorrection, resolveMainSource, sourceKey, syncOffsetSec, targetOffsetSec, type MainSource } from "./playerEngine";
+import { driftCorrection, resolveMainSource, sourceKey, syncOffsetSec, targetOffsetSec, type HousePlaceholder, type MainSource } from "./playerEngine";
 import { Overlays } from "./Overlays";
 import { useAdAnalytics } from "./analytics";
 import { Wordmark } from "@/components/hud/Wordmark";
+import { HouseCard } from "@/components/hud/HouseCard";
 import { cn } from "@/lib/format";
 
 interface Props {
@@ -31,7 +33,8 @@ function canPlayNativeHls(video: HTMLVideoElement): boolean {
  *
  * - Plays the scheduled block at the server-derived offset and corrects drift.
  * - During AD_BREAK blocks it plays the full-screen campaign that owns the slot
- *   (video or image) or a house slate when nothing is booked.
+ *   (video or image); when nobody has bought the break it hands the room back to
+ *   the show, then to the station's own placeholder, and only then to a slate.
  * - Uses hls.js for LIVE_HLS blocks when native HLS is unavailable.
  */
 export function StationPlayer({ channelId = "MAIN", visible, className, overlays = true, fit = "contain" }: Props) {
@@ -56,6 +59,29 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
     return () => clearInterval(t);
   }, []);
 
+  // The commercial is whichever surface owns the picture during the breaks, read
+  // off the placement's inventory mode rather than named here.
+  const { data: placementsData } = usePlacements(channelId);
+  const commercialId = useMemo(
+    () => placementsData?.placements.find((p) => p.isActive && p.ownsMainStream && p.availability.inventoryMode === "AD_BREAK")?.id ?? null,
+    [placementsData],
+  );
+  const placeholder = useHousePlaceholder(commercialId);
+  const house = useMemo<HousePlaceholder | null>(() => {
+    if (!placeholder) return null;
+    const media = houseMedia(placeholder);
+    return {
+      id: placeholder.id,
+      label: placeholder.label,
+      headline: placeholder.headline,
+      sublabel: placeholder.sublabel,
+      accent: placeholder.accent,
+      url: media?.url ?? null,
+      media: media?.kind ?? null,
+      durationSec: media?.durationSec ?? null,
+    };
+  }, [placeholder]);
+
   const resolved = useMemo<MainSource | null>(() => {
     if (!state) return null;
     const nowMs = now();
@@ -66,9 +92,9 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
       block = state.next && new Date(state.next.startsAt).getTime() <= nowMs ? state.next : null;
       next = state.later[0] ?? null;
     }
-    return resolveMainSource(block, next, activations?.active ?? [], nowMs);
+    return resolveMainSource(block, next, activations?.active ?? [], nowMs, house);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, activations, tick]);
+  }, [state, activations, house, tick]);
 
   const key = resolved ? sourceKey(resolved) : "none";
   const lastKey = useRef<string>("");
@@ -110,10 +136,11 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
       });
     };
 
-    if (resolved.kind === "vod" || (resolved.kind === "campaign-video" && !resolved.hls)) {
+    if (resolved.kind === "vod" || ((resolved.kind === "campaign-video" || resolved.kind === "house-video") && !resolved.hls)) {
       // Submitted media loops: a spot repeats through its break, a show repeats
-      // for as long as its buyer holds the screen.
-      video.loop = resolved.kind === "campaign-video";
+      // for as long as its buyer holds the screen. House content in an unsold
+      // break loops the same way.
+      video.loop = resolved.kind !== "vod";
       video.src = resolved.url;
       video.load();
       const onMeta = () => {
@@ -129,7 +156,7 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
       return () => video.removeEventListener("loadedmetadata", onMeta);
     }
 
-    if (resolved.kind === "hls" || (resolved.kind === "campaign-video" && resolved.hls)) {
+    if (resolved.kind === "hls" || ((resolved.kind === "campaign-video" || resolved.kind === "house-video") && resolved.hls)) {
       video.loop = false;
       const live = resolved.kind === "hls" && resolved.live;
       const seekVod = () => {
@@ -180,9 +207,9 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
     if (!video) return;
     const t = setInterval(() => {
       const src = usePlayer.getState().source;
-      if (!src || (src.kind !== "vod" && src.kind !== "campaign-video" && !(src.kind === "hls" && !src.live))) return;
+      if (!src || (src.kind !== "vod" && src.kind !== "campaign-video" && src.kind !== "house-video" && !(src.kind === "hls" && !src.live))) return;
       if (video.readyState < 1 || usePlayer.getState().holding) return;
-      const target = src.kind === "campaign-video" ? syncOffsetSec(src.sync, now()) : targetOffsetSec(src.block, now());
+      const target = src.kind === "campaign-video" || src.kind === "house-video" ? syncOffsetSec(src.sync, now()) : targetOffsetSec(src.block, now());
       if (Number.isFinite(video.duration) && target >= video.duration - 0.25) {
         setHolding(true);
         video.pause();
@@ -243,7 +270,7 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
 
   useEffect(() => () => hlsRef.current?.destroy(), []);
 
-  const showVideo = source && (source.kind === "vod" || source.kind === "hls" || source.kind === "campaign-video") && !holding && !error;
+  const showVideo = source && (source.kind === "vod" || source.kind === "hls" || source.kind === "campaign-video" || source.kind === "house-video") && !holding && !error;
   const slate = source?.kind === "slate" ? source : null;
 
   return (
@@ -261,6 +288,23 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
       {visible && source?.kind === "campaign-image" && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={source.url} alt="" className={cn("absolute inset-0 h-full w-full", fit === "cover" || source.campaign.fit === "FILL" ? "object-cover" : "object-contain")} />
+      )}
+      {visible && source?.kind === "house-image" && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={source.url} alt="" className={cn("absolute inset-0 h-full w-full", fit === "cover" ? "object-cover" : "object-contain")} />
+      )}
+      {visible && source?.kind === "house-card" && !holding && !error && (
+        <div className="absolute inset-0">
+          <HouseCard card={source.house} size="screen" />
+        </div>
+      )}
+      {/* House media in an unsold break is the station's own and says so, so it
+          can never be read as a spot somebody bought. The card carries its own
+          badge. */}
+      {visible && (source?.kind === "house-image" || source?.kind === "house-video") && !holding && !error && (
+        <span className="mono absolute left-3 top-3 rounded-sm border border-white/25 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-ink-200">
+          Example · this break is available
+        </span>
       )}
       {visible && (slate || holding || error) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-ink-950">
