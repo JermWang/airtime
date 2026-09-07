@@ -7,7 +7,7 @@ import { useBoard, useActivations, useHousePlaceholder } from "@/lib/hooks";
 import { useLiveAsk } from "@/components/airtime/AskTicker";
 import { StationPlayer } from "@/components/station/StationPlayer";
 import { usePlayer } from "@/components/station/playerStore";
-import { HouseCard } from "@/components/hud/HouseCard";
+import { HouseCard, HouseExampleBadge } from "@/components/hud/HouseCard";
 import { houseMedia } from "@/lib/house";
 import { formatWei, cn } from "@/lib/format";
 import { useMarquee } from "@/lib/useMarquee";
@@ -159,16 +159,18 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
           the compact size holds until lg, where the column is wide enough. */}
       <div
         className={cn(
-          "flex",
+          "flex items-end gap-1.5",
           overlaid
             ? "pointer-events-none absolute inset-x-2.5 bottom-2.5 max-lg:inset-x-1.5 max-lg:bottom-2"
             : "relative z-10 shrink-0 px-1.5 pb-1.5",
-          panel.align === "start" ? "justify-start" : "justify-end",
+          // The stamp takes the end of the row the price does not.
+          !overlaid && card ? "justify-between" : panel.align === "start" ? "justify-start" : "justify-end",
         )}
       >
         <span className="min-w-0 max-w-full [&>span]:max-w-full [&>span]:max-lg:gap-[2px] [&>span]:max-lg:px-1.5 [&>span]:max-lg:text-[8px] [&>span]:max-lg:tracking-[0.08em]">
           <PriceChip row={row} label={panel.label} stack />
         </span>
+        {!overlaid && card && <HouseExampleBadge />}
       </div>
     </Link>
   );

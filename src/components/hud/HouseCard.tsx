@@ -1,5 +1,4 @@
 import type { ShowcaseDto } from "@/lib/api";
-import { cn } from "@/lib/format";
 
 /**
  * A house card in the DOM.
@@ -11,29 +10,20 @@ import { cn } from "@/lib/format";
  */
 export function HouseCard({ card, size = "panel" }: { card: Pick<ShowcaseDto, "label" | "headline" | "sublabel" | "accent">; size?: "panel" | "screen" }) {
   const screen = size === "screen";
-  const badge = (
-    <span
-      className={cn(
-        "readout shrink-0 rounded-sm border border-white/25 bg-white/[0.06] uppercase tracking-[0.18em] text-ink-100",
-        screen ? "absolute bottom-4 left-4 px-2.5 py-[6px] text-[10px]" : "px-1 py-[2px] text-[7px]",
-      )}
-    >
-      Example
-    </span>
-  );
+
 
   // On the picture there is room to centre the card and hang the badge in a
-  // corner. A panel is the size of a business card, so nothing there is
-  // positioned over anything else: the ticker and the badge share a row, the
-  // name takes what is left, and whatever does not fit is clipped by the box
-  // rather than printed over its neighbour.
+  // corner. A panel is the size of a business card, so nothing is positioned
+  // over anything else there: the ticker takes a line, the name takes the rest,
+  // and the EXAMPLE stamp goes down beside the price where there is width to
+  // spare — on a phone it was wrapping onto its own line and squeezing the name
+  // out of the card altogether.
   if (!screen) {
     return (
-      <div className="flex h-full w-full flex-col gap-1 overflow-hidden bg-[linear-gradient(135deg,#07090c,#12161b)] p-1.5">
+      <div className="flex h-full w-full flex-col gap-1 overflow-hidden bg-[linear-gradient(135deg,#07090c,#12161b)] p-1.5 pb-0">
         <div className="flex min-w-0 items-start gap-1.5">
           <span className="mt-[1px] h-2.5 w-[3px] shrink-0 rounded-[1px] bg-signal" />
           <span className="readout min-w-0 flex-1 truncate text-[8px] uppercase tracking-[0.14em] text-signal">{card.label}</span>
-          {badge}
         </div>
         {/*
           The name takes whatever room is left and fades out at the bottom edge
@@ -59,7 +49,20 @@ export function HouseCard({ card, size = "panel" }: { card: Pick<ShowcaseDto, "l
           {card.sublabel && <div className="readout mt-1.5 text-[11px] uppercase leading-relaxed tracking-[0.12em] text-ink-400">{card.sublabel}</div>}
         </div>
       </div>
-      {badge}
+      <span className="readout absolute bottom-4 left-4 shrink-0 rounded-sm border border-white/25 bg-white/[0.06] px-2.5 py-[6px] text-[10px] uppercase tracking-[0.18em] text-ink-100">Example</span>
     </div>
+  );
+}
+
+/**
+ * The stamp house content wears on a panel. It sits in the row with the price
+ * rather than on the card, because that row has width to spare and the card
+ * does not.
+ */
+export function HouseExampleBadge() {
+  return (
+    <span className="readout shrink-0 rounded-sm border border-white/25 bg-white/[0.06] px-[3px] py-[1px] text-[6.5px] uppercase tracking-[0.1em] text-ink-100">
+      Example
+    </span>
   );
 }
