@@ -332,16 +332,15 @@ export const HOUSE_PLACEHOLDERS: Array<typeof schema.showcaseCreatives.$inferIns
     accent: "#ccff00",
     sortOrder: 1,
   },
-  // The picture during the breaks: the three largest by volume and market cap.
+  // The picture during the breaks: the largest by volume and market cap.
   memeCard("rh-pons", "$PONS", "Pons", "AD", 10),
-  memeCard("rh-meme", "$MEME", "A Meme Coin", "AD", 11),
-  memeCard("rh-cashcat", "$CASHCAT", "Cash Cat", "AD", 12),
+  memeCard("rh-cashcat", "$CASHCAT", "Cash Cat", "AD", 11),
   // The rest spread around the picture, so no surface stands empty.
   memeCard("rh-artificial-inu", "$AI", "Artificial Inu", "PANEL_LEFT", 10),
   memeCard("rh-greenhood", "$HOOD", "TheGreenHood", "PANEL_LEFT", 11),
   memeCard("rh-nasduck", "$NASDUCK", "Nasduck", "PANEL_RIGHT", 10),
   memeCard("rh-snowball", "$SNOWBALL", "Snowball Capital", "PANEL_RIGHT", 11),
-  memeCard("rh-boner", "$BONER", "Boner Coin", "PANEL_TOP_LEFT", 10),
+  memeCard("rh-meme", "$MEME", "A Meme Coin", "PANEL_TOP_LEFT", 10),
   memeCard("rh-shrub", "$SHRUB", "Lil' Shrub", "PANEL_TOP_MID", 10),
   memeCard("rh-cyberbeer", "$CYBERBEER", "Cyberbeer", "PANEL_TOP_RIGHT", 10),
   memeCard("rh-greatest-meme", "$GME", "Greatest Meme Ever", "PANEL_TOWER", 10),
