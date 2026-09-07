@@ -146,11 +146,22 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
           )
         ) : house ? (
           <>
+            {/*
+              A surface is rarely the shape of the artwork on it: the tower is
+              far narrower than the 9:16 it declares, and cropping to fill it cut
+              the sides off the logo. The artwork is shown whole, over a blurred,
+              scaled copy of itself — so it still reaches every edge of the panel
+              without a bar of dead colour or a lost logo.
+            */}
             {house.kind === "video" ? (
               <video src={house.url} poster={house.posterUrl ?? undefined} muted playsInline loop autoPlay className="h-full w-full object-cover" />
             ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={house.url} alt="" className="h-full w-full object-cover" />
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={house.url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-125 object-cover blur-lg" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={house.url} alt="" className="relative h-full w-full object-contain" />
+              </>
             )}
             {card && (
               <span className="readout absolute left-1.5 top-1.5 max-w-[calc(100%-12px)] truncate rounded-sm border border-white/25 bg-ink-950/80 px-1.5 py-[3px] text-[8px] uppercase tracking-[0.16em] text-ink-200">
