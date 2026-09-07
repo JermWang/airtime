@@ -180,6 +180,16 @@ test("full purchase → on-chain verification → queue → air → AirLog", asy
 
   const queue = await request.get("/api/queue?channel=MAIN").then((r) => r.json());
   expect(queue.onAir.some((e: { id: string }) => e.id === campaignId)).toBe(true);
+
+  // An operator can correct the name a run goes up under — it is what the
+  // public log shows — without touching its payment or the surface it holds.
+  const renamed = await request.patch(`/api/admin/campaigns/${campaignId}`, { data: { displayName: "Test run" } });
+  expect(renamed.ok()).toBeTruthy();
+  const afterRename = await request.get("/api/queue?channel=MAIN").then((r) => r.json());
+  const renamedEntry = afterRename.onAir.find((e: { id: string }) => e.id === campaignId);
+  expect(renamedEntry.displayName).toBe("Test run");
+  expect(renamedEntry.pricePaidWei).toBe(live.pricePaidWei);
+  await request.patch(`/api/admin/campaigns/${campaignId}`, { data: { displayName: "Playwright Motors" } });
   const activations = await request.get("/api/activations?channel=MAIN").then((r) => r.json());
   expect(activations.active.some((e: { id: string; placementId: string }) => e.id === campaignId && e.placementId === "AD")).toBe(true);
 

@@ -95,6 +95,27 @@ export async function withdrawCampaign(id: string, walletAddress: `0x${string}`)
 /*  Admin transitions                                                         */
 /* ------------------------------------------------------------------------- */
 
+/**
+ * Rename a run.
+ *
+ * The name on a run is whatever the buyer typed at purchase, and it is the
+ * label the public broadcast log shows. The station's own runs go up under
+ * that same field, so an operator needs to be able to correct one without
+ * touching the payment, the creative or the surface it holds.
+ */
+export async function adminRenameCampaign(id: string, displayName: string, actor: Actor): Promise<Campaign> {
+  const name = displayName.trim();
+  if (!name) throw new HttpError(400, "A run needs a name");
+  const [row] = await db()
+    .update(schema.campaigns)
+    .set({ displayName: name, updatedAt: new Date() })
+    .where(eq(schema.campaigns.id, id))
+    .returning();
+  if (!row) throw new HttpError(404, "Campaign not found");
+  await audit(actor, "campaign.renamed", { type: "campaign", id }, { displayName: name });
+  return row;
+}
+
 export async function adminSetCampaignStatus(
   id: string,
   status: "REJECTED" | "REFUNDED" | "CANCELLED",

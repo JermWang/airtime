@@ -12,8 +12,18 @@ const FILTERS = ["ACTIVE", "COMPLETED", "AWAITING_PAYMENT", "REFUNDED", "REJECTE
 export default function CampaignsPage() {
   const [status, setStatus] = useState("ACTIVE");
   const [refundHashes, setRefundHashes] = useState<Record<string, string>>({});
+  // The name on a run is what the public broadcast log shows, so an operator
+  // can correct one here without touching its payment or the surface it holds.
+  const [renaming, setRenaming] = useState<Record<string, string>>({});
+  const stopRenaming = (id: string) =>
+    setRenaming((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
   const { data } = useAdminCampaigns(status);
   const setState = useAdminMutation((v: { id: string; status: "REJECTED" | "REFUNDED" | "CANCELLED"; reason?: string; refundTxHash?: string }) => api(`/api/admin/campaigns/${v.id}`, { method: "PATCH", json: v }));
+  const rename = useAdminMutation((v: { id: string; displayName: string }) => api(`/api/admin/campaigns/${v.id}`, { method: "PATCH", json: { displayName: v.displayName } }));
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -44,9 +54,41 @@ export default function CampaignsPage() {
                   <StatusChip status={c.status} />
                 </td>
                 <td>
-                  <Link href={`/campaign/${c.id}`} className="text-ink-50 hover:text-signal">
-                    {c.displayName}
-                  </Link>
+                  {renaming[c.id] === undefined ? (
+                    <div className="flex items-center gap-2">
+                      <Link href={`/campaign/${c.id}`} className="text-ink-50 hover:text-signal">
+                        {c.displayName}
+                      </Link>
+                      <button className="btn btn-sm" onClick={() => setRenaming((r) => ({ ...r, [c.id]: c.displayName }))}>
+                        Rename
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <input
+                        className="field w-48"
+                        autoFocus
+                        value={renaming[c.id]}
+                        onChange={(e) => setRenaming((r) => ({ ...r, [c.id]: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") stopRenaming(c.id);
+                        }}
+                      />
+                      <button
+                        className="btn btn-sm btn-primary"
+                        disabled={rename.isPending || !renaming[c.id].trim()}
+                        onClick={async () => {
+                          await rename.mutateAsync({ id: c.id, displayName: renaming[c.id].trim() });
+                          stopRenaming(c.id);
+                        }}
+                      >
+                        Save
+                      </button>
+                      <button className="btn btn-sm" onClick={() => stopRenaming(c.id)}>
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                   {c.rejectionReason && <div className="text-[10px] text-amber">{c.rejectionReason}</div>}
                 </td>
                 <td className="readout text-[10.5px]">{c.placement.name}</td>
