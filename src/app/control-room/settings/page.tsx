@@ -76,10 +76,10 @@ export default function SettingsPage() {
       <Panel title="Simulation clock">
         {data?.simulationClockAllowed ? (
           <>
-            <div className="mono text-[20px] tracking-tight text-ink-50" suppressHydrationWarning>
+            <div className="readout text-[20px] tracking-tight text-ink-50" suppressHydrationWarning>
               {formatClock(now)} UTC
             </div>
-            <div className="mono mt-1 text-[10.5px] text-ink-400">offset {((s?.clockOffsetMs ?? 0) / 1000).toFixed(0)}s</div>
+            <div className="readout mt-1 text-[10.5px] text-ink-400">offset {((s?.clockOffsetMs ?? 0) / 1000).toFixed(0)}s</div>
             <p className="mt-2 text-[11.5px] leading-relaxed text-ink-300">Moves the whole station forward or back: playback offsets, quote expiry, activation and completion all follow the server clock. Every connected browser re-syncs automatically.</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <input className="field w-24" type="number" value={jump} onChange={(e) => setJump(Number(e.target.value))} />

@@ -5,12 +5,10 @@ import { useOverview, useAdminCampaigns, useAdminMutation } from "@/components/c
 import { Panel, Stat, StatusChip } from "@/components/control-room/ui";
 import { api } from "@/lib/api";
 import { formatClock, formatDateTime, formatDurationSec, formatWei, shortAddress } from "@/lib/format";
-import { useServerNow } from "@/lib/hooks";
 
 export default function MasterControlPage() {
   const { data } = useOverview();
   const { data: queue } = useAdminCampaigns("ACTIVE");
-  const now = useServerNow(500);
   const pause = useAdminMutation((paused: boolean) => api("/api/admin/settings", { method: "PATCH", json: { purchasesPaused: paused } }));
   const endBlock = useAdminMutation((id: string) => api(`/api/admin/schedule/${id}`, { method: "POST" }));
   const setStatus = useAdminMutation((v: { id: string; status: "REJECTED" | "REFUNDED" | "CANCELLED"; reason?: string }) => api(`/api/admin/campaigns/${v.id}`, { method: "PATCH", json: { status: v.status, reason: v.reason } }));
@@ -20,8 +18,8 @@ export default function MasterControlPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="label">Master control</div>
-          <div className="mono text-[22px] tracking-tight text-ink-50" suppressHydrationWarning>
-            {formatClock(now)} UTC {data && data.simulatedOffsetMs !== 0 && <span className="chip chip-amber ml-2 align-middle">simulated clock</span>}
+          <div className="text-[22px] tracking-tight text-ink-50">
+            AIRTIME {data && data.simulatedOffsetMs !== 0 && <span className="chip chip-amber ml-2 align-middle">simulated clock</span>}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -50,14 +48,14 @@ export default function MasterControlPage() {
         <Panel title="Now / Next">
           {data?.channels.map((ch) => (
             <div key={ch.channelId} className="mb-3 last:mb-0">
-              <div className="mono mb-1 text-[10px] uppercase tracking-[0.14em] text-ink-400">{ch.channelId}</div>
+              <div className="readout mb-1 text-[10px] uppercase tracking-[0.14em] text-ink-400">{ch.channelId}</div>
               {ch.now ? (
                 <div className="flex items-center justify-between rounded-md border border-white/10 bg-black/30 px-3 py-2">
                   <div>
                     <div className="text-[13px] text-ink-50">
                       {ch.now.title} {ch.now.isManual && <span className="chip chip-amber ml-1">manual</span>}
                     </div>
-                    <div className="mono text-[10px] text-ink-400">
+                    <div className="readout text-[10px] text-ink-400">
                       {ch.now.type} · {formatClock(ch.now.startsAt, false)}–{formatClock(ch.now.endsAt, false)} · {Math.floor(ch.offsetSec)}s in
                     </div>
                   </div>
@@ -69,7 +67,7 @@ export default function MasterControlPage() {
                 <div className="text-[12px] text-ink-400">Nothing scheduled — auto-fill will extend the timeline.</div>
               )}
               {ch.next && (
-                <div className="mono mt-1 px-3 text-[10.5px] text-ink-300">
+                <div className="readout mt-1 px-3 text-[10.5px] text-ink-300">
                   next · {ch.next.title} at {formatClock(ch.next.startsAt, false)}
                 </div>
               )}
@@ -82,7 +80,7 @@ export default function MasterControlPage() {
 
         <Panel title="Chain">
           {data && (
-            <dl className="mono grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[10.5px] text-ink-300">
+            <dl className="readout grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[10.5px] text-ink-300">
               <dt>Network</dt>
               <dd className="text-ink-50">
                 {data.chain.name} ({data.chain.id})
@@ -129,11 +127,11 @@ export default function MasterControlPage() {
                   <StatusChip status={c.status} />
                 </td>
                 <td className="text-ink-50">{c.displayName}</td>
-                <td className="mono text-[10.5px]">{c.placement.name}</td>
-                <td className="mono text-[10.5px]">
+                <td className="readout text-[10.5px]">{c.placement.name}</td>
+                <td className="readout text-[10.5px]">
                   {c.startsAt ? formatDateTime(c.startsAt) : "—"} {c.durationSec ? `· ${formatDurationSec(c.durationSec)}` : ""}
                 </td>
-                <td className="mono text-[10.5px]">{shortAddress(c.wallet)}</td>
+                <td className="readout text-[10.5px]">{shortAddress(c.wallet)}</td>
                 <td className="text-right">
                   {["QUEUED", "AIRING", "PAID"].includes(c.status) && (
                     <button className="btn btn-sm btn-danger" onClick={() => setStatus.mutate({ id: c.id, status: "CANCELLED", reason: "Pulled by operator" })}>
@@ -159,7 +157,7 @@ export default function MasterControlPage() {
           <ul className="flex flex-col gap-1 text-[11.5px]">
             {data.failedActivations.map((f) => (
               <li key={f.id} className="flex justify-between rounded-md border border-amber/30 bg-amber/5 px-3 py-1.5">
-                <span className="mono text-ink-100">
+                <span className="readout text-ink-100">
                   {f.placementId} · {formatDateTime(f.scheduledStart)}
                 </span>
                 <span className="text-amber">{f.failureReason ?? f.status}</span>

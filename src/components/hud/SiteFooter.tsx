@@ -97,9 +97,9 @@ export function SiteFooter({ wide = false }: { wide?: boolean }) {
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
               <TokenContractChip />
-              <div className="mono text-[9.5px] uppercase tracking-[0.16em] text-ink-500">© {year} AIRTIME · Built on Robinhood Chain</div>
+              <div className="readout text-[9.5px] uppercase tracking-[0.16em] text-ink-500">© {year} AIRTIME · Built on Robinhood Chain</div>
             </div>
-            <div className="mono text-[9.5px] uppercase tracking-[0.16em] text-ink-500">
+            <div className="readout text-[9.5px] uppercase tracking-[0.16em] text-ink-500">
               Payment facts come from the chain · delivery numbers come from first-party analytics
             </div>
           </div>

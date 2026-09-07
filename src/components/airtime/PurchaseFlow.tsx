@@ -173,7 +173,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
       <ol className="mb-3 flex items-center gap-1.5" aria-label="Purchase steps">
         {steps.map(([s, label], i) => (
           <li key={s} className="flex items-center gap-1.5">
-            <span className={cn("mono text-[9.5px] uppercase tracking-[0.16em]", i < idx ? "text-signal" : i === idx ? "text-ink-50" : "text-ink-500")}>{label}</span>
+            <span className={cn("readout text-[9.5px] uppercase tracking-[0.16em]", i < idx ? "text-signal" : i === idx ? "text-ink-50" : "text-ink-500")}>{label}</span>
             {i < steps.length - 1 && <span className={cn("h-px w-3", i < idx ? "bg-signal" : "bg-white/15")} />}
           </li>
         ))}
@@ -249,7 +249,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
               <div className="flex items-center gap-2 rounded-md border border-white/10 bg-black/30 p-2">
                 <div className="h-9 w-16 shrink-0 overflow-hidden rounded-sm bg-black">
                   {creative.type === "TEXT" ? (
-                    <div className="mono flex h-full items-center justify-center text-[9px] text-signal">TXT</div>
+                    <div className="readout flex h-full items-center justify-center text-[9px] text-signal">TXT</div>
                   ) : creative.type === "VIDEO" ? (
                     <video src={creative.url ?? undefined} muted playsInline className="h-full w-full object-cover" />
                   ) : (
@@ -259,7 +259,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                 </div>
                 <div className="min-w-0 flex-1 text-[11px]">
                   <div className="truncate text-ink-100">{creative.type === "TEXT" ? creative.textContent : `${creative.type} · ${creative.width}×${creative.height}`}</div>
-                  <div className="mono truncate text-[9.5px] text-ink-500" title={creative.creativeHash}>
+                  <div className="readout truncate text-[9.5px] text-ink-500" title={creative.creativeHash}>
                     hash {shortHash(creative.creativeHash)}
                   </div>
                 </div>
@@ -307,7 +307,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                   >
                     {quoting ? "Locking the price…" : !surface?.forSale ? surface?.reason ?? "Not for sale right now" : live ? `Take it for ${formatWei(live.askWei)}` : "Reading the market…"}
                   </button>
-                  <p className="mono text-[9.5px] uppercase leading-relaxed tracking-[0.12em] text-ink-500">
+                  <p className="readout text-[9.5px] uppercase leading-relaxed tracking-[0.12em] text-ink-500">
                     Guaranteed {formatDurationSec(placement.auction.minHoldSeconds)} of runtime, then it runs on until outbid. No refunds when you are outbid: the
                     runtime you paid for was delivered. If two payments race for this surface, the contract accepts the first and reverts the other before its payment value moves.
                   </p>
@@ -319,15 +319,15 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                   <div className="rounded-lg border border-white/10 bg-black/30 p-3">
                     <div className="flex items-baseline justify-between">
                       <span className="label">Locked price</span>
-                      <span className="mono text-[20px] tracking-tight text-ink-50" data-testid="quote-amount">
+                      <span className="readout text-[20px] tracking-tight text-ink-50" data-testid="quote-amount">
                         {formatWei(quote.amountWei)}
                       </span>
                     </div>
-                    <div className="mono mt-1 text-[10px] uppercase tracking-[0.12em] text-ink-400">
+                    <div className="readout mt-1 text-[10px] uppercase tracking-[0.12em] text-ink-400">
                       On air the moment it confirms · guaranteed {formatDurationSec(quote.guaranteedSeconds)}, then until outbid
                     </div>
                     {quote.outbids && (
-                      <div className="mono mt-1.5 text-[10px] uppercase tracking-[0.12em] text-amber">
+                      <div className="readout mt-1.5 text-[10px] uppercase tracking-[0.12em] text-amber">
                         Takes the surface from {quote.outbids.displayName} · they paid {formatWei(quote.outbids.pricePaidWei)}
                       </div>
                     )}
@@ -335,7 +335,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                       <summary className="label cursor-pointer">How this price was reached</summary>
                       <ul className="mt-1 flex flex-col gap-0.5">
                         {quote.breakdown.map((l, i) => (
-                          <li key={i} className="mono flex justify-between gap-3 text-[10.5px] text-ink-300">
+                          <li key={i} className="readout flex justify-between gap-3 text-[10.5px] text-ink-300">
                             <span className="truncate">
                               {l.label}
                               {l.multiplierBps ? ` ×${(l.multiplierBps / 10000).toFixed(2)}` : ""}
@@ -346,8 +346,8 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                       </ul>
                     </details>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="mono text-[10px] text-ink-400">Price held for</span>
-                      <span className={cn("mono text-[11px]", quoteSecondsLeft < 30 ? "text-live" : "text-ink-100")} suppressHydrationWarning>
+                      <span className="readout text-[10px] text-ink-400">Price held for</span>
+                      <span className={cn("readout text-[11px]", quoteSecondsLeft < 30 ? "text-live" : "text-ink-100")} suppressHydrationWarning>
                         {Math.floor(quoteSecondsLeft / 60)}:{String(quoteSecondsLeft % 60).padStart(2, "0")}
                       </span>
                     </div>
@@ -374,7 +374,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                           {purchase.state.phase === "confirmed" && "Payment verified · you have the surface"}
                         </span>
                       </div>
-                      {purchase.state.txHash && <div className="mono mt-1 text-[10px] text-ink-400">tx {shortHash(purchase.state.txHash)}</div>}
+                      {purchase.state.txHash && <div className="readout mt-1 text-[10px] text-ink-400">tx {shortHash(purchase.state.txHash)}</div>}
                     </div>
                   )}
                   {purchase.state.error && <div className="text-[11.5px] text-[#ff8a83]" data-testid="payment-error">{purchase.state.error}</div>}
@@ -388,12 +388,12 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
               <div className="rounded-lg border border-signal/40 bg-signal-soft p-3">
                 <div className="label-strong text-signal">{campaign.status === "AIRING" ? "On air now" : campaign.status === "COMPLETED" ? "Run finished" : "Taking the surface…"}</div>
                 <div className="mt-1 text-[13px] text-ink-50">{campaign.displayName}</div>
-                <div className="mono mt-1 text-[10px] uppercase tracking-[0.12em] text-ink-300">
+                <div className="readout mt-1 text-[10px] uppercase tracking-[0.12em] text-ink-300">
                   {placement.name} · since {campaign.startsAt ? formatDateTime(campaign.startsAt) : "—"}
                   {campaign.status === "AIRING" && " · runs until outbid"}
                 </div>
                 {campaign.payment && (
-                  <div className="mono mt-2 text-[10px] text-ink-400">
+                  <div className="readout mt-2 text-[10px] text-ink-400">
                     paid {formatWei(campaign.payment.amountWei)} ·{" "}
                     {campaign.payment.txUrl ? (
                       <a href={campaign.payment.txUrl} target="_blank" rel="noreferrer" className="text-signal">

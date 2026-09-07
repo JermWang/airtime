@@ -19,7 +19,7 @@ import { formatWei, formatDurationSec, cn } from "@/lib/format";
 function Price({ row }: { row: BoardRowDto }) {
   const live = useLiveAsk(row.placement, row.surface);
   return (
-    <span className="mono text-[18px] leading-none tracking-tight text-signal">{live ? formatWei(live.askWei) : "—"}</span>
+    <span className="readout text-[18px] leading-none tracking-tight text-signal">{live ? formatWei(live.askWei) : "—"}</span>
   );
 }
 
@@ -47,7 +47,7 @@ function AdRow({ row, onPick }: { row: BoardRowDto; onPick: () => void }) {
     >
       <div className="min-w-0 flex-1">
         <div className="text-[12.5px] text-ink-50">{isBreak ? "In the commercial break" : row.placement.name}</div>
-        <div className="mono truncate text-[9.5px] uppercase tracking-[0.12em] text-ink-500">
+        <div className="readout truncate text-[9.5px] uppercase tracking-[0.12em] text-ink-500">
           {isBreak ? "full picture, every break" : "beside the picture, all the time"} · <Occupancy row={row} />
         </div>
       </div>
@@ -99,14 +99,14 @@ export function ProductChooser({ channelId = "MAIN", className }: { channelId?: 
           >
             <div className="flex items-baseline justify-between gap-2">
               <span className="label-strong">A show</span>
-              <span className="mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">up to 30 min</span>
+              <span className="readout text-[9.5px] uppercase tracking-[0.14em] text-ink-500">up to 30 min</span>
             </div>
             <p className="mt-2 min-h-[56px] text-[12px] leading-relaxed text-ink-300">
               Takes the whole picture. It plays to everyone in the room, in sync, from the moment you buy it until somebody pays more.
             </p>
             <div className="mt-2 flex items-baseline justify-between border-t border-white/10 pt-2.5">
-              <span className="mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">{show?.surface.occupant ? "to take it" : "price now"}</span>
-              <span className="mono text-[20px] leading-none tracking-tight text-signal">{showLive ? formatWei(showLive.askWei) : "—"}</span>
+              <span className="readout text-[9.5px] uppercase tracking-[0.14em] text-ink-500">{show?.surface.occupant ? "to take it" : "price now"}</span>
+              <span className="readout text-[20px] leading-none tracking-tight text-signal">{showLive ? formatWei(showLive.askWei) : "—"}</span>
             </div>
             <span className="btn btn-sm mt-3 w-full justify-center group-hover:border-signal group-hover:text-signal">
               {show?.surface.occupant ? "Outbid them" : "Put on a show"}
@@ -120,14 +120,14 @@ export function ProductChooser({ channelId = "MAIN", className }: { channelId?: 
           >
             <div className="flex items-baseline justify-between gap-2">
               <span className="label-strong">An ad</span>
-              <span className="mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">up to 30 sec</span>
+              <span className="readout text-[9.5px] uppercase tracking-[0.14em] text-ink-500">up to 30 sec</span>
             </div>
             <p className="mt-2 min-h-[56px] text-[12px] leading-relaxed text-ink-300">
               A spot in the break, or one of the two panels beside the picture. Runs for as long as you hold it. Much cheaper than a show.
             </p>
             <div className="mt-2 flex items-baseline justify-between border-t border-white/10 pt-2.5">
-              <span className="mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">from</span>
-              <span className="mono text-[20px] leading-none tracking-tight text-signal">
+              <span className="readout text-[9.5px] uppercase tracking-[0.14em] text-ink-500">from</span>
+              <span className="readout text-[20px] leading-none tracking-tight text-signal">
                 {ads.length ? formatWei(ads.map((a) => BigInt(a.surface.askWei)).reduce((a, b) => (a < b ? a : b))) : "—"}
               </span>
             </div>

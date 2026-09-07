@@ -105,7 +105,7 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
         <>
           <textarea className="field" rows={3} maxLength={140} placeholder="Ticker message (max 140 characters)" value={text} onChange={(e) => setText(e.target.value)} />
           <div className="flex items-center justify-between">
-            <span className="mono text-[10px] text-ink-400">{text.length}/140</span>
+            <span className="readout text-[10px] text-ink-400">{text.length}/140</span>
             <button className="btn btn-primary btn-sm" disabled={busy || !text.trim()} onClick={() => void submitText()}>
               {busy ? "Validating…" : current ? "Replace message" : "Use this message"}
             </button>
@@ -121,7 +121,7 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
             <button className={cn("btn btn-sm", tab === "file" && "border-signal text-signal")} onClick={() => setTab("file")} data-testid="tab-file">
               Upload a file
             </button>
-            <span className="mono ml-auto text-[9.5px] uppercase tracking-[0.12em] text-ink-500">{lengthLabel}</span>
+            <span className="readout ml-auto text-[9.5px] uppercase tracking-[0.12em] text-ink-500">{lengthLabel}</span>
           </div>
         )}
 
@@ -138,7 +138,7 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
               data-testid="creative-link-input"
             />
             <div className="flex items-center justify-between gap-3">
-              <span className="mono text-[9.5px] uppercase leading-relaxed tracking-[0.12em] text-ink-500">
+              <span className="readout text-[9.5px] uppercase leading-relaxed tracking-[0.12em] text-ink-500">
                 Direct video or HLS · {lengthLabel} · the station plays it itself, so it needs a real file, not a watch page
               </span>
               <button className="btn btn-primary btn-sm shrink-0" disabled={busy || !link.trim()} onClick={() => void submitLink()} data-testid="use-link">
@@ -181,7 +181,7 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
           ) : (
             <>
               <div className="text-[12.5px] text-ink-100">{current ? "Drop a new file to replace" : "Drop your creative here"}</div>
-              <div className="mono mt-1 text-[10px] uppercase tracking-[0.12em] text-ink-400">
+              <div className="readout mt-1 text-[10px] uppercase tracking-[0.12em] text-ink-400">
                 {allowsVideo ? "H.264 MP4 · PNG · JPEG · WebP" : "PNG · JPEG · WebP"} · {placement.aspectRatio} · {lengthLabel} · {(placement.maxFileBytes / 1024 / 1024).toFixed(0)} MB
               </div>
             </>

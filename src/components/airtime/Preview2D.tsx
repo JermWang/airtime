@@ -41,7 +41,7 @@ export function Preview2D({ placement, className }: { placement: PlacementDto; c
           preview.kind === "video" ? (
             <video src={preview.url} muted loop autoPlay playsInline className={cn("h-full w-full", preview.fit === "FILL" ? "object-cover" : "object-contain")} />
           ) : preview.kind === "text" ? (
-            <div className="mono flex h-full w-full items-center whitespace-nowrap px-6 text-[4cqw] uppercase tracking-[0.14em] text-signal" style={{ containerType: "inline-size" }}>
+            <div className="readout flex h-full w-full items-center whitespace-nowrap px-6 text-[4cqw] uppercase tracking-[0.14em] text-signal" style={{ containerType: "inline-size" }}>
               {preview.text}
             </div>
           ) : (
@@ -51,12 +51,12 @@ export function Preview2D({ placement, className }: { placement: PlacementDto; c
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-[radial-gradient(ellipse_at_center,#14171b,#07080a)]">
             <div className="label-strong">Available airtime</div>
-            <div className="mono text-[10px] text-ink-500">{placement.aspectRatio}</div>
+            <div className="readout text-[10px] text-ink-500">{placement.aspectRatio}</div>
           </div>
         )}
         {safe && <div className="pointer-events-none absolute inset-[5%] border border-dashed border-signal/60" />}
       </div>
-      <div className="mono mt-2 text-center text-[10px] uppercase tracking-[0.14em] text-ink-400">
+      <div className="readout mt-2 text-center text-[10px] uppercase tracking-[0.14em] text-ink-400">
         {placement.name} · {placement.aspectRatio}
         {placement.meshName ? ` · ${placement.meshName}` : ""}
       </div>

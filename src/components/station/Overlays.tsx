@@ -49,7 +49,7 @@ export function Overlays({ channelId = "MAIN" }: { channelId?: string }) {
       {tickerText && (
         <div className="absolute inset-x-0 bottom-0 flex h-[7%] min-h-[26px] items-center overflow-hidden border-t border-white/10 bg-black/70 backdrop-blur-sm">
           <div className="label-strong shrink-0 border-r border-white/15 px-3 text-signal">AIRTIME</div>
-          <div className="mono ticker-track pl-4 text-[clamp(11px,1.2vw,16px)] uppercase tracking-[0.12em] text-ink-100">
+          <div className="readout ticker-track pl-4 text-[clamp(11px,1.2vw,16px)] uppercase tracking-[0.12em] text-ink-100">
             {Array.from({ length: 6 }).map((_, i) => (
               <span key={i} className="pr-16">
                 {tickerText}

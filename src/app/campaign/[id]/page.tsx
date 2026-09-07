@@ -25,7 +25,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                 <span className={cn("chip", c.status === "AIRING" ? "chip-live" : ["PAID", "COMPLETED"].includes(c.status) ? "chip-signal" : ["REJECTED", "CANCELLED", "REFUNDED"].includes(c.status) ? "chip-amber" : "")}>{statusLabel(c.status)}</span>
               </div>
               <h1 className="text-[22px] font-medium tracking-tight text-ink-50">{c.displayName}</h1>
-              <div className="mono mt-1 text-[10.5px] uppercase tracking-[0.12em] text-ink-300">
+              <div className="readout mt-1 text-[10.5px] uppercase tracking-[0.12em] text-ink-300">
                 {c.placement.name} ·{" "}
                 {c.startsAt
                   ? c.endsAt
@@ -38,7 +38,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
               <ol className="mt-4 flex flex-wrap items-center gap-1.5">
                 {STEPS.map((s, i) => (
                   <li key={s} className="flex items-center gap-1.5">
-                    <span className={cn("mono text-[9.5px] uppercase tracking-[0.14em]", i < idx ? "text-signal" : i === idx ? "text-ink-50" : "text-ink-600")}>{statusLabel(s)}</span>
+                    <span className={cn("readout text-[9.5px] uppercase tracking-[0.14em]", i < idx ? "text-signal" : i === idx ? "text-ink-50" : "text-ink-600")}>{statusLabel(s)}</span>
                     {i < STEPS.length - 1 && <span className={cn("h-px w-3", i < idx ? "bg-signal" : "bg-white/10")} />}
                   </li>
                 ))}
@@ -50,7 +50,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                 <div className="flex gap-4">
                   <div className="w-56 shrink-0 overflow-hidden rounded-md border border-white/10 bg-black" style={{ aspectRatio: c.placement.aspectRatio.replace(":", " / ") }}>
                     {c.creative.type === "TEXT" ? (
-                      <div className="mono flex h-full items-center justify-center px-3 text-center text-[11px] uppercase tracking-[0.12em] text-signal">{c.creative.textContent}</div>
+                      <div className="readout flex h-full items-center justify-center px-3 text-center text-[11px] uppercase tracking-[0.12em] text-signal">{c.creative.textContent}</div>
                     ) : c.creative.type === "VIDEO" ? (
                       <video src={c.creative.url ?? undefined} muted controls playsInline className="h-full w-full object-contain" />
                     ) : (
@@ -58,7 +58,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                       <img src={c.creative.url ?? ""} alt="" className={cn("h-full w-full", c.fit === "FILL" ? "object-cover" : "object-contain")} />
                     )}
                   </div>
-                  <dl className="mono grid flex-1 grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[10.5px] text-ink-300">
+                  <dl className="readout grid flex-1 grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[10.5px] text-ink-300">
                     <dt>Type</dt>
                     <dd className="text-ink-100">{c.creative.type}</dd>
                     {c.creative.width && (
@@ -88,7 +88,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
             <div className="glass rounded-lg p-4">
               <div className="label mb-2">Payment</div>
               {c.payment ? (
-                <dl className="mono grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[10.5px] text-ink-300">
+                <dl className="readout grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[10.5px] text-ink-300">
                   <dt>Amount</dt>
                   <dd className="text-ink-50">{formatWei(c.payment.amountWei)}</dd>
                   <dt>Status</dt>
@@ -116,7 +116,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
             </div>
             <div className="glass rounded-lg p-4">
               <div className="label mb-2">Buyer</div>
-              <div className="mono break-all text-[10.5px] text-ink-100">{c.wallet}</div>
+              <div className="readout break-all text-[10.5px] text-ink-100">{c.wallet}</div>
             </div>
             {c.airLogId && (
               <Link href={`/airlog/${c.airLogId}`} className="btn btn-primary">

@@ -66,12 +66,12 @@ export default function SchedulePage() {
               const past = end <= now;
               return (
                 <li key={b.id} className={cn("flex items-center gap-3 rounded-md px-2 py-1.5", isNow && "bg-signal-soft", past && "opacity-40")}>
-                  <span className="mono w-12 text-[10px] text-ink-300">{formatClock(b.startsAt, false)}</span>
+                  <span className="readout w-12 text-[10px] text-ink-300">{formatClock(b.startsAt, false)}</span>
                   <span className={cn("chip", b.type === "AD_BREAK" ? "chip-signal" : b.type === "LIVE_HLS" ? "chip-live" : "")}>{b.type}</span>
                   <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-50">
                     {b.title} {b.isManual && <span className="chip chip-amber ml-1">manual</span>}
                   </span>
-                  <span className="mono text-[10px] text-ink-400">{formatDurationSec(b.durationSec)}</span>
+                  <span className="readout text-[10px] text-ink-400">{formatDurationSec(b.durationSec)}</span>
                   {isNow ? (
                     <button className="btn btn-sm btn-danger" onClick={() => endBlock.mutate(b.id)}>
                       End now
@@ -176,8 +176,8 @@ export default function SchedulePage() {
                   <td className="text-ink-50">
                     {p.title} {p.isDevData && <span className="chip ml-1">dev data</span>}
                   </td>
-                  <td className="mono text-[10.5px]">{p.mediaType}</td>
-                  <td className="mono text-[10.5px]">{formatDurationSec(p.durationSec)}</td>
+                  <td className="readout text-[10.5px]">{p.mediaType}</td>
+                  <td className="readout text-[10.5px]">{formatDurationSec(p.durationSec)}</td>
                   <td>
                     <input type="checkbox" checked={p.isPremium} onChange={(e) => patchProgram.mutate({ id: p.id, body: { isPremium: e.target.checked } })} />
                   </td>

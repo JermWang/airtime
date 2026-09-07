@@ -74,11 +74,11 @@ export function FlipCard({ index, eyebrow, title, frontNote, media, children, ct
               style={{ background: "linear-gradient(0deg,rgba(0,0,0,.96) 0%,rgba(0,0,0,.82) 46%,rgba(0,0,0,0) 100%)" }}
             />
             <div className="relative w-full px-6">
-              <div className="mono text-[10px] uppercase tracking-[0.2em] text-signal">
+              <div className="readout text-[10px] uppercase tracking-[0.2em] text-signal">
                 {index} · {eyebrow}
               </div>
               <h3 className="mt-3 text-[clamp(22px,2.2vw,30px)] font-medium leading-[1.04] tracking-[-0.04em] text-ink-50 [text-wrap:pretty]">{title}</h3>
-              <div className="mono -mx-6 mt-6 flex items-center justify-between gap-4 whitespace-nowrap border-t border-white/[0.14] px-6 py-4 text-[10px] uppercase tracking-[0.18em]">
+              <div className="readout -mx-6 mt-6 flex items-center justify-between gap-4 whitespace-nowrap border-t border-white/[0.14] px-6 py-4 text-[10px] uppercase tracking-[0.18em]">
                 <span className="text-ink-200">{frontNote}</span>
                 <span className="text-signal">Turn over ↻</span>
               </div>
@@ -99,18 +99,18 @@ export function FlipCard({ index, eyebrow, title, frontNote, media, children, ct
           data-testid={id ? `${id}-panel-back` : undefined}
         >
           <div className="scrollbar-thin min-h-0 flex-1 overflow-auto px-6 pt-6">
-            <div className="mono text-[10px] uppercase tracking-[0.2em] text-signal">
+            <div className="readout text-[10px] uppercase tracking-[0.2em] text-signal">
               {index} · {eyebrow}
             </div>
             <h2 className="mt-3.5 text-[clamp(26px,2.6vw,36px)] font-medium leading-[1.02] tracking-[-0.04em] text-ink-50 [text-wrap:pretty]">{title}</h2>
             {children}
             <div className="h-6" />
           </div>
-          <div className="mono flex items-center justify-between gap-4 whitespace-nowrap border-t border-white/12 bg-signal/[0.06] px-6 py-4 text-[10px] uppercase tracking-[0.18em]">
-            <Link href={cta.href} className="mono uppercase text-signal transition hover:text-ink-50" tabIndex={flipped ? 0 : -1}>
+          <div className="readout flex items-center justify-between gap-4 whitespace-nowrap border-t border-white/12 bg-signal/[0.06] px-6 py-4 text-[10px] uppercase tracking-[0.18em]">
+            <Link href={cta.href} className="readout uppercase text-signal transition hover:text-ink-50" tabIndex={flipped ? 0 : -1}>
               {cta.label} →
             </Link>
-            <button type="button" onClick={toggle} aria-label={label} className="mono uppercase text-ink-300 transition hover:text-ink-50" tabIndex={flipped ? 0 : -1}>
+            <button type="button" onClick={toggle} aria-label={label} className="readout uppercase text-ink-300 transition hover:text-ink-50" tabIndex={flipped ? 0 : -1}>
               Turn back ↻
             </button>
           </div>

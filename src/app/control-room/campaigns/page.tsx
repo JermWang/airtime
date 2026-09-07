@@ -49,12 +49,12 @@ export default function CampaignsPage() {
                   </Link>
                   {c.rejectionReason && <div className="text-[10px] text-amber">{c.rejectionReason}</div>}
                 </td>
-                <td className="mono text-[10.5px]">{c.placement.name}</td>
-                <td className="mono text-[10.5px]">
+                <td className="readout text-[10.5px]">{c.placement.name}</td>
+                <td className="readout text-[10.5px]">
                   {c.startsAt ? formatDateTime(c.startsAt) : "—"} {c.durationSec ? `· ${formatDurationSec(c.durationSec)}` : ""}
                 </td>
-                <td className="mono text-[10.5px]">{shortAddress(c.wallet)}</td>
-                <td className="mono text-[10.5px]">
+                <td className="readout text-[10.5px]">{shortAddress(c.wallet)}</td>
+                <td className="readout text-[10.5px]">
                   {c.payment ? (
                     <>
                       {formatWei(c.payment.amountWei)} ·{" "}
@@ -91,7 +91,7 @@ export default function CampaignsPage() {
                   {c.payment && c.payment.status !== "REFUNDED" && ["COMPLETED", "CANCELLED", "REJECTED", "QUEUED", "PAID"].includes(c.status) && (
                     <span className="ml-1 inline-flex items-center gap-1">
                       <input
-                        className="field mono w-44 text-[10px]"
+                        className="field readout w-44 text-[10px]"
                         aria-label={`Refund transaction for ${c.displayName}`}
                         placeholder="Refund tx hash"
                         value={refundHashes[c.id] ?? ""}

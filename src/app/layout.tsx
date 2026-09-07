@@ -1,12 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
-
 /**
- * The station ships its own sans so every visitor reads the same face. The
+ * The station ships one face, and every visitor reads it. The
  * design is drawn against Helvetica Now, which is a licensed Monotype family
  * and cannot be served here; without it the page fell through to Helvetica Neue
  * on macOS and Arial on Windows, so the type looked different per platform.
@@ -60,7 +58,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={inter.variable}>
       <body className="min-h-full bg-ink-950 text-ink-100 antialiased">
         <Providers>{children}</Providers>
       </body>

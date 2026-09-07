@@ -115,7 +115,7 @@ export default function InfoPage() {
             <div key={type} className="card p-5">
               <div className="flex items-baseline justify-between gap-3">
                 <h3 className="text-[15px] font-medium tracking-tight text-ink-50">{TYPE_LABEL[type]}</h3>
-                <span className="mono text-[10px] uppercase tracking-[0.14em] text-ink-500">{list.length} surfaces</span>
+                <span className="readout text-[10px] uppercase tracking-[0.14em] text-ink-500">{list.length} surfaces</span>
               </div>
               <p className="body-copy mt-1.5 text-ink-300">{TYPE_BLURB[type]}</p>
               <ul className="mt-4 flex flex-col divide-y divide-white/5 border-t border-white/5">
@@ -124,11 +124,11 @@ export default function InfoPage() {
                     <Link href={`/airtime/${p.id}`} className="flex items-center gap-3 py-2.5 transition hover:bg-white/[0.03]">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] text-ink-100">{p.name}</span>
-                        <span className="mono block truncate text-[10px] uppercase tracking-[0.12em] text-ink-500">
+                        <span className="readout block truncate text-[10px] uppercase tracking-[0.12em] text-ink-500">
                           {p.aspectRatio} · {p.mediaTypes.join("/")} · {occupant ? `held by ${occupant.displayName}` : surface.forSale ? "open" : "not for sale"}
                         </span>
                       </span>
-                      <span className="mono shrink-0 text-right text-[10px] tracking-[0.08em] text-ink-200">
+                      <span className="readout shrink-0 text-right text-[10px] tracking-[0.08em] text-ink-200">
                         <span className="block">{formatWei(surface.askWei)}</span>
                         <span className="block text-ink-500">asking now</span>
                       </span>
@@ -216,7 +216,7 @@ export default function InfoPage() {
           </div>
           <div className="mt-6 border-l border-signal/50 pl-4">
             <div className="text-[14px] font-medium tracking-tight text-ink-50">{FOUNDER.name}</div>
-            {FOUNDER.role && <div className="mono mt-1 text-[10px] uppercase tracking-[0.16em] text-ink-400">{FOUNDER.role}</div>}
+            {FOUNDER.role && <div className="readout mt-1 text-[10px] uppercase tracking-[0.16em] text-ink-400">{FOUNDER.role}</div>}
           </div>
         </div>
       </section>

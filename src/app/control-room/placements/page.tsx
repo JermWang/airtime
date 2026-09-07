@@ -119,11 +119,11 @@ export default function PlacementsPage() {
                 <button className={cn("flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left hover:bg-white/5", selectedId === p.id && "bg-white/10")} onClick={() => setSelectedId(p.id)}>
                   <div className="min-w-0">
                     <div className={cn("truncate text-[12.5px]", p.isActive ? "text-ink-50" : "text-ink-500 line-through")}>{p.name}</div>
-                    <div className="mono truncate text-[9.5px] uppercase tracking-[0.12em] text-ink-400">
+                    <div className="readout truncate text-[9.5px] uppercase tracking-[0.12em] text-ink-400">
                       {p.id} · {p.meshName ?? "transform"}
                     </div>
                   </div>
-                  <span className="mono text-[10px] text-ink-300">{formatWei(p.auction.openingPriceWei)}</span>
+                  <span className="readout text-[10px] text-ink-300">{formatWei(p.auction.openingPriceWei)}</span>
                 </button>
               </li>
             ))}

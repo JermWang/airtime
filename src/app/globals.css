@@ -38,7 +38,17 @@
    * public/fonts, add the @font-face block below, and name it ahead of Inter.
    */
   --font-sans: var(--font-inter), "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
+  /*
+   * There is one face on this station. The labels, prices and chips used to be
+   * set in JetBrains Mono, which gave every readout the look of a digital clock
+   * and made the page read as two typefaces arguing. They are the same sans as
+   * everything else now; what makes a readout a readout is the tracking, the
+   * caps and the tabular figures, not a second family.
+   *
+   * Code keeps a monospace, because a route or an env var has to line up. It is
+   * whatever the reader's system ships, so no second webfont is downloaded.
+   */
+  --font-code: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --shadow-glass: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 20px 60px rgba(0, 0, 0, 0.45);
   --shadow-panel: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
@@ -133,14 +143,18 @@ textarea {
 
 /* ---- typographic utilities ------------------------------------------- */
 
-.mono {
-  font-family: var(--font-mono);
+/*
+ * A readout: a price, a count, a clock-free label. Figures are tabular so a
+ * ticking number never shifts the layout under it.
+ */
+.readout {
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
 }
 
 .label {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -148,7 +162,7 @@ textarea {
 }
 
 .label-strong {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -213,7 +227,7 @@ textarea {
   border-radius: 6px;
   border: 1px solid var(--color-line-strong);
   background: rgba(255, 255, 255, 0.04);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -299,7 +313,7 @@ select.field {
   flex-shrink: 0;
   border-radius: 4px;
   border: 1px solid var(--color-line);
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -408,7 +422,7 @@ table.data {
 }
 table.data th {
   text-align: left;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -467,7 +481,7 @@ table.data tr:hover td {
 /* ---- editorial pages --------------------------------------------------- */
 
 .eyebrow {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -523,14 +537,14 @@ table.data tr:hover td {
 
 /* Numbered step with a hairline spine. */
 .step-index {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10px;
   letter-spacing: 0.16em;
   color: var(--color-signal);
 }
 
 code.inline {
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
   font-size: 11.5px;
   padding: 1px 5px;
   border-radius: 4px;
@@ -541,7 +555,7 @@ code.inline {
 }
 
 pre.block {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 11.5px;
   line-height: 1.75;
   padding: 12px 14px;

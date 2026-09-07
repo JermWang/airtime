@@ -147,9 +147,25 @@ interface HouseOptions {
   seed?: number;
 }
 
-/** Same stack the page uses, so canvas type matches DOM type. */
-const SANS = '"Helvetica Now Display", "HelveticaNowDisplay", "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif';
-const MONO = '"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace';
+/**
+ * The station's own face, read off the page.
+ *
+ * A canvas needs a real family name, and next/font's is generated at build
+ * time, so naming a stack here is how the room used to end up set in something
+ * the page never used. This reads the *computed* family off the body — the
+ * token itself is still `var(--font-inter), …`, which a canvas cannot parse —
+ * so the type on a surface is the type on the page, whatever it is.
+ */
+const FALLBACK_SANS = '"Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif';
+let cachedSans: string | null = null;
+
+function sans(): string {
+  if (cachedSans) return cachedSans;
+  if (typeof document === "undefined" || !document.body) return FALLBACK_SANS;
+  const computed = getComputedStyle(document.body).fontFamily.trim();
+  cachedSans = computed || FALLBACK_SANS;
+  return cachedSans;
+}
 
 /**
  * Shrink a font size until the text fits in maxWidth, then wrap into at most
@@ -235,7 +251,7 @@ export function createHouseTexture(opts: HouseOptions): SurfaceTexture {
   const maxW = W - pad - textX;
 
   if (opts.variant === "ribbon") {
-    const { lines, size } = fitText(ctx, (opts.label ?? "AIRTIME").toUpperCase(), { weight: 600, family: SANS, size: H * 0.55, minSize: 12, maxWidth: inner - barW * 3, maxLines: 1, letterSpacing: 0.18 });
+    const { lines, size } = fitText(ctx, (opts.label ?? "AIRTIME").toUpperCase(), { weight: 600, family: sans(), size: H * 0.55, minSize: 12, maxWidth: inner - barW * 3, maxLines: 1, letterSpacing: 0.18 });
     ctx.fillStyle = "#ccff00";
     ctx.fillRect(pad, H * 0.25, barW, H * 0.5);
     ctx.fillStyle = "#f2f4f7";
@@ -243,9 +259,9 @@ export function createHouseTexture(opts: HouseOptions): SurfaceTexture {
     ctx.fillText(lines[0], textX, H / 2 + size * 0.04);
   } else {
     const label = (opts.label ?? "AIRTIME").toUpperCase();
-    const head = fitText(ctx, label, { weight: 600, family: SANS, size: unit * 0.13, minSize: 14, maxWidth: maxW, maxLines: 2, letterSpacing: 0.16 });
+    const head = fitText(ctx, label, { weight: 600, family: sans(), size: unit * 0.13, minSize: 14, maxWidth: maxW, maxLines: 2, letterSpacing: 0.16 });
     const lineH = head.size * 1.12;
-    const sub = opts.sublabel ? fitText(ctx, opts.sublabel.toUpperCase(), { weight: 500, family: MONO, size: head.size * 0.34, minSize: 9, maxWidth: maxW, maxLines: 2, letterSpacing: 0.08 }) : null;
+    const sub = opts.sublabel ? fitText(ctx, opts.sublabel.toUpperCase(), { weight: 500, family: sans(), size: head.size * 0.34, minSize: 9, maxWidth: maxW, maxLines: 2, letterSpacing: 0.08 }) : null;
     const blockH = head.lines.length * lineH + (sub ? sub.lines.length * sub.size * 1.4 + head.size * 0.35 : 0);
     let y = H / 2 - blockH / 2;
 
@@ -257,7 +273,7 @@ export function createHouseTexture(opts: HouseOptions): SurfaceTexture {
 
     ctx.textBaseline = "top";
     ctx.fillStyle = "#f2f4f7";
-    ctx.font = `600 ${head.size}px ${SANS}`;
+    ctx.font = `600 ${head.size}px ${sans()}`;
     ctx.letterSpacing = `${0.16 * head.size}px`;
     for (const line of head.lines) {
       ctx.fillText(line, textX, y);
@@ -266,7 +282,7 @@ export function createHouseTexture(opts: HouseOptions): SurfaceTexture {
     if (sub) {
       y += head.size * 0.35;
       ctx.fillStyle = "rgba(185,193,204,0.9)";
-      ctx.font = `500 ${sub.size}px ${MONO}`;
+      ctx.font = `500 ${sub.size}px ${sans()}`;
       ctx.letterSpacing = `${0.08 * sub.size}px`;
       for (const line of sub.lines) {
         ctx.fillText(line, textX, y);
@@ -274,7 +290,7 @@ export function createHouseTexture(opts: HouseOptions): SurfaceTexture {
       }
     }
 
-    const foot = fitText(ctx, "AVAILABLE AIRTIME", { weight: 500, family: MONO, size: Math.max(9, head.size * 0.26), minSize: 8, maxWidth: inner, maxLines: 1, letterSpacing: 0.12 });
+    const foot = fitText(ctx, "AVAILABLE AIRTIME", { weight: 500, family: sans(), size: Math.max(9, head.size * 0.26), minSize: 8, maxWidth: inner, maxLines: 1, letterSpacing: 0.12 });
     ctx.fillStyle = "rgba(255,255,255,0.35)";
     ctx.textAlign = "right";
     ctx.textBaseline = "alphabetic";
@@ -296,7 +312,7 @@ export function createTickerTexture(text: string, aspect: string): SurfaceTextur
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
-  const font = `600 ${H * 0.62}px ${MONO}`;
+  const font = `600 ${H * 0.62}px ${sans()}`;
   ctx.font = font;
   ctx.letterSpacing = `${H * 0.08}px`;
   const content = `${text.toUpperCase()}     •     `;
@@ -352,9 +368,9 @@ function paintShowcaseCard(ctx: CanvasRenderingContext2D, card: ShowcaseCard, x0
   const textX = x0 + pad + barW + Math.round(unit * 0.05);
   const maxW = x0 + w - pad - textX;
 
-  const label = fitText(ctx, card.label.toUpperCase(), { weight: 500, family: MONO, size: unit * 0.05, minSize: 9, maxWidth: maxW, maxLines: 1, letterSpacing: 0.16 });
-  const head = fitText(ctx, card.headline, { weight: 600, family: SANS, size: unit * 0.16, minSize: 16, maxWidth: maxW, maxLines: 3, letterSpacing: -0.02 });
-  const sub = card.sublabel ? fitText(ctx, card.sublabel.toUpperCase(), { weight: 500, family: MONO, size: unit * 0.042, minSize: 9, maxWidth: maxW, maxLines: 2, letterSpacing: 0.08 }) : null;
+  const label = fitText(ctx, card.label.toUpperCase(), { weight: 500, family: sans(), size: unit * 0.05, minSize: 9, maxWidth: maxW, maxLines: 1, letterSpacing: 0.16 });
+  const head = fitText(ctx, card.headline, { weight: 600, family: sans(), size: unit * 0.16, minSize: 16, maxWidth: maxW, maxLines: 3, letterSpacing: -0.02 });
+  const sub = card.sublabel ? fitText(ctx, card.sublabel.toUpperCase(), { weight: 500, family: sans(), size: unit * 0.042, minSize: 9, maxWidth: maxW, maxLines: 2, letterSpacing: 0.08 }) : null;
 
   const headLine = head.size * 1.08;
   const blockH = label.size * 1.9 + head.lines.length * headLine + (sub ? head.size * 0.3 + sub.lines.length * sub.size * 1.45 : 0);
@@ -366,13 +382,13 @@ function paintShowcaseCard(ctx: CanvasRenderingContext2D, card: ShowcaseCard, x0
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillStyle = accent;
-  ctx.font = `500 ${label.size}px ${MONO}`;
+  ctx.font = `500 ${label.size}px ${sans()}`;
   ctx.letterSpacing = `${0.16 * label.size}px`;
   ctx.fillText(label.lines[0], textX, y);
   y += label.size * 1.9;
 
   ctx.fillStyle = "#f4f6f8";
-  ctx.font = `600 ${head.size}px ${SANS}`;
+  ctx.font = `600 ${head.size}px ${sans()}`;
   ctx.letterSpacing = `${-0.02 * head.size}px`;
   for (const line of head.lines) {
     ctx.fillText(line, textX, y);
@@ -382,7 +398,7 @@ function paintShowcaseCard(ctx: CanvasRenderingContext2D, card: ShowcaseCard, x0
   if (sub) {
     y += head.size * 0.3;
     ctx.fillStyle = "rgba(185,193,204,0.85)";
-    ctx.font = `500 ${sub.size}px ${MONO}`;
+    ctx.font = `500 ${sub.size}px ${sans()}`;
     ctx.letterSpacing = `${0.08 * sub.size}px`;
     for (const line of sub.lines) {
       ctx.fillText(line, textX, y);
@@ -404,7 +420,7 @@ export function paintExampleBadge(ctx: CanvasRenderingContext2D, x0: number, y0:
   const unit = Math.min(w, h);
   const pad = Math.round(unit * 0.09);
   const badgeSize = Math.max(9, Math.round(unit * 0.036));
-  ctx.font = `600 ${badgeSize}px ${MONO}`;
+  ctx.font = `600 ${badgeSize}px ${sans()}`;
   ctx.letterSpacing = `${badgeSize * 0.2}px`;
   const text = "EXAMPLE";
   const bw = ctx.measureText(text).width + badgeSize * 1.8;
@@ -421,7 +437,7 @@ export function paintExampleBadge(ctx: CanvasRenderingContext2D, x0: number, y0:
   ctx.textAlign = "left";
   ctx.fillText(text, bx + badgeSize * 0.9, by + bh / 2);
 
-  const foot = fitText(ctx, footer, { weight: 500, family: MONO, size: badgeSize, minSize: 8, maxWidth: w - pad * 2, maxLines: 1, letterSpacing: 0.12 });
+  const foot = fitText(ctx, footer, { weight: 500, family: sans(), size: badgeSize, minSize: 8, maxWidth: w - pad * 2, maxLines: 1, letterSpacing: 0.12 });
   ctx.fillStyle = "rgba(255,255,255,0.32)";
   ctx.textAlign = "right";
   ctx.textBaseline = "alphabetic";

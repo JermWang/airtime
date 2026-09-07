@@ -25,18 +25,18 @@ export default function PaymentsPage() {
         <tbody>
           {data?.payments.map((p) => (
             <tr key={p.id}>
-              <td className="mono text-[10.5px]">{formatDateTime(p.confirmedAt)}</td>
+              <td className="readout text-[10.5px]">{formatDateTime(p.confirmedAt)}</td>
               <td>
                 <Link href={`/campaign/${p.campaignId}`} className="text-ink-50 hover:text-signal">
                   {p.campaignName}
                 </Link>
               </td>
-              <td className="mono text-[10.5px]">{p.placementId}</td>
-              <td className="mono text-[10.5px]" title={p.buyer}>
+              <td className="readout text-[10.5px]">{p.placementId}</td>
+              <td className="readout text-[10.5px]" title={p.buyer}>
                 {shortAddress(p.buyer)}
               </td>
-              <td className="mono text-[10.5px] text-ink-50">{formatWei(p.amountWei)}</td>
-              <td className="mono text-[10.5px]">
+              <td className="readout text-[10.5px] text-ink-50">{formatWei(p.amountWei)}</td>
+              <td className="readout text-[10.5px]">
                 {p.txUrl ? (
                   <a href={p.txUrl} target="_blank" rel="noreferrer" className="text-signal">
                     {shortHash(p.txHash)}
@@ -45,7 +45,7 @@ export default function PaymentsPage() {
                   <span title={p.txHash}>{shortHash(p.txHash)}</span>
                 )}
               </td>
-              <td className="mono text-[10.5px]">{p.blockNumber}</td>
+              <td className="readout text-[10.5px]">{p.blockNumber}</td>
               <td>
                 <StatusChip status={p.status} />
               </td>

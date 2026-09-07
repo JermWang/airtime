@@ -99,8 +99,8 @@ export function StationChat({ channelId = "MAIN", className, compact = false }: 
             return (
               <li key={m.id} className="flex flex-col gap-0.5">
                 <div className="flex items-baseline gap-2">
-                  <span className={cn("mono text-[10px] uppercase tracking-[0.12em]", mine ? "text-signal" : "text-ink-400")}>{shortAddress(m.wallet)}</span>
-                  <time className="mono text-[9px] uppercase tracking-[0.12em] text-ink-600" dateTime={m.at} suppressHydrationWarning>
+                  <span className={cn("readout text-[10px] uppercase tracking-[0.12em]", mine ? "text-signal" : "text-ink-400")}>{shortAddress(m.wallet)}</span>
+                  <time className="readout text-[9px] uppercase tracking-[0.12em] text-ink-600" dateTime={m.at} suppressHydrationWarning>
                     {new Date(m.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </time>
                 </div>
@@ -148,7 +148,7 @@ export function StationChat({ channelId = "MAIN", className, compact = false }: 
           <span className={cn("text-[11px]", error ? "text-amber" : "text-ink-500")}>
             {error ?? (signedIn ? "One message every couple of seconds. Be decent." : "")}
           </span>
-          {signedIn && <span className={cn("mono text-[10px]", remaining < 30 ? "text-amber" : "text-ink-600")}>{remaining}</span>}
+          {signedIn && <span className={cn("readout text-[10px]", remaining < 30 ? "text-amber" : "text-ink-600")}>{remaining}</span>}
         </div>
       </div>
     </div>

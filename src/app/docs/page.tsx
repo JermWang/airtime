@@ -346,7 +346,7 @@ pnpm test:e2e            # full purchase path in a real browser`}</pre>
                     ["/control-room", "Master control, authenticated"],
                   ].map(([route, purpose]) => (
                     <tr key={route}>
-                      <td className="mono text-ink-50">{route}</td>
+                      <td className="readout text-ink-50">{route}</td>
                       <td>{purpose}</td>
                     </tr>
                   ))}

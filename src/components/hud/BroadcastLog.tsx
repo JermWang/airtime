@@ -49,17 +49,17 @@ export function BroadcastLog({ channelId = "MAIN", className, compact = false }:
                       <img src={e.creative.posterUrl ?? e.creative.url ?? ""} alt="" className="h-full w-full object-cover" />
                     )
                   ) : (
-                    <div className="mono flex h-full items-center justify-center text-[9px] text-signal">TXT</div>
+                    <div className="readout flex h-full items-center justify-center text-[9px] text-signal">TXT</div>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[12.5px] text-ink-50">{e.displayName}</div>
-                  <div className="mono truncate text-[10px] uppercase tracking-[0.12em] text-ink-300">
+                  <div className="readout truncate text-[10px] uppercase tracking-[0.12em] text-ink-300">
                     {e.placementName}
                     {e.pricePaidWei ? ` · paid ${formatWei(e.pricePaidWei)}` : ""}
                   </div>
                 </div>
-                <div className="mono shrink-0 text-right text-[10px] tracking-[0.08em] text-ink-300">
+                <div className="readout shrink-0 text-right text-[10px] tracking-[0.08em] text-ink-300">
                   <div suppressHydrationWarning>
                     {e.startsAt ? (e.endsAt ? `ran ${formatDurationSec(e.runtimeSec ?? 0)}` : `on air ${formatDurationSec(Math.max(0, Math.floor((now - new Date(e.startsAt).getTime()) / 1000)))}`) : "—"}
                   </div>
@@ -68,7 +68,7 @@ export function BroadcastLog({ channelId = "MAIN", className, compact = false }:
                   </div>
                 </div>
                 {!compact && e.txUrl && (
-                  <a href={e.txUrl} target="_blank" rel="noreferrer" className="mono hidden shrink-0 text-[10px] text-signal opacity-0 transition group-hover:opacity-100 lg:block" onClick={(ev) => ev.stopPropagation()} title={e.txHash ?? ""}>
+                  <a href={e.txUrl} target="_blank" rel="noreferrer" className="readout hidden shrink-0 text-[10px] text-signal opacity-0 transition group-hover:opacity-100 lg:block" onClick={(ev) => ev.stopPropagation()} title={e.txHash ?? ""}>
                     {shortHash(e.txHash)}
                   </a>
                 )}
@@ -94,7 +94,7 @@ export function BroadcastLog({ channelId = "MAIN", className, compact = false }:
                 {data!.recent.map((e) => (
                   <li key={e.id} className="flex items-center justify-between px-2 py-1 text-[11px]">
                     <span className="truncate text-ink-200">{e.displayName}</span>
-                    <Link href={`/airlog/${e.id}`} className="mono text-[10px] uppercase tracking-[0.12em] text-signal">
+                    <Link href={`/airlog/${e.id}`} className="readout text-[10px] uppercase tracking-[0.12em] text-signal">
                       AirLog
                     </Link>
                   </li>

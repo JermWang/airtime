@@ -44,7 +44,7 @@ export function PlacementHighlight({ surface, placement, visible, strong, campai
         <Html position={labelPos} center distanceFactor={local ? undefined : 9} transform={false} zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
           <div className="glass whitespace-nowrap rounded-md px-2.5 py-1.5" style={{ opacity: strong ? 1 : 0.85 }}>
             <div className="label-strong">{placement.name}</div>
-            <div className="mono text-[10px] tracking-[0.1em] text-ink-300">
+            <div className="readout text-[10px] tracking-[0.1em] text-ink-300">
               {campaign ? `On air · ${campaign.displayName}` : `open · from ${formatWei(placement.auction.floorPriceWei)}`}
             </div>
           </div>

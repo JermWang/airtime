@@ -302,7 +302,7 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
           can never be read as a spot somebody bought. The card carries its own
           badge. */}
       {visible && (source?.kind === "house-image" || source?.kind === "house-video") && !holding && !error && (
-        <span className="mono absolute left-3 top-3 rounded-sm border border-white/25 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-ink-200">
+        <span className="readout absolute left-3 top-3 rounded-sm border border-white/25 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-ink-200">
           Example · this break is available
         </span>
       )}

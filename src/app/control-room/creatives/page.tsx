@@ -26,7 +26,7 @@ export default function ModerationPage() {
             <div key={c.id} className="rounded-md border border-white/10 bg-black/30 p-3">
               <div className="mb-2 aspect-video overflow-hidden rounded bg-black">
                 {c.type === "TEXT" ? (
-                  <div className="mono flex h-full items-center justify-center px-3 text-center text-[11px] uppercase tracking-[0.12em] text-signal">{c.textContent}</div>
+                  <div className="readout flex h-full items-center justify-center px-3 text-center text-[11px] uppercase tracking-[0.12em] text-signal">{c.textContent}</div>
                 ) : c.type === "VIDEO" ? (
                   <video src={c.url ?? undefined} controls muted playsInline className="h-full w-full object-contain" />
                 ) : c.url ? (
@@ -38,9 +38,9 @@ export default function ModerationPage() {
               </div>
               <div className="flex items-center justify-between">
                 <StatusChip status={c.status} />
-                <span className="mono text-[10px] text-ink-400">{formatDateTime(c.createdAt)}</span>
+                <span className="readout text-[10px] text-ink-400">{formatDateTime(c.createdAt)}</span>
               </div>
-              <div className="mono mt-1 text-[10px] text-ink-300">
+              <div className="readout mt-1 text-[10px] text-ink-300">
                 {c.type} · {c.placementId ?? "—"} · {shortAddress(c.wallet)}
                 {c.width ? ` · ${c.width}×${c.height}` : ""}
                 {c.durationSec ? ` · ${c.durationSec}s` : ""}

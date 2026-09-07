@@ -52,7 +52,7 @@ export function AskTicker({ placement, surface, className }: Props) {
     <div className={cn("rounded-lg border border-white/10 bg-black/30 p-3", className)} data-testid="ask-ticker" data-status={surface.status}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="label">{occupant ? "Price to take it" : "Price now"}</span>
-        <span className="mono text-[24px] leading-none tracking-tight text-signal" data-testid="ask-amount">
+        <span className="readout text-[24px] leading-none tracking-tight text-signal" data-testid="ask-amount">
           {formatWei(live.askWei)}
         </span>
       </div>
@@ -61,7 +61,7 @@ export function AskTicker({ placement, surface, className }: Props) {
       <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-white/10">
         <div className="h-full rounded-full bg-signal/70 transition-[width] duration-500" style={{ width: `${Math.round((1 - live.progress) * 100)}%` }} />
       </div>
-      <div className="mono mt-1 flex justify-between text-[9.5px] uppercase tracking-[0.12em] text-ink-500">
+      <div className="readout mt-1 flex justify-between text-[9.5px] uppercase tracking-[0.12em] text-ink-500">
         <span>{formatWei(live.floorWei)}</span>
         <span>{formatWei(live.anchorWei)}</span>
       </div>
@@ -88,19 +88,19 @@ export function AskTicker({ placement, surface, className }: Props) {
         <div className="mt-2.5 border-t border-white/10 pt-2.5">
           <div className="flex items-baseline justify-between gap-2">
             <span className="label">On it now</span>
-            <span className="mono text-[10.5px] text-ink-300">{formatDurationSec(heldFor)} so far</span>
+            <span className="readout text-[10.5px] text-ink-300">{formatDurationSec(heldFor)} so far</span>
           </div>
           <div className="mt-0.5 truncate text-[12.5px] text-ink-50">{occupant.displayName}</div>
-          <div className="mono text-[10px] uppercase tracking-[0.12em] text-ink-400">paid {formatWei(occupant.pricePaidWei)} · runs until outbid</div>
+          <div className="readout text-[10px] uppercase tracking-[0.12em] text-ink-400">paid {formatWei(occupant.pricePaidWei)} · runs until outbid</div>
         </div>
       ) : (
-        <div className="mono mt-2.5 border-t border-white/10 pt-2.5 text-[10px] uppercase tracking-[0.12em] text-ink-400">
+        <div className="readout mt-2.5 border-t border-white/10 pt-2.5 text-[10px] uppercase tracking-[0.12em] text-ink-400">
           Nobody on this surface · you would run until somebody outbids you
         </div>
       )}
 
       {surface.status === "HELD" && (
-        <div className="mono mt-2 text-[10px] uppercase tracking-[0.12em] text-amber">Another buyer is mid-purchase. The ask is theirs until their hold lapses.</div>
+        <div className="readout mt-2 text-[10px] uppercase tracking-[0.12em] text-amber">Another buyer is mid-purchase. The ask is theirs until their hold lapses.</div>
       )}
     </div>
   );
@@ -109,9 +109,9 @@ export function AskTicker({ placement, surface, className }: Props) {
 /** One-line version for lists: the ask plus who is on it. */
 export function AskLine({ placement, surface }: { placement: PlacementDto; surface: SurfaceDto | undefined }) {
   const live = useLiveAsk(placement, surface);
-  if (!surface || !live) return <span className="mono text-[10px] text-ink-500">—</span>;
+  if (!surface || !live) return <span className="readout text-[10px] text-ink-500">—</span>;
   return (
-    <span className="mono text-[10px] tracking-[0.08em]">
+    <span className="readout text-[10px] tracking-[0.08em]">
       <span className="text-signal">{formatWei(live.askWei)}</span>
       <span className="text-ink-500"> {surface.occupant ? "to take" : "now"}</span>
     </span>

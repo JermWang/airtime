@@ -1,22 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useBroadcastState, useServerNow } from "@/lib/hooks";
+import { useBroadcastState } from "@/lib/hooks";
 import { useStation } from "@/lib/store";
 import { usePlayer } from "@/components/station/playerStore";
 import { Wordmark } from "./Wordmark";
 import { WalletButton } from "./WalletButton";
 import { SoundControl } from "./SoundControl";
-import { formatClock, cn } from "@/lib/format";
+import { cn } from "@/lib/format";
 import { useRealtime } from "@/lib/store";
 
 /**
- * Tiny status rail: AIRTIME · LIVE · program · server time · BUY AIRTIME.
+ * Tiny status rail: AIRTIME · LIVE · program · BUY AIRTIME.
  * Sits on top of the studio; never competes with the picture.
  */
 export function StatusRail({ channelId = "MAIN", compact = false }: { channelId?: string; compact?: boolean }) {
   const { data } = useBroadcastState(channelId);
-  const now = useServerNow(500);
   const playing = usePlayer((s) => s.playing);
   const source = usePlayer((s) => s.source);
   const mode = useStation((s) => s.mode);
@@ -45,12 +44,9 @@ export function StatusRail({ channelId = "MAIN", compact = false }: { channelId?
           {isLive ? <span className="dot-live" /> : <span className={cn("h-1.5 w-1.5 rounded-full", playing ? "bg-signal" : "bg-ink-400")} />}
           {isLive ? "Live" : playing ? "On air" : "Stand by"}
         </span>
-        <span className="mono hidden max-w-[36vw] truncate text-[11px] uppercase tracking-[0.16em] text-ink-200 md:block">{programTitle}</span>
-        <span className="mono hidden text-[11px] tracking-[0.12em] text-ink-300 lg:block" suppressHydrationWarning>
-          {formatClock(now)} UTC
-        </span>
+        <span className="readout hidden max-w-[36vw] truncate text-[11px] uppercase tracking-[0.16em] text-ink-200 md:block">{programTitle}</span>
         {viewers > 0 && (
-          <span className="mono hidden shrink-0 items-center gap-1.5 text-[11px] tracking-[0.12em] text-ink-300 sm:inline-flex" title="People with the station open right now">
+          <span className="readout hidden shrink-0 items-center gap-1.5 text-[11px] tracking-[0.12em] text-ink-300 sm:inline-flex" title="People with the station open right now">
             <span className="h-1.5 w-1.5 rounded-full bg-signal" />
             {viewers}
             <span className="text-ink-500">watching</span>

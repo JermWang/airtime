@@ -20,7 +20,7 @@ export function Stat({ label, value, tone }: { label: string; value: React.React
   return (
     <div className="rounded-md border border-white/10 bg-black/30 px-3 py-2.5">
       <div className="label">{label}</div>
-      <div className={cn("mono mt-1 text-[20px] tracking-tight", tone === "signal" ? "text-signal" : tone === "live" ? "text-live" : tone === "amber" ? "text-amber" : "text-ink-50")}>{value}</div>
+      <div className={cn("readout mt-1 text-[20px] tracking-tight", tone === "signal" ? "text-signal" : tone === "live" ? "text-live" : tone === "amber" ? "text-amber" : "text-ink-50")}>{value}</div>
     </div>
   );
 }

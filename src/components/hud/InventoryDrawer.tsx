@@ -40,13 +40,13 @@ export function InventoryList({ channelId = "MAIN", onSelect, className, linkMod
                       {occupant ? <span className="chip chip-live">taken</span> : <span className="chip chip-signal">open</span>}
                       {p.requiresModeration && <span className="chip">review</span>}
                     </div>
-                    <div className="mono truncate text-[10px] uppercase tracking-[0.12em] text-ink-400">
+                    <div className="readout truncate text-[10px] uppercase tracking-[0.12em] text-ink-400">
                       {occupant ? `${occupant.displayName} · ${formatDurationSec(surface.occupant?.runtimeSec ?? 0)} on air` : `${p.aspectRatio} · ${p.mediaTypes.join("/")}`}
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
                     <AskLine placement={p} surface={surface} />
-                    <div className="mono text-[9px] uppercase tracking-[0.12em] text-ink-500">
+                    <div className="readout text-[9px] uppercase tracking-[0.12em] text-ink-500">
                       {surface.status === "PROTECTED" ? "guaranteed run" : surface.status === "HELD" ? "held" : surface.status === "CLOSED" ? "closed" : "falling"}
                     </div>
                   </div>

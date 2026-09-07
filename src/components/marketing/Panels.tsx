@@ -70,8 +70,8 @@ export function PictureArt({ channelId = "MAIN" }: { channelId?: string }) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <>
-      <span className="mono text-[10.5px] text-ink-400">{label}</span>
-      <span className="mono truncate text-[10.5px] text-ink-50">{value}</span>
+      <span className="readout text-[10.5px] text-ink-400">{label}</span>
+      <span className="readout truncate text-[10.5px] text-ink-50">{value}</span>
     </>
   );
 }
@@ -86,7 +86,7 @@ export function ProofBlocks({ channelId = "MAIN" }: { channelId?: string }) {
   return (
     <div className="mt-4 flex flex-col gap-3">
       <div className="rounded-lg border border-white/10 bg-black/30 p-4">
-        <div className="mono text-[10px] uppercase tracking-[0.18em] text-ink-300">Payment · verified on chain</div>
+        <div className="readout text-[10px] uppercase tracking-[0.18em] text-ink-300">Payment · verified on chain</div>
         <div className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
           <Row label="Amount" value={latest?.pricePaidWei ? formatWei(latest.pricePaidWei) : "—"} />
           <Row label="Network" value={activeChain().name} />
@@ -94,7 +94,7 @@ export function ProofBlocks({ channelId = "MAIN" }: { channelId?: string }) {
         </div>
       </div>
       <div className="rounded-lg border border-white/10 bg-black/30 p-4">
-        <div className="mono text-[10px] uppercase tracking-[0.18em] text-ink-300">Delivery · first-party analytics</div>
+        <div className="readout text-[10px] uppercase tracking-[0.18em] text-ink-300">Delivery · first-party analytics</div>
         <div className="mt-2.5 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1">
           <Row label="Sessions present" value="—" />
           <Row label="Tab visibility while airing" value="not measured" />
@@ -122,9 +122,9 @@ export function LedgerGrid() {
     <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border border-white/12">
       {cells.map(([label, value, sub, accent], i) => (
         <div key={label} className={cn("p-4", i % 2 === 0 && "border-r border-white/[0.08]", i > 1 && "border-t border-white/[0.08]")}>
-          <div className="mono text-[9px] uppercase tracking-[0.16em] text-ink-400">{label}</div>
-          <div className={cn("mono mt-2.5 text-[22px] leading-none tracking-[-0.03em]", accent ? "text-signal" : "text-ink-50")}>{value}</div>
-          <div className="mono mt-2 text-[9px] uppercase tracking-[0.14em] text-ink-500">{sub}</div>
+          <div className="readout text-[9px] uppercase tracking-[0.16em] text-ink-400">{label}</div>
+          <div className={cn("readout mt-2.5 text-[22px] leading-none tracking-[-0.03em]", accent ? "text-signal" : "text-ink-50")}>{value}</div>
+          <div className="readout mt-2 text-[9px] uppercase tracking-[0.14em] text-ink-500">{sub}</div>
         </div>
       ))}
     </div>

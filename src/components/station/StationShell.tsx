@@ -139,7 +139,7 @@ export function StationShell({ channelId = "MAIN" }: { channelId?: string }) {
 
       <div className="pointer-events-auto fixed bottom-2 left-3 z-20 hidden items-center gap-3 md:flex">
         <TokenContractChip />
-        <div className="mono text-[9px] uppercase tracking-[0.16em] text-ink-500">
+        <div className="readout text-[9px] uppercase tracking-[0.16em] text-ink-500">
           <Link href="/info" className="text-ink-300 transition hover:text-signal">
             info
           </Link>{" "}
@@ -155,7 +155,7 @@ export function StationShell({ channelId = "MAIN" }: { channelId?: string }) {
       </div>
       {mode === "focus" && !mobile && (
         <div className="pointer-events-none fixed bottom-6 left-1/2 z-20 -translate-x-1/2">
-          <div className="mono text-[10px] uppercase tracking-[0.16em] text-ink-400">Esc to return to the station</div>
+          <div className="readout text-[10px] uppercase tracking-[0.16em] text-ink-400">Esc to return to the station</div>
         </div>
       )}
     </main>

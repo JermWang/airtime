@@ -32,7 +32,7 @@ export default function AirtimePage() {
                     <Link href={`/campaign/${c.id}`} className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-white/[0.04]">
                       <div className="min-w-0">
                         <div className="truncate text-[12.5px] text-ink-50">{c.displayName}</div>
-                        <div className="mono truncate text-[10px] uppercase tracking-[0.12em] text-ink-400">
+                        <div className="readout truncate text-[10px] uppercase tracking-[0.12em] text-ink-400">
                           {c.placement.name} · {c.startsAt ? (c.endsAt ? `ran until ${formatDateTime(c.endsAt)}` : `on air since ${formatDateTime(c.startsAt)}`) : "not on air yet"}
                         </div>
                       </div>

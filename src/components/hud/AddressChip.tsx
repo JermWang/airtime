@@ -57,7 +57,7 @@ export function AddressChip({
         onClick={copy}
         title={`${label}: ${address} (click to copy)`}
         aria-label={`Copy ${label.toLowerCase()} address ${address}`}
-        className="mono inline-flex items-center gap-1.5 rounded-md border border-white/12 bg-white/[0.03] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-ink-300 transition hover:border-white/25 hover:text-ink-50"
+        className="readout inline-flex items-center gap-1.5 rounded-md border border-white/12 bg-white/[0.03] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-ink-300 transition hover:border-white/25 hover:text-ink-50"
       >
         <span className="text-ink-500">{label}</span>
         <span id={`addr-${address}`} className="text-ink-200">
@@ -71,7 +71,7 @@ export function AddressChip({
         </span>
       </button>
       {explorerUrl && (
-        <a href={explorerUrl} target="_blank" rel="noreferrer noopener" className="mono text-[10px] uppercase tracking-[0.12em] text-ink-500 transition hover:text-signal" title="Open in the block explorer">
+        <a href={explorerUrl} target="_blank" rel="noreferrer noopener" className="readout text-[10px] uppercase tracking-[0.12em] text-ink-500 transition hover:text-signal" title="Open in the block explorer">
           ↗
         </a>
       )}
@@ -95,7 +95,7 @@ export function TokenContractChip({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "mono inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-ink-500",
+        "readout inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-ink-500",
         className,
       )}
       title="The AIRTIME token contract has not been deployed yet"

@@ -47,7 +47,7 @@ export default function AirLogPage({ params }: { params: Promise<{ id: string }>
               <Wordmark size={14} />
               <div className="label mt-3">AirLog · proof of air</div>
               <h1 className="mt-1 text-[24px] font-medium tracking-tight text-ink-50">{log.displayName}</h1>
-              <div className="mono mt-1 text-[10.5px] uppercase tracking-[0.12em] text-ink-300">
+              <div className="readout mt-1 text-[10.5px] uppercase tracking-[0.12em] text-ink-300">
                 {log.placement.name} · channel {log.channelId}
               </div>
             </div>
@@ -57,7 +57,7 @@ export default function AirLogPage({ params }: { params: Promise<{ id: string }>
           <div className="grid gap-6 md:grid-cols-[240px_1fr]">
             <div className="overflow-hidden rounded-md border border-white/10 bg-black" style={{ aspectRatio: log.placement.aspectRatio.replace(":", " / ") }}>
               {log.creative?.type === "TEXT" ? (
-                <div className="mono flex h-full items-center justify-center px-3 text-center text-[11px] uppercase tracking-[0.12em] text-signal">{log.creative.textContent}</div>
+                <div className="readout flex h-full items-center justify-center px-3 text-center text-[11px] uppercase tracking-[0.12em] text-signal">{log.creative.textContent}</div>
               ) : log.creative?.posterUrl || log.creative?.url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={log.creative.posterUrl ?? log.creative.url ?? ""} alt="" className="h-full w-full object-contain" />
@@ -65,7 +65,7 @@ export default function AirLogPage({ params }: { params: Promise<{ id: string }>
                 <div className="label flex h-full items-center justify-center">no creative</div>
               )}
             </div>
-            <dl className="mono grid grid-cols-[auto_1fr] gap-x-5 gap-y-1.5 text-[11px] text-ink-300">
+            <dl className="readout grid grid-cols-[auto_1fr] gap-x-5 gap-y-1.5 text-[11px] text-ink-300">
               <dt>Where</dt>
               <dd className="text-ink-50">
                 {log.placement.name} <span className="text-ink-500">({log.placement.type.toLowerCase()} · {log.placement.id})</span>
@@ -90,7 +90,7 @@ export default function AirLogPage({ params }: { params: Promise<{ id: string }>
             <div className="rounded-lg border border-white/10 bg-black/30 p-4">
               <div className="label mb-2">Payment · verified on chain</div>
               {log.payment ? (
-                <dl className="mono grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[10.5px] text-ink-300">
+                <dl className="readout grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[10.5px] text-ink-300">
                   <dt>Amount</dt>
                   <dd className="text-ink-50">{formatWei(log.payment.amountWei)}</dd>
                   <dt>Network</dt>
@@ -117,7 +117,7 @@ export default function AirLogPage({ params }: { params: Promise<{ id: string }>
             </div>
             <div className="rounded-lg border border-white/10 bg-black/30 p-4">
               <div className="label mb-2">Delivery · first-party analytics</div>
-              <dl className="mono grid grid-cols-[1fr_auto] gap-y-1 text-[10.5px] text-ink-300">
+              <dl className="readout grid grid-cols-[1fr_auto] gap-y-1 text-[10.5px] text-ink-300">
                 <dt>Sessions present</dt>
                 <dd className="text-ink-50">{log.analytics.sessionsPresent}</dd>
                 <dt>Unique sessions (approx.)</dt>
@@ -138,7 +138,7 @@ export default function AirLogPage({ params }: { params: Promise<{ id: string }>
           </section>
 
           <footer className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
-            <div className="mono text-[9.5px] uppercase tracking-[0.14em] text-ink-500">
+            <div className="readout text-[9.5px] uppercase tracking-[0.14em] text-ink-500">
               AirLog {log.id} · issued {formatDateTime(log.createdAt)}
             </div>
             <div className="flex gap-2">

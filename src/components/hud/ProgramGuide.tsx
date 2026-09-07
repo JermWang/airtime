@@ -26,11 +26,11 @@ export function ProgramGuide({ channelId = "MAIN", hours = 4, className, full = 
               // eslint-disable-next-line @next/next/no-img-element
               <img src={poster} alt="" className="h-full w-full object-cover" />
             ) : (
-              <div className={cn("mono flex h-full items-center justify-center text-[9px]", isAd ? "text-signal" : "text-ink-400")}>{isAd ? "AD" : b.type}</div>
+              <div className={cn("readout flex h-full items-center justify-center text-[9px]", isAd ? "text-signal" : "text-ink-400")}>{isAd ? "AD" : b.type}</div>
             )}
           </div>
         )}
-        <div className="mono w-11 shrink-0 text-[10px] tracking-[0.1em] text-ink-300" suppressHydrationWarning>
+        <div className="readout w-11 shrink-0 text-[10px] tracking-[0.1em] text-ink-300" suppressHydrationWarning>
           {formatClock(b.startsAt, false)}
         </div>
         <div className="min-w-0 flex-1">
@@ -39,7 +39,7 @@ export function ProgramGuide({ channelId = "MAIN", hours = 4, className, full = 
             {b.isDevData && <span className="chip ml-2 align-middle">dev data</span>}
             {(b.metadata as { isPremium?: boolean }).isPremium && <span className="chip chip-signal ml-2 align-middle">premium</span>}
           </div>
-          <div className="mono text-[10px] uppercase tracking-[0.12em] text-ink-400">
+          <div className="readout text-[10px] uppercase tracking-[0.12em] text-ink-400">
             {label ?? (isAd ? "Commercial break" : b.type === "LIVE_HLS" ? "Live" : "Program")} · {formatDurationSec(b.durationSec)}
           </div>
           {label === "NOW" && (

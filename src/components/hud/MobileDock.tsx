@@ -19,7 +19,7 @@ export function MobileDock() {
       {ITEMS.map((it) => {
         const active = it.href === "/" ? path === "/" || path === "/watch" : path.startsWith(it.href);
         return (
-          <Link key={it.href} href={it.href} className={cn("mono flex flex-1 items-center justify-center py-3 text-[10px] uppercase tracking-[0.18em] transition", active ? "text-signal" : "text-ink-300")}>
+          <Link key={it.href} href={it.href} className={cn("readout flex flex-1 items-center justify-center py-3 text-[10px] uppercase tracking-[0.18em] transition", active ? "text-signal" : "text-ink-300")}>
             {it.label}
           </Link>
         );
