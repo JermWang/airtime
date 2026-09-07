@@ -42,10 +42,11 @@ test("station is live: picture, programme and the price board", async ({ page })
   expect(state.now).toBeTruthy();
   expect(state.next).toBeTruthy();
 
-  // The board sells one screen and the two panels beside it, all opening at 0.01.
+  // The board sells the picture's two products and the six panels around it,
+  // all opening at 0.01.
   const board = await page.request.get("/api/board?channel=MAIN").then((r) => r.json());
   const ids = board.rows.map((r: { placement: { id: string } }) => r.placement.id).sort();
-  expect(ids).toEqual(["AD", "PANEL_LEFT", "PANEL_RIGHT", "SHOW"]);
+  expect(ids).toEqual(["AD", "PANEL_LEFT", "PANEL_RIGHT", "PANEL_TOP_LEFT", "PANEL_TOP_MID", "PANEL_TOP_RIGHT", "PANEL_TOWER", "SHOW"]);
   for (const row of board.rows) expect(row.surface.askWei).toBe("10000000000000000");
 
   // Opening a surface goes straight into the purchase flow.
@@ -61,9 +62,16 @@ test("the mobile splash gives the uncropped picture a full-width row above its p
   const video = station.locator("video");
   await expect(video).toHaveCSS("object-fit", "contain");
 
+  // The picture takes a row to itself above the panels rather than sharing one
+  // with them. Measured against a panel rather than against the viewport: the
+  // wall sits inside the district's own frame, so "the whole row" is narrower
+  // than the window by however much that frame insets it.
   const stationBox = await station.boundingBox();
+  const panelBox = await page.locator('a[data-surface="PANEL_TOP_LEFT"]').boundingBox();
   expect(stationBox).not.toBeNull();
-  expect(stationBox!.width).toBeGreaterThan(370);
+  expect(panelBox).not.toBeNull();
+  expect(stationBox!.width).toBeGreaterThan(panelBox!.width * 2);
+  expect(stationBox!.y).toBeLessThan(panelBox!.y);
 });
 
 test("panel artwork itself flips the card and the Anduril panel carries the logo", async ({ page }) => {

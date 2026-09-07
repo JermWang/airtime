@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import styles from "./SurfaceWall.module.css";
 import Link from "next/link";
-import { useBoard, useActivations, useHousePlaceholder } from "@/lib/hooks";
+import { useBoard, useActivations, useBroadcastState, useHousePlaceholder } from "@/lib/hooks";
 import { useLiveAsk } from "@/components/airtime/AskTicker";
 import { StationPlayer } from "@/components/station/StationPlayer";
 import { usePlayer } from "@/components/station/playerStore";
@@ -215,6 +215,11 @@ export function SurfaceWall({ channelId = "MAIN", sizeClassName, expanded, onTog
 
   const show = rows.find((r) => r.placement.kind === "show");
   const ad = rows.find((r) => r.placement.kind === "ad");
+  // The picture is two products, and which one a click is about depends on
+  // what is on it: the commercial owns the screen through a break, the show
+  // owns it the rest of the time. Read off the schedule, not off a guess.
+  const { data: broadcast } = useBroadcastState(channelId);
+  const mainRow = (broadcast?.now?.type === "AD_BREAK" ? ad : show) ?? show ?? ad;
   const panels = WALL_PANELS.filter((p) => byId.has(p.id));
   const selected = rows.find((row) => row.placement.id === selectedId);
   const topPanels = TOP_PANELS.filter((p) => byId.has(p.id));
@@ -248,6 +253,26 @@ export function SurfaceWall({ channelId = "MAIN", sizeClassName, expanded, onTog
               changing display ratio. */}
           <StationPlayer channelId={channelId} visible fit="contain" className="h-full w-full" overlays={false} />
         </div>
+        {/*
+          The picture is inventory like every other surface, so it answers to a
+          click like one. Deliberately unstacked: the chips and the expand
+          button are later siblings with no z-index of their own, so they stay
+          above this and keep their own jobs.
+        */}
+        {mainRow && (
+          <button
+            type="button"
+            onClick={() => setSelectedId(mainRow.placement.id)}
+            aria-label={`Buy ${mainRow.placement.name}`}
+            className="group/main absolute inset-0 cursor-pointer transition hover:ring-2 hover:ring-inset hover:ring-signal/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-signal"
+          >
+            <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-[linear-gradient(to_top,rgba(0,0,0,0.78),transparent)] pb-4 pt-12 opacity-0 transition duration-200 group-hover/main:opacity-100 group-focus-visible/main:opacity-100">
+              <span className="readout rounded-sm border border-signal/50 bg-ink-950/85 px-3 py-[7px] text-[10px] uppercase tracking-[0.18em] text-signal">
+                Buy {mainRow.placement.kind === "ad" ? "the commercial" : "the runtime"} ↗
+              </span>
+            </span>
+          </button>
+        )}
         <div className="pointer-events-none absolute left-3 top-3 flex flex-wrap gap-2">
           {[show, ad].map((row) => row && <button type="button" key={row.placement.id} onClick={() => setSelectedId(row.placement.id)} className="pointer-events-auto" aria-label={`View ${row.placement.name} details`}><PriceChip row={row} label={row.placement.kind === "show" ? "Runtime ↗" : "Commercial ↗"} /></button>)}
         </div>
