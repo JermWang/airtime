@@ -144,33 +144,6 @@ export default function InfoPage() {
 
       <hr className="rule my-12 md:my-16" />
 
-      {/* ---- honesty ----------------------------------------------------- */}
-      <section>
-        <h2 className="section-title">What the chain proves, and what it does not</h2>
-        <div className="mt-7 grid gap-4 md:grid-cols-2">
-          <div className="card p-5">
-            <div className="label-strong">Payment facts · on chain</div>
-            <p className="body-copy mt-3">
-              A specific buyer paid a specific amount for a quote bound to a placement, a price and a hash of the exact creative. The browser never decides
-              that something is paid: the server reads the payment event from its own node and re-checks every field against the quote it signed.
-            </p>
-          </div>
-          <div className="card p-5">
-            <div className="label-strong">Delivery numbers · application</div>
-            <p className="body-copy mt-3">
-              How many sessions had the station open, whether the creative loaded, whether the tab was visible, completions and clicks. These come from AIRTIME&apos;s
-              own first-party analytics, are always shown separately from the payment, and are never dressed up as on-chain impressions.
-            </p>
-          </div>
-        </div>
-        <p className="body-copy mt-5 max-w-3xl text-ink-300">
-          No viewer counts are invented anywhere in this product. Unsold surfaces carry the station&apos;s own house graphics or example cards that are permanently
-          badged EXAMPLE, excluded from the queue and excluded from revenue.
-        </p>
-      </section>
-
-      <hr className="rule my-12 md:my-16" />
-
       {/* ---- money ------------------------------------------------------- */}
       <section className="grid gap-8 md:grid-cols-[1.2fr_1fr] md:items-start">
         <div>

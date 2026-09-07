@@ -273,6 +273,16 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
   const showVideo = source && (source.kind === "vod" || source.kind === "hls" || source.kind === "campaign-video" || source.kind === "house-video") && !holding && !error;
   const slate = source?.kind === "slate" ? source : null;
 
+  /**
+   * How long is left of the commercial break.
+   *
+   * Read off the block the station is actually playing rather than counted
+   * down from a length, so it agrees with the schedule for every viewer and
+   * cannot drift. It re-renders on the same half-second tick the source does.
+   */
+  const breakBlock = state?.now?.type === "AD_BREAK" ? state.now : null;
+  const secondsLeft = breakBlock ? Math.max(0, Math.ceil((new Date(breakBlock.endsAt).getTime() - now()) / 1000)) : null;
+
   return (
     <div className={cn("relative overflow-hidden bg-black", visible ? className : "pointer-events-none fixed -left-[9999px] top-0 h-[2px] w-[2px] opacity-0")} aria-label="AIRTIME station">
       <video
@@ -312,6 +322,19 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
           <div className="label">{error ?? (holding ? "Stand by" : slate?.subtitle)}</div>
           {slate && slate.title !== "AIRTIME" && <div className="text-lg tracking-tight text-ink-100">{slate.title}</div>}
         </div>
+      )}
+      {/* Small, in the corner, and only while a break is on: the viewer wants
+          to know when the programme comes back. */}
+      {visible && secondsLeft !== null && (
+        <span
+          suppressHydrationWarning
+          className="readout pointer-events-none absolute bottom-2 left-2 inline-flex items-center gap-2 rounded-sm border border-white/20 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-ink-200"
+        >
+          Commercial
+          <span className="tabular-nums text-signal">
+            {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}
+          </span>
+        </span>
       )}
       {visible && overlays && <Overlays channelId={channelId} />}
     </div>
