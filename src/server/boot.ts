@@ -1,5 +1,5 @@
 import { ensureMigrated } from "./db/client";
-import { ensureBaseline, seedDevData } from "./db/seed";
+import { ensureBaseline, ensureHousePicture, seedDevData } from "./db/seed";
 import { loadClockOffset } from "./settings";
 import { ensureScheduleHorizon } from "./broadcast/schedule";
 import { startTicker } from "./worker/ticker";
@@ -23,6 +23,8 @@ export function boot(opts: { ticker?: boolean } = {}): Promise<void> {
       if (env().AIRTIME_MIGRATE_ON_BOOT) await ensureMigrated();
       const { adminPassword } = await ensureBaseline();
       const seeded = await seedDevData();
+      // After the dev seed, so sample programming never outlives this call.
+      const reelOnly = await ensureHousePicture("MAIN");
       await loadClockOffset();
       await ensureScheduleHorizon("MAIN", 12);
       const e = env();
@@ -38,6 +40,7 @@ export function boot(opts: { ticker?: boolean } = {}): Promise<void> {
           `  database     ${e.DATABASE_URL ? "postgres" : "pglite (embedded)"}`,
           `  scheduler    ${canRunInProcessTicker() ? "in-process (1s)" : isServerless() ? "cron + opportunistic (/api/cron/tick)" : "disabled"}`,
           seeded ? "  seeded       DEV DATA programming" : "",
+          reelOnly ? "  picture      station reel only – other programming out of rotation" : "",
           adminPassword && !isProduction() ? `  admin        ${e.ADMIN_EMAIL} / ${adminPassword}` : "",
           "",
         ]

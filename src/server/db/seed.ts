@@ -1,8 +1,9 @@
 import bcrypt from "bcryptjs";
-import { and, eq, inArray, like, notInArray } from "drizzle-orm";
+import { and, eq, gt, inArray, like, ne, notInArray } from "drizzle-orm";
 import { db, schema } from "./client";
 import { env, devDataAllowed, isProduction } from "../env";
 import { ensureScheduleHorizon } from "../broadcast/schedule";
+import { serverNow } from "../time/clock";
 import { MAX_DIRECT_UPLOAD_BYTES } from "@/lib/upload";
 import { MIN_PRICE_WEI } from "@/lib/auction";
 import type { NewPlacement, PlacementAuctionRules, PlacementAvailabilityRules } from "./schema";
@@ -460,6 +461,75 @@ const DEV_PROGRAMS = [
   { title: "Big Buck Bunny · 720p WebM", url: "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c0/Big_Buck_Bunny_4K.webm/Big_Buck_Bunny_4K.webm.720p.vp9.webm", poster: null, durationSec: 634, isPremium: false, description: "DEV DATA · Blender Foundation open movie (CC-BY) · Wikimedia Commons transcode (VP9 WebM)." },
   { title: "Mux demo reel", url: "https://stream.mux.com/VZtzUzGRv02OhRnZCxcNg49OilvolTqdnFLEqBsTwaxU.m3u8", poster: null, durationSec: 630, isPremium: false, description: "DEV DATA · Mux public demo asset (HLS)." },
 ];
+
+/**
+ * What the picture plays when nobody has bought it.
+ *
+ * The station's own reel, and the only thing in rotation: the sample films this
+ * ran on before are switched out rather than deleted, so their blocks, AirLogs
+ * and anything that references them still resolve.
+ *
+ * This is house programming, not a campaign. It never displaces anything
+ * anybody paid for: a bought show takes the picture the moment it is paid for,
+ * a bought spot takes every break, and both are chosen ahead of the schedule in
+ * `resolveMainSource`. The reel is only what is left when neither is sold.
+ *
+ * Runs on every boot, after the dev-data seed, so sample programming cannot
+ * creep back onto the screen.
+ */
+const HOUSE_PICTURE = {
+  title: "Anduril",
+  description: "Station reel. Plays on the picture while nobody has bought the runtime.",
+  mediaUrl: "/placeholders/anduril-promo.mp4",
+  durationSec: 74,
+};
+
+export async function ensureHousePicture(channelId = "MAIN"): Promise<boolean> {
+  const database = db();
+
+  const [existing] = await database
+    .select()
+    .from(schema.programs)
+    .where(and(eq(schema.programs.channelId, channelId), eq(schema.programs.mediaUrl, HOUSE_PICTURE.mediaUrl)));
+
+  let reel = existing;
+  if (!reel) {
+    [reel] = await database
+      .insert(schema.programs)
+      .values({
+        channelId,
+        title: HOUSE_PICTURE.title,
+        description: HOUSE_PICTURE.description,
+        mediaType: "VOD",
+        mediaUrl: HOUSE_PICTURE.mediaUrl,
+        posterUrl: null,
+        durationSec: HOUSE_PICTURE.durationSec,
+        isPremium: false,
+        inRotation: true,
+        isDevData: false,
+      })
+      .returning();
+  } else if (!reel.inRotation) {
+    await database.update(schema.programs).set({ inRotation: true }).where(eq(schema.programs.id, reel.id));
+  }
+
+  const retired = await database
+    .update(schema.programs)
+    .set({ inRotation: false })
+    .where(and(eq(schema.programs.channelId, channelId), eq(schema.programs.inRotation, true), ne(schema.programs.id, reel.id)))
+    .returning({ id: schema.programs.id });
+
+  const changed = !existing || !existing.inRotation || retired.length > 0;
+  if (changed) {
+    // The schedule ahead was written from the old rotation. Drop what has not
+    // started yet — never the block on air, which would cut the picture
+    // mid-frame — and let the horizon rebuild from the reel.
+    await database
+      .delete(schema.programBlocks)
+      .where(and(eq(schema.programBlocks.channelId, channelId), eq(schema.programBlocks.isManual, false), gt(schema.programBlocks.startsAt, serverNow())));
+  }
+  return changed;
+}
 
 export async function seedDevData(): Promise<boolean> {
   if (!devDataAllowed()) return false;
