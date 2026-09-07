@@ -53,7 +53,7 @@ You are not buying a thirty-second spot. **Every surface runs a continuous desce
 | Public board of surfaces, program guide, campaign and AirLog pages | Working |
 | Control room: programming, placements incl. visual editor, moderation, payments, audit | Working |
 | Treasury: derived airtime revenue + operator-recorded pre-stock ledger | Working |
-| House cards and placeholders on unbooked surfaces (always badged EXAMPLE) | Working |
+| House cards and artwork on unbooked surfaces (labelled, excluded from revenue) | Working |
 | Privacy-conscious first-party delivery analytics | Working |
 | Non-WebGL fallback, reduced motion, mobile layout | Working |
 | Foundry contract tests, unit/API tests, Playwright end-to-end | Working |
@@ -363,12 +363,12 @@ The page carries an explicit disclosure: it is not an offer, a prospectus, or in
 
 A surface nobody has booked can carry the station's own content, so an empty network still demonstrates what the inventory does. Two shapes, one table (`showcase_creatives`, keyed by `slug`):
 
-- a **showcase card**, drawn procedurally from text only — no third-party artwork;
+- a **showcase card**, drawn procedurally from text only;
 - a **placeholder**, house media the station hosts itself, put on a surface until a buyer takes it.
 
 The cards shipped by default name the memecoins with the most volume on Robinhood Chain, so an empty surface shows what a spot on it looks like for the kind of buyer this network is for. Text only — the station draws them from the ticker and the name and never carries anybody else’s artwork — and the stamp is permanent, so a card cannot be read as a spot that token bought. Rankings move; the list in `HOUSE_PLACEHOLDERS` is a snapshot, not a feed.
 
-Both carry a permanent **EXAMPLE** badge plus "this space is available" — composited into the texture in the room, drawn over the media on the flat wall — and neither enters the public board, produces an AirLog, files an analytics event, or counts as revenue. In an unsold commercial break the placeholder plays only once both products are unsold: a buyer's show keeps the picture through a break it did not buy.
+Both are labelled with the brand on them and captioned "this space is available" — composited into the texture in the room, drawn over the artwork on the flat wall — and neither enters the public board, produces an AirLog, files an analytics event, or counts as revenue. In an unsold commercial break the placeholder plays only once both products are unsold: a buyer's show keeps the picture through a break it did not buy.
 
 To put artwork on a surface, drop the file in `public/placeholders/` and point a row's `mediaUrl` at `/placeholders/<file>` in `HOUSE_PLACEHOLDERS` (`src/server/db/seed.ts`); the seed refreshes those rows on boot. A hosted URL works too if that host sends CORS headers, which a WebGL video texture requires. Several rows pinned to one surface rotate on a clock derived from server time, so the whole room sees the same one.
 

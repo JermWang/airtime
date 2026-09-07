@@ -308,12 +308,10 @@ export function StationPlayer({ channelId = "MAIN", visible, className, overlays
           <HouseCard card={source.house} size="screen" />
         </div>
       )}
-      {/* House media in an unsold break is the station's own and says so, so it
-          can never be read as a spot somebody bought. The card carries its own
-          badge. */}
+      {/* House content in an unsold break says the break is still for sale. */}
       {visible && (source?.kind === "house-image" || source?.kind === "house-video") && !holding && !error && (
         <span className="readout absolute left-3 top-3 rounded-sm border border-white/25 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-ink-200">
-          Example · this break is available
+          This break is available
         </span>
       )}
       {visible && (slate || holding || error) && (

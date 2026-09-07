@@ -57,12 +57,11 @@ export default function InfoPage() {
       <section className="pt-4 md:pt-10">
         <div className="eyebrow">A television network you can buy a piece of</div>
         <h1 className="display mt-4 max-w-4xl">
-          Every display surface on this station is advertising inventory.
+          Advertising inventory, tokenized as a real-world asset.
         </h1>
         <p className="lede mt-6 max-w-2xl">
-          AIRTIME is a browser-native, 24/7 linear television network. It runs on a real schedule with real commercial breaks, in a screening room built around
-          one picture. The picture itself, the ticker under it, the panel either side, the lower third and the sponsor bug: each one is inventory that anyone can
-          price, preview and buy. Payment settles on Robinhood Chain, and the station verifies it independently before a single frame airs.
+          Advertising space has been bought and sold for a century. It has never been ownable by the audience looking at it. AIRTIME is a fixed board of on-chain
+          ad inventory, tokenized so that holders own a share of the board itself. Advertisers buy placement. Holders own the board.
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-2.5">
           <Link href="/" className="btn btn-primary">

@@ -3,21 +3,18 @@ import type { ShowcaseDto } from "@/lib/api";
 /**
  * A house card in the DOM.
  *
- * The same thing the room draws into a texture, for the flat surfaces: the
- * station's own example of what a spot on this surface looks like, drawn from
- * text alone and stamped EXAMPLE for as long as it is on screen. It is never
- * anybody's campaign, so it always says the surface is still available.
+ * The same thing the room draws into a texture, for the flat surfaces: what
+ * the station is standing on a surface nobody has booked, drawn from text
+ * alone. It is not a campaign — no queue entry, no AirLog, no revenue — and it
+ * says the surface is still available.
  */
 export function HouseCard({ card, size = "panel" }: { card: Pick<ShowcaseDto, "label" | "headline" | "sublabel" | "accent">; size?: "panel" | "screen" }) {
   const screen = size === "screen";
 
 
-  // On the picture there is room to centre the card and hang the badge in a
-  // corner. A panel is the size of a business card, so nothing is positioned
-  // over anything else there: the ticker takes a line, the name takes the rest,
-  // and the EXAMPLE stamp goes down beside the price where there is width to
-  // spare — on a phone it was wrapping onto its own line and squeezing the name
-  // out of the card altogether.
+  // On the picture there is room to centre the card. A panel is the size of a
+  // business card, so nothing is positioned over anything else there: the
+  // ticker takes a line and the name takes the rest.
   if (!screen) {
     return (
       // The bottom strip is where the price chip floats, so the card's own
@@ -37,16 +34,8 @@ export function HouseCard({ card, size = "panel" }: { card: Pick<ShowcaseDto, "l
           its height, and any number that suits one slices a line in half on the
           other.
         */}
-        {/*
-          The stamp runs on from the name rather than sitting in a box of its
-          own. A panel can be seventy pixels across, and a box there took the
-          width the ticker needed or a row the name was standing on; as text it
-          costs nothing but the words, wraps when it must, and cannot land on
-          top of anything.
-        */}
         <div className="min-h-0 flex-1 overflow-hidden text-[12px] font-medium leading-[1.15] tracking-[-0.02em] text-ink-50 [mask-image:linear-gradient(to_bottom,#000_calc(100%-7px),transparent)] [overflow-wrap:anywhere]">
-          {card.headline}{" "}
-          <span className="readout whitespace-nowrap text-[7px] uppercase tracking-[0.14em] text-ink-400">· Example</span>
+          {card.headline}
         </div>
       </div>
     );
@@ -62,7 +51,6 @@ export function HouseCard({ card, size = "panel" }: { card: Pick<ShowcaseDto, "l
           {card.sublabel && <div className="readout mt-1.5 text-[11px] uppercase leading-relaxed tracking-[0.12em] text-ink-400">{card.sublabel}</div>}
         </div>
       </div>
-      <span className="readout absolute bottom-4 left-4 shrink-0 rounded-sm border border-white/25 bg-white/[0.06] px-2.5 py-[6px] text-[10px] uppercase tracking-[0.18em] text-ink-100">Example</span>
     </div>
   );
 }

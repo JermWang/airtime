@@ -63,7 +63,7 @@ export function SiteFooter({ wide = false }: { wide?: boolean }) {
           <div className="max-w-xs">
             <Wordmark size={16} />
             <p className="body-copy mt-4 text-ink-300">
-              A browser-native television network where every display surface is programmable advertising inventory, settled on Robinhood Chain.
+              A fixed board of on-chain advertising inventory, tokenized as a real-world asset and owned by its audience.
             </p>
             <Link href="/airtime" className="btn btn-primary btn-sm mt-5">
               Buy airtime

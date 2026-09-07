@@ -14,7 +14,7 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 const DESCRIPTION =
-  "A browser-native 24/7 television network where every surface is programmable advertising inventory. Built on Robinhood Chain.";
+  "A fixed board of on-chain advertising inventory, tokenized as a real-world asset and owned by its audience.";
 
 /**
  * The icon and the social card are the files beside this one — Next picks up

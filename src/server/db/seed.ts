@@ -310,7 +310,7 @@ export const RETIRED_PLACEMENT_IDS = [
  * there and drops `rh-` rows it no longer ships, so this list is the whole
  * story. Shipping artwork is an edit here plus a deploy.
  */
-const houseSublabel = (placementId: string) => (placementId === "AD" ? "Example spot · this break is available" : "Example spot · this panel is available");
+const houseSublabel = (placementId: string) => (placementId === "AD" ? "This break is available" : "This panel is available");
 
 /** A slot with artwork: the file fills the surface and the text names it. */
 const artCard = (slug: string, label: string, name: string, placementId: string, file: string, sortOrder = 10): typeof schema.showcaseCreatives.$inferInsert => ({
@@ -357,13 +357,13 @@ export const HOUSE_PLACEHOLDERS: Array<typeof schema.showcaseCreatives.$inferIns
   artCard("rh-dune", "Dune", "Dune Analytics", "PANEL_TOP_LEFT", "dune.jpg"),
   artCard("rh-cashcat", "$CASHCAT", "Cash Cat", "PANEL_TOP_MID", "cashcat.jpg"),
   artCard("rh-pons", "$PONS", "Pons", "PANEL_LEFT", "pons.jpg"),
-  // One image to a surface: the same artwork on two panels at once reads as a
-  // fault rather than a campaign. These three wait for art of their own — the
-  // last two are square and portrait, and cropping a wide image to those cuts
-  // the logo out of it.
+  // Cut to the shape of the surface they stand on: square for the small panel
+  // at the end of the top row, portrait for the tower.
+  artCard("rh-fomo", "FOMO", "Fomo", "PANEL_TOP_RIGHT", "fomo.jpg"),
+  artCard("rh-hype", "HYPE", "Hype", "PANEL_TOWER", "HYPE.jpg"),
+  // One image to a surface: the same artwork on two at once reads as a fault
+  // rather than a campaign. This one is still waiting for art of its own.
   textCard("rh-open-right", "Airtime", "This panel is open", "PANEL_RIGHT"),
-  textCard("rh-open-square", "Airtime", "This panel is open", "PANEL_TOP_RIGHT"),
-  textCard("rh-open-tower", "Airtime", "This panel is open", "PANEL_TOWER"),
 ];
 
 export async function ensureBaseline(): Promise<{ adminPassword: string | null }> {

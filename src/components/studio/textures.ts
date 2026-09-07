@@ -14,7 +14,7 @@ export interface SurfaceTexture {
   dispose: () => void;
   /** For video: pause/resume when the surface leaves view. */
   setActive?: (active: boolean) => void;
-  /** For textures composited per frame (house media under its EXAMPLE badge). */
+  /** For textures composited per frame (house media under its own caption). */
   update?: (dt: number) => void;
 }
 
@@ -406,36 +406,18 @@ function paintShowcaseCard(ctx: CanvasRenderingContext2D, card: ShowcaseCard, x0
     }
   }
 
-  if (badge) paintExampleBadge(ctx, x0, y0, w, h);
+  if (badge) paintAvailableLine(ctx, x0, y0, w, h);
 }
 
 /**
- * The permanent EXAMPLE stamp.
- *
- * Everything the station puts on a surface nobody has booked wears it — the
- * text cards and the house clips alike — so house content can never be read as
- * a spot somebody paid for.
+ * The line house content carries on a surface in the room: the surface is for
+ * sale. It used to be an EXAMPLE stamp as well; the station now names the brand
+ * on the artwork instead, and this says the slot behind it is still open.
  */
-export function paintExampleBadge(ctx: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, footer = "THIS SPACE IS AVAILABLE"): void {
+export function paintAvailableLine(ctx: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, footer = "THIS SPACE IS AVAILABLE"): void {
   const unit = Math.min(w, h);
   const pad = Math.round(unit * 0.09);
   const badgeSize = Math.max(9, Math.round(unit * 0.036));
-  ctx.font = `600 ${badgeSize}px ${sans()}`;
-  ctx.letterSpacing = `${badgeSize * 0.2}px`;
-  const text = "EXAMPLE";
-  const bw = ctx.measureText(text).width + badgeSize * 1.8;
-  const bh = badgeSize * 2.1;
-  const bx = x0 + w - pad - bw;
-  const by = y0 + pad;
-  ctx.fillStyle = "rgba(255,255,255,0.08)";
-  ctx.fillRect(bx, by, bw, bh);
-  ctx.strokeStyle = "rgba(255,255,255,0.28)";
-  ctx.lineWidth = Math.max(1, badgeSize * 0.08);
-  ctx.strokeRect(bx, by, bw, bh);
-  ctx.fillStyle = "rgba(240,244,248,0.92)";
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "left";
-  ctx.fillText(text, bx + badgeSize * 0.9, by + bh / 2);
 
   const foot = fitText(ctx, footer, { weight: 500, family: sans(), size: badgeSize, minSize: 8, maxWidth: w - pad * 2, maxLines: 1, letterSpacing: 0.12 });
   ctx.fillStyle = "rgba(255,255,255,0.32)";
@@ -445,9 +427,8 @@ export function paintExampleBadge(ctx: CanvasRenderingContext2D, x0: number, y0:
 }
 
 /**
- * House showcase card for an unbooked surface. Drawn from text only, no
- * third-party artwork, and always stamped EXAMPLE so it cannot be mistaken for
- * a paid campaign.
+ * House showcase card for an unbooked surface. Drawn from text only, and
+ * captioned with the fact that the space is still for sale.
  *
  * Layout follows the surface: portrait panels stack, and ultra-wide walls
  * (3:1 and wider, i.e. the rear LED wall whose centre is behind the main
@@ -483,14 +464,13 @@ export function createShowcaseTexture(card: ShowcaseCard, aspect: string): Surfa
 }
 
 /**
- * House media on an unbooked surface: the station's own clip or still, drawn
- * under a permanent EXAMPLE badge.
+ * House media on an unbooked surface: the artwork the station is standing on
+ * it, captioned with the fact that the space is still for sale.
  *
- * The badge is composited into the texture rather than laid over the surface in
- * the DOM, because in the room the surface is geometry: there is no overlay to
- * hang a badge on, and house content must never read as a spot somebody bought.
- * That is why a clip is drawn frame by frame into a canvas instead of being
- * mapped straight onto the mesh.
+ * The caption is composited into the texture rather than laid over the surface
+ * in the DOM, because in the room the surface is geometry: there is no overlay
+ * to hang one on. That is why a clip is drawn frame by frame into a canvas
+ * instead of being mapped straight onto the mesh.
  */
 export function createHouseMediaTexture(media: { url: string; kind: "image" | "video" }, aspect: string, footer?: string): SurfaceTexture {
   const sa = parseAspect(aspect);
@@ -501,7 +481,7 @@ export function createHouseMediaTexture(media: { url: string; kind: "image" | "v
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
   paintLedBackdrop(ctx, W, H);
-  paintExampleBadge(ctx, 0, 0, W, H, footer);
+  paintAvailableLine(ctx, 0, 0, W, H, footer);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -516,7 +496,7 @@ export function createHouseMediaTexture(media: { url: string; kind: "image" | "v
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, W, H);
     ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
-    paintExampleBadge(ctx, 0, 0, W, H, footer);
+    paintAvailableLine(ctx, 0, 0, W, H, footer);
     texture.needsUpdate = true;
   };
 

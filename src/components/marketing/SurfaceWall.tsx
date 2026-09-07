@@ -121,8 +121,8 @@ const WALL_PANELS: WallPanel[] = [
 /** A display panel: the creative on it, or the fact that it is free. */
 function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { panel: WallPanel; row: BoardRowDto | undefined; occupant: QueueEntryDto | null; onSelect?: () => void; preview?: boolean }) {
   const creative = occupant?.creative ?? null;
-  // House content stands on the panel while it is unbooked: the station's own
-  // example, badged EXAMPLE, with the panel still reading as available.
+  // House content stands on the panel while it is unbooked, named for the brand
+  // on it, with the panel still reading as available at its asking price.
   const card = useHousePlaceholder(occupant ? null : panel.id);
   const house = houseMedia(card);
   return (
@@ -152,7 +152,11 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
               // eslint-disable-next-line @next/next/no-img-element
               <img src={house.url} alt="" className="h-full w-full object-cover" />
             )}
-            <span className="readout absolute left-1.5 top-1.5 rounded-sm border border-white/25 bg-ink-950/80 px-1.5 py-[3px] text-[8px] uppercase tracking-[0.16em] text-ink-200">Example</span>
+            {card && (
+              <span className="readout absolute left-1.5 top-1.5 max-w-[calc(100%-12px)] truncate rounded-sm border border-white/25 bg-ink-950/80 px-1.5 py-[3px] text-[8px] uppercase tracking-[0.16em] text-ink-200">
+                {card.label}
+              </span>
+            )}
           </>
         ) : creative?.textContent ? (
           <div className="flex h-full items-center justify-center p-6 text-center text-2xl">{creative.textContent}</div>
