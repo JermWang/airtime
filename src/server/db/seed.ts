@@ -313,7 +313,16 @@ export const RETIRED_PLACEMENT_IDS = [
 const houseSublabel = (placementId: string) => (placementId === "AD" ? "This break is available" : "This panel is available");
 
 /** A slot with artwork: the file fills the surface and the text names it. */
-const artCard = (slug: string, label: string, name: string, placementId: string, file: string, fit: "FIT" | "FILL" = "FILL", sortOrder = 10): typeof schema.showcaseCreatives.$inferInsert => ({
+const artCard = (
+  slug: string,
+  label: string,
+  name: string,
+  placementId: string,
+  file: string,
+  fit: "FIT" | "FILL" = "FILL",
+  clip?: { durationSec: number },
+  sortOrder = 10,
+): typeof schema.showcaseCreatives.$inferInsert => ({
   slug,
   placementId,
   label,
@@ -321,7 +330,10 @@ const artCard = (slug: string, label: string, name: string, placementId: string,
   sublabel: houseSublabel(placementId),
   accent: "#ccff00",
   mediaUrl: `/placeholders/${file}`,
-  mediaType: "IMAGE",
+  mediaType: clip ? "VIDEO" : "IMAGE",
+  // A clip in a break is anchored to the top of that break, so every viewer is
+  // the same distance into it; that needs its real length.
+  durationSec: clip?.durationSec ?? null,
   fit,
   sortOrder,
 });
@@ -338,13 +350,12 @@ export const HOUSE_PLACEHOLDERS: Array<typeof schema.showcaseCreatives.$inferIns
     accent: "#ccff00",
     sortOrder: 1,
   },
-  // A surface fills itself with what it is given, so a wordmark in a corner is
-  // the first thing lost. Anduril's sits bottom-right: on the picture the whole
-  // frame is shown anyway, and on the left panel it is shown whole on its own
-  // black ground rather than cropped down to nothing. Pons and the cat are
-  // centred and hold up wherever they are put.
-  artCard("rh-anduril", "Anduril", "Anduril", "AD", "anduril.jpg"),
-  artCard("rh-anduril-panel", "Anduril", "Anduril", "PANEL_LEFT", "anduril.jpg", "FIT"),
+  // The break runs the promo; the panel carries the mark on its own black
+  // ground, centred, so the panel and the artwork share an edge you cannot see.
+  // (`anduril-panel.png` is the wordmark lifted off the wide frame and set in
+  // the middle of a 9:16 field of the same black.)
+  artCard("rh-anduril", "Anduril", "Anduril", "AD", "anduril-promo.mp4", "FILL", { durationSec: 74 }),
+  artCard("rh-anduril-panel", "Anduril", "Anduril", "PANEL_LEFT", "anduril-panel.png", "FIT"),
   artCard("rh-dune", "Dune", "Dune Analytics", "PANEL_TOP_LEFT", "dune.jpg"),
   artCard("rh-cashcat", "$CASHCAT", "Cash Cat", "PANEL_TOP_MID", "cashcat.jpg"),
   // Pons moves across rather than off the board: the right panel was the one
