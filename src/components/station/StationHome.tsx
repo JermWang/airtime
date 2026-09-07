@@ -52,12 +52,17 @@ export function StationHome({ channelId = "MAIN" }: { channelId?: string }) {
 
 /* ---- header -------------------------------------------------------------- */
 
+/**
+ * The top tabs.
+ *
+ * Every one of these goes to a page. They used to be anchors onto the flip
+ * cards further down this page, so "Treasury" scrolled to the bottom of the
+ * front page instead of opening the treasury dashboard.
+ */
 const NAV = [
-  { href: "#clock", label: "The clock" },
-  { href: "#picture", label: "The picture" },
-  { href: "#honesty", label: "Honesty" },
-  { href: "#treasury", label: "Treasury" },
-  { href: "#room", label: "The room" },
+  { href: "/treasury", label: "Treasury" },
+  { href: "/airtime", label: "Ads" },
+  { href: "/docs", label: "Docs" },
 ];
 
 function SiteHeader() {
@@ -72,9 +77,9 @@ function SiteHeader() {
       </Link>
       <nav className="mono hidden items-center gap-7 text-[10px] uppercase tracking-[0.18em] md:flex">
         {NAV.map((n) => (
-          <a key={n.href} href={n.href} className="text-ink-300 transition hover:text-signal">
+          <Link key={n.href} href={n.href} className="text-ink-300 transition hover:text-signal">
             {n.label}
-          </a>
+          </Link>
         ))}
       </nav>
       <div className="flex shrink-0 items-center gap-3">
@@ -82,12 +87,12 @@ function SiteHeader() {
         <span className="mono hidden whitespace-nowrap text-[10px] tracking-[0.16em] tabular-nums text-ink-400 lg:inline" suppressHydrationWarning>
           {formatClock(now)} UTC
         </span>
-        <a
-          href="#panels"
+        <Link
+          href="/airtime"
           className="mono inline-flex h-[34px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-4 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
         >
           Buy airtime
-        </a>
+        </Link>
       </div>
     </header>
   );
