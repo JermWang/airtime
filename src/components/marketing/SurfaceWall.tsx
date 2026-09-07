@@ -109,15 +109,20 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
   // example, badged EXAMPLE, with the panel still reading as available.
   const card = useHousePlaceholder(occupant ? null : panel.id);
   const house = houseMedia(card);
+  // A picture fills the surface and the price rides on top of it, the way a
+  // bug sits over a broadcast. Type does not: when the surface is showing
+  // words, the price takes a row of its own underneath them, so nothing on a
+  // panel is ever printed over anything else however small the panel gets.
+  const overlaid = Boolean(creative?.url || house);
   return (
     <Link
       href={row ? `/airtime/${row.placement.id}` : "/airtime"}
       onClick={onSelect ? (event) => { event.preventDefault(); onSelect(); } : undefined}
       data-surface={panel.id}
-      className={cn("group relative block h-full min-w-0 w-full bg-ink-900", preview ? "overflow-hidden" : styles.screen, !preview && panel.area)}
+      className={cn("group relative flex h-full min-w-0 w-full flex-col bg-ink-900", preview ? "overflow-hidden" : styles.screen, !preview && panel.area)}
       aria-label={`${onSelect ? "Enlarge" : "View placement"} ${row?.placement.name ?? panel.label}`}
     >
-      <div className={cn("absolute inset-0 overflow-hidden", !preview && styles.face)}>
+      <div className={cn("overflow-hidden", overlaid ? "absolute inset-0" : "relative min-h-0 flex-1", !preview && styles.face)}>
         {creative?.url ? (
           creative.type === "VIDEO" ? (
             <video src={creative.url} muted playsInline loop autoPlay className="h-full w-full object-cover" />
@@ -154,7 +159,10 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
           the compact size holds until lg, where the column is wide enough. */}
       <div
         className={cn(
-          "pointer-events-none absolute inset-x-2.5 bottom-2.5 flex max-lg:inset-x-1.5 max-lg:bottom-2",
+          "flex",
+          overlaid
+            ? "pointer-events-none absolute inset-x-2.5 bottom-2.5 max-lg:inset-x-1.5 max-lg:bottom-2"
+            : "relative z-10 shrink-0 px-1.5 pb-1.5",
           panel.align === "start" ? "justify-start" : "justify-end",
         )}
       >
