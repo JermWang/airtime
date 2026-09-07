@@ -21,10 +21,10 @@ export function HouseCard({ card, size = "panel" }: { card: Pick<ShowcaseDto, "l
   if (!screen) {
     return (
       <div className="flex h-full w-full flex-col gap-1 overflow-hidden bg-[linear-gradient(135deg,#07090c,#12161b)] p-1.5 pb-0">
-        <div className="flex min-w-0 items-start gap-1.5">
+        {/* leading-none so the line box hugs the glyphs instead of reaching
+            into the row below. */}
+        <div className="flex min-w-0 items-center gap-1.5">
           <span className="h-2 w-[3px] shrink-0 rounded-[1px] bg-signal" />
-          {/* leading-none so the line box hugs the glyphs: at the inherited
-              line height it reached into the name's row below it. */}
           <span className="readout min-w-0 flex-1 truncate text-[8px] uppercase leading-none tracking-[0.14em] text-signal">{card.label}</span>
         </div>
         {/*
@@ -34,8 +34,16 @@ export function HouseCard({ card, size = "panel" }: { card: Pick<ShowcaseDto, "l
           its height, and any number that suits one slices a line in half on the
           other.
         */}
+        {/*
+          The stamp runs on from the name rather than sitting in a box of its
+          own. A panel can be seventy pixels across, and a box there took the
+          width the ticker needed or a row the name was standing on; as text it
+          costs nothing but the words, wraps when it must, and cannot land on
+          top of anything.
+        */}
         <div className="min-h-0 flex-1 overflow-hidden text-[12px] font-medium leading-[1.15] tracking-[-0.02em] text-ink-50 [mask-image:linear-gradient(to_bottom,#000_calc(100%-7px),transparent)] [overflow-wrap:anywhere]">
-          {card.headline}
+          {card.headline}{" "}
+          <span className="readout whitespace-nowrap text-[7px] uppercase tracking-[0.14em] text-ink-400">· Example</span>
         </div>
       </div>
     );
@@ -56,15 +64,3 @@ export function HouseCard({ card, size = "panel" }: { card: Pick<ShowcaseDto, "l
   );
 }
 
-/**
- * The stamp house content wears on a panel. It sits in the row with the price
- * rather than on the card, because that row has width to spare and the card
- * does not.
- */
-export function HouseExampleBadge() {
-  return (
-    <span className="readout shrink-0 rounded-sm border border-white/25 bg-white/[0.06] px-[3px] py-[1px] text-[6.5px] uppercase tracking-[0.1em] text-ink-100">
-      Example
-    </span>
-  );
-}

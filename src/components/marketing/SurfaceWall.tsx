@@ -7,7 +7,7 @@ import { useBoard, useActivations, useHousePlaceholder } from "@/lib/hooks";
 import { useLiveAsk } from "@/components/airtime/AskTicker";
 import { StationPlayer } from "@/components/station/StationPlayer";
 import { usePlayer } from "@/components/station/playerStore";
-import { HouseCard, HouseExampleBadge } from "@/components/hud/HouseCard";
+import { HouseCard } from "@/components/hud/HouseCard";
 import { houseMedia } from "@/lib/house";
 import { formatWei, cn } from "@/lib/format";
 import { useMarquee } from "@/lib/useMarquee";
@@ -26,15 +26,19 @@ import type { BoardRowDto, QueueEntryDto } from "@/lib/api";
  * the panels show whatever creative is actually running on them.
  */
 
-function Chip({ children, className, stack }: { children: React.ReactNode; className?: string; stack?: boolean }) {
+/**
+ * Sizes are chosen here rather than overridden by the caller: `cn` is a plain
+ * join, so a caller passing px-1 next to the base px-2 emits both and the
+ * stylesheet decides which wins, which is how the compact chip came out at
+ * full size on the smallest surface it exists for.
+ */
+function Chip({ children, className, stack, compact }: { children: React.ReactNode; className?: string; stack?: boolean; compact?: boolean }) {
   return (
     <span
       className={cn(
-        "readout inline-flex whitespace-nowrap rounded-sm border border-white/10 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.14em] text-ink-200",
-        // A side panel is narrower than this chip is long, and the surface
-        // clips its own overflow, so on a panel the price sits under its label
-        // rather than beside it.
-        stack ? "flex-col items-start gap-[3px]" : "items-center gap-2",
+        "readout inline-flex whitespace-nowrap rounded-sm border border-white/10 bg-ink-950/80 uppercase text-ink-200",
+        compact ? "min-w-0 max-w-full px-1 py-[2px] text-[7.5px] tracking-[0.06em]" : "px-2 py-[5px] text-[9.5px] tracking-[0.14em]",
+        stack ? "flex-col items-start gap-[3px]" : compact ? "items-center gap-1" : "items-center gap-2",
         className,
       )}
     >
@@ -43,12 +47,24 @@ function Chip({ children, className, stack }: { children: React.ReactNode; class
   );
 }
 
-function PriceChip({ row, label, stack }: { row: BoardRowDto | undefined; label: string; stack?: boolean }) {
+/**
+ * A surface's name and what it costs, on one line.
+ *
+ * The price used to sit under its label on a panel, which cost the card a
+ * second row of height on the smallest surfaces the station sells — half the
+ * space the creative had. They share a line now, and the name gives way first:
+ * on a surface too narrow for both, the label truncates and the price stays
+ * whole, because the price is the reason the chip is there.
+ */
+function PriceChip({ row, label, stack, compact }: { row: BoardRowDto | undefined; label: string; stack?: boolean; compact?: boolean }) {
   const live = useLiveAsk(row?.placement, row?.surface);
   return (
-    <Chip stack={stack}>
-      {label}
-      <span className="text-signal">{live ? formatWei(live.askWei) : "—"}</span>
+    <Chip stack={stack} compact={compact}>
+      {/* The name of the surface only appears where there is room for it: on a
+          seventy-pixel tower it came out as "T…", which is noise standing in
+          front of the price. Measured against the panel, not the window. */}
+      <span className={compact ? "hidden min-w-0 truncate @[124px]:inline" : undefined}>{label}</span>
+      <span className="shrink-0 text-signal">{live ? formatWei(live.askWei) : "—"}</span>
     </Chip>
   );
 }
@@ -119,7 +135,7 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
       href={row ? `/airtime/${row.placement.id}` : "/airtime"}
       onClick={onSelect ? (event) => { event.preventDefault(); onSelect(); } : undefined}
       data-surface={panel.id}
-      className={cn("group relative flex h-full min-w-0 w-full flex-col bg-ink-900", preview ? "overflow-hidden" : styles.screen, !preview && panel.area)}
+      className={cn("group @container relative flex h-full min-w-0 w-full flex-col bg-ink-900", preview ? "overflow-hidden" : styles.screen, !preview && panel.area)}
       aria-label={`${onSelect ? "Enlarge" : "View placement"} ${row?.placement.name ?? panel.label}`}
     >
       <div className={cn("overflow-hidden", overlaid ? "absolute inset-0" : "relative min-h-0 flex-1", !preview && styles.face)}>
@@ -159,21 +175,18 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
           the compact size holds until lg, where the column is wide enough. */}
       <div
         className={cn(
-          // The tower is 95px wide: the price and the stamp do not always fit
-          // on one line there, so the row wraps rather than letting them run
-          // into each other.
-          "flex flex-wrap items-end gap-x-1.5 gap-y-1",
+          "flex min-w-0 items-end",
           overlaid
             ? "pointer-events-none absolute inset-x-2.5 bottom-2.5 max-lg:inset-x-1.5 max-lg:bottom-2"
             : "relative z-10 shrink-0 px-1.5 pb-1.5",
-          // The stamp takes the end of the row the price does not.
-          !overlaid && card ? "justify-between" : panel.align === "start" ? "justify-start" : "justify-end",
+          panel.align === "start" ? "justify-start" : "justify-end",
         )}
       >
-        <span className="min-w-0 max-w-full [&>span]:max-w-full [&>span]:max-lg:gap-[2px] [&>span]:max-lg:px-1.5 [&>span]:max-lg:text-[8px] [&>span]:max-lg:tracking-[0.08em]">
-          <PriceChip row={row} label={panel.label} stack />
+        {/* A flex box, not an inline span: max-width on an inline wrapper does
+            not reach the chip inside it, and the price ran off the tower. */}
+        <span className="flex min-w-0 max-w-full">
+          <PriceChip row={row} label={panel.label} stack={overlaid} compact={!overlaid} />
         </span>
-        {!overlaid && card && <HouseExampleBadge />}
       </div>
     </Link>
   );
