@@ -125,11 +125,6 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
   // example, badged EXAMPLE, with the panel still reading as available.
   const card = useHousePlaceholder(occupant ? null : panel.id);
   const house = houseMedia(card);
-  // A picture fills the surface and the price rides on top of it, the way a
-  // bug sits over a broadcast. Type does not: when the surface is showing
-  // words, the price takes a row of its own underneath them, so nothing on a
-  // panel is ever printed over anything else however small the panel gets.
-  const overlaid = Boolean(creative?.url || house);
   return (
     <Link
       href={row ? `/airtime/${row.placement.id}` : "/airtime"}
@@ -138,7 +133,10 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
       className={cn("group @container relative flex h-full min-w-0 w-full flex-col bg-ink-900", preview ? "overflow-hidden" : styles.screen, !preview && panel.area)}
       aria-label={`${onSelect ? "Enlarge" : "View placement"} ${row?.placement.name ?? panel.label}`}
     >
-      <div className={cn("overflow-hidden", overlaid ? "absolute inset-0" : "relative min-h-0 flex-1", !preview && styles.face)}>
+      {/* Whatever is on the surface fills it corner to corner: a spot is not
+          letterboxed above a bar of station furniture. The price floats over
+          it, and the card inside keeps its own text clear of the chip. */}
+      <div className={cn("absolute inset-0 overflow-hidden", !preview && styles.face)}>
         {creative?.url ? (
           creative.type === "VIDEO" ? (
             <video src={creative.url} muted playsInline loop autoPlay className="h-full w-full object-cover" />
@@ -171,14 +169,10 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
           </div>
         )}
       </div>
-      {/* Anchored to both edges so the chip can never run past the surface;
-          the compact size holds until lg, where the column is wide enough. */}
+      {/* Anchored to both edges so the chip can never run past the surface. */}
       <div
         className={cn(
-          "flex min-w-0 items-end",
-          overlaid
-            ? "pointer-events-none absolute inset-x-2.5 bottom-2.5 max-lg:inset-x-1.5 max-lg:bottom-2"
-            : "relative z-10 shrink-0 px-1.5 pb-1.5",
+          "pointer-events-none absolute inset-x-1.5 bottom-1.5 flex min-w-0 items-end",
           panel.align === "start" ? "justify-start" : "justify-end",
         )}
       >

@@ -20,7 +20,10 @@ export function HouseCard({ card, size = "panel" }: { card: Pick<ShowcaseDto, "l
   // out of the card altogether.
   if (!screen) {
     return (
-      <div className="flex h-full w-full flex-col gap-1 overflow-hidden bg-[linear-gradient(135deg,#07090c,#12161b)] p-1.5 pb-0">
+      // The bottom strip is where the price chip floats, so the card's own
+      // text stops above it: the artwork still runs the full height of the
+      // surface behind it.
+      <div className="flex h-full w-full flex-col gap-1 overflow-hidden bg-[linear-gradient(135deg,#07090c,#12161b)] p-1.5 pb-[19px]">
         {/* leading-none so the line box hugs the glyphs instead of reaching
             into the row below. */}
         <div className="flex min-w-0 items-center gap-1.5">
