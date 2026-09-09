@@ -354,9 +354,10 @@ export const HOUSE_PLACEHOLDERS: Array<typeof schema.showcaseCreatives.$inferIns
   artCard("rh-anduril-panel", "Anduril", "Anduril", "PANEL_LEFT", "anduril-panel.png", "FIT"),
   artCard("rh-dune", "Dune", "Dune Analytics", "PANEL_TOP_LEFT", "dune.jpg"),
   artCard("rh-cashcat", "$CASHCAT", "Cash Cat", "PANEL_TOP_MID", "cashcat.jpg"),
-  // Pons moves across rather than off the board: the right panel was the one
-  // still standing empty.
-  artCard("rh-pons", "$PONS", "Pons", "PANEL_RIGHT", "pons.jpg"),
+  {
+    ...artCard("rh-stonkfun", "StonkFun", "Launch, discover & trade", "PANEL_RIGHT", "stonkfun-panel.png", "FIT"),
+    sublabel: "stonkfun.xyz · Coins paired with memes, stocks, currencies, commodities & more.",
+  },
   // Cut to the shape of the surface they stand on: square for the small panel
   // at the end of the top row, portrait for the tower.
   artCard("rh-fomo", "FOMO", "Fomo", "PANEL_TOP_RIGHT", "fomo.jpg"),
