@@ -75,20 +75,22 @@ function SiteHeader() {
       <Link href="/" className="flex h-[34px] shrink-0 items-center">
         <Wordmark size={12.5} />
       </Link>
-      <nav className="readout hidden items-center gap-4 text-[10px] uppercase tracking-[0.18em] md:ml-auto md:flex">
+      <div className="absolute left-1/2 top-[60px] flex -translate-x-1/2 items-center gap-4 md:top-1/2 md:-translate-y-1/2">
+      <nav className="readout hidden items-center gap-4 text-[10px] uppercase tracking-[0.18em] md:flex">
         {NAV.map((n) => (
           <Link key={n.href} href={n.href} className="text-ink-300 transition hover:text-signal">
             {n.label}
           </Link>
         ))}
       </nav>
-      <div className="absolute left-4 top-[60px] flex items-center gap-2 md:static md:ml-2 md:shrink-0">
+      <div className="flex shrink-0 items-center gap-2">
         <a href="https://x.com/airtimetech" target="_blank" rel="noopener noreferrer"
           className="readout text-[10px] uppercase tracking-[0.12em] text-ink-300 transition hover:text-signal"
           aria-label="AIRTIME on X (@airtimetech)">
           X <span className="md:hidden lg:inline">· @airtimetech</span>
         </a>
         <TokenContractChip className="whitespace-nowrap" />
+      </div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <SoundControl compact />
