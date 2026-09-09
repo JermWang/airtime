@@ -168,6 +168,7 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
   // else fills its surface exactly as it always has.
   const showWhole = Boolean(house && house.kind === "image" && card?.fit === "FIT");
   const ground = useEdgeColor(showWhole ? house!.url : null);
+  const brand = card?.slug === "rh-pump" ? "pump" : card?.slug === "rh-solana" ? "solana" : null;
   return (
     <Link
       href={row ? `/airtime/${row.placement.id}` : "/airtime"}
@@ -189,7 +190,20 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
           )
         ) : house ? (
           <>
-            {house.kind === "video" ? (
+            {brand ? (
+              <div className={styles.brandPanel} data-brand={brand}>
+                <div className={styles.brandContent}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/placeholders/${brand}-mark.svg`} alt="" className={styles.brandLogo} />
+                  <div className={styles.brandCopy}>
+                    <small className={styles.brandEyebrow}>{brand === "pump" ? "PUMP.FUN" : "SOLANA"}</small>
+                    <strong>{brand === "pump" ? "$PUMP" : <>Built for<br />what’s next.</>}</strong>
+                    <span>{brand === "pump" ? "Pump.fun flagship token" : "Powered by SOL"}</span>
+                    <small className={styles.brandCta}>{brand === "pump" ? "Explore $PUMP ↗" : "solana.com ↗"}</small>
+                  </div>
+                </div>
+              </div>
+            ) : house.kind === "video" ? (
               <video src={house.url} poster={house.posterUrl ?? undefined} muted playsInline loop autoPlay className="h-full w-full object-cover" />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element

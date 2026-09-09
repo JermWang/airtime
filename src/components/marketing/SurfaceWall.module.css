@@ -28,3 +28,68 @@
 @keyframes reveal { from { opacity: 0; transform: scale(.94) translateY(18px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 @media (max-width: 639px) { .skyline { padding: 8px 16px 20px; } .screen, .screen[data-surface], .mainScreen { transform: none; border-width: 2px; } .district { min-height: 550px; } }
 @media (prefers-reduced-motion: reduce) { .screen, .mainScreen { transition: none; } .house::after, .idle, .detail { animation: none; } }
+
+/* Responsive house artwork fills the actual surface instead of letterboxing a poster. */
+.brandPanel {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  background: radial-gradient(ellipse at 35% 35%, #348b6480, transparent 75%), linear-gradient(140deg, #123c2b, #071914 65%, #165236);
+}
+.brandPanel[data-brand="solana"] {
+  background: radial-gradient(ellipse at 70% 50%, #14cfa044, transparent 75%), linear-gradient(155deg, #492788, #111d32 55%, #492788);
+}
+.brandContent {
+  position: absolute;
+  inset: 20% 9%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8cqmin;
+}
+.brandLogo { width: 78%; max-height: 42%; object-fit: contain; }
+.brandCopy { display: flex; flex-direction: column; align-items: center; gap: 5cqmin; color: #eaf1f2; text-align: center; }
+.brandCopy strong { font: 700 14cqmin/1.1 Arial, sans-serif; letter-spacing: -.03em; }
+.brandCopy span { font-size: 7cqmin; line-height: 1.3; color: #cadde2; }
+.brandCopy small { font-size: 6cqmin; color: #a4c5cf; }
+@container (min-aspect-ratio: 2/1) {
+  .brandContent { inset: 18% 14%; flex-direction: row; gap: 14cqmin; }
+  .brandLogo { width: 30%; height: 100%; max-height: 100%; }
+  .brandCopy { gap: 5cqmin; }
+  .brandCopy strong { font-size: 22cqmin; }
+  .brandCopy span { font-size: 9cqmin; }
+  .brandCopy small { font-size: 8cqmin; }
+}
+@container (max-height: 120px) and (max-aspect-ratio: 2/1) {
+  .brandContent { inset: 24% 12%; gap: 5cqmin; }
+  .brandLogo { max-height: 60%; }
+  .brandCopy strong { font-size: 12cqmin; }
+  .brandCopy span, .brandCopy small { display: none; }
+}
+
+/* Advertising hierarchy: masthead, headline, supporting copy, destination. */
+.brandContent { inset: 10% 12%; align-items: flex-start; justify-content: space-between; gap: 7cqmin; }
+.brandLogo { width: 60%; max-height: 24%; object-position: left center; }
+.brandCopy { align-items: flex-start; text-align: left; flex: 1; width: 100%; gap: 10cqmin; }
+.brandCopy strong { font-size: 23cqmin; line-height: 1.02; letter-spacing: -.05em; }
+.brandCopy .brandEyebrow { font-size: 7cqmin; font-weight: 700; letter-spacing: .14em; }
+.brandCopy .brandCta { margin-top: auto; border-top: 1px solid #ffffff45; padding-top: 9cqmin; width: 100%; font-size: 8cqmin; color: #fff; }
+.brandPanel[data-brand="solana"]::before { content: ""; position: absolute; width: 220%; height: 22%; left: -40%; top: 45%; transform: rotate(-30deg); background: linear-gradient(90deg, transparent, #18ebac20, #9945ff30); }
+@container (min-aspect-ratio: 2/1) {
+  .brandContent { inset: 14% 10%; flex-direction: row; align-items: center; gap: 14cqmin; }
+  .brandLogo { width: 30%; height: 85%; max-height: 100%; transform: rotate(-8deg); }
+  .brandCopy { gap: 3cqmin; justify-content: center; }
+  .brandCopy strong { font-size: 30cqmin; }
+  .brandCopy .brandEyebrow { font-size: 7cqmin; }
+  .brandCopy span { font-size: 9cqmin; }
+  .brandCopy .brandCta { margin-top: 3cqmin; padding-top: 4cqmin; font-size: 8cqmin; width: auto; }
+}
+@container (max-height: 120px) and (max-aspect-ratio: 2/1) {
+  .brandContent { inset: 24% 10% 20%; flex-direction: row; align-items: center; gap: 6cqmin; }
+  .brandLogo { width: 32%; height: 60%; max-height: 100%; }
+  .brandCopy { flex: 1; gap: 4cqmin; }
+  .brandCopy strong { font-size: 15cqmin; }
+  .brandCopy .brandEyebrow { display: block; font-size: 6cqmin; letter-spacing: 0; }
+  .brandCopy .brandCta, .brandCopy span { display: none; }
+}
