@@ -8,7 +8,7 @@ import { TIERS, type Tier } from "./perf";
 /**
  * Screening-room lighting: the picture is the brightest thing in the room and
  * most of what you see on the walls and floor is its own spill. A soft key from
- * the truss keeps the space readable, and a restrained lime accent runs along
+ * the truss keeps the space readable, and a restrained blue accent runs along
  * the side walls. Everything else comes from the procedural environment map.
  */
 export function EnvironmentalLights({ tier }: { tier: Tier }) {

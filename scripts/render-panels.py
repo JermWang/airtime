@@ -27,7 +27,7 @@ WANTED = ARGS[3:] or ["clock", "honesty", "treasury", "room"]
 W, H = 1000, 1250
 SAMPLES = int(os.environ.get("PANEL_SAMPLES", "160"))
 
-SIGNAL = (0.63, 1.0, 0.0, 1.0)  # #ccff00 in linear-ish terms, kept vivid
+SIGNAL = (0.41, 0.67, 0.76, 1.0)  # #69aac1 in linear-ish terms, kept vivid
 
 
 # --------------------------------------------------------------------------- #

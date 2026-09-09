@@ -545,7 +545,7 @@ export function createHouseMediaTexture(media: { url: string; kind: "image" | "v
  * These are 0.6 m panels seen from ten metres: any real text on them is
  * unreadable noise that reads as clutter, so they carry abstract broadcast
  * furniture instead - levels, a waveform, a status grid - in graphite with a
- * single lime accent. They stay obviously AIRTIME's own graphics and never
+ * single blue accent. They stay obviously AIRTIME's own graphics and never
  * imitate an advertisement.
  */
 export function createStudioGraphicTexture(aspect: string, seed = 0): SurfaceTexture {
@@ -572,7 +572,7 @@ export function createStudioGraphicTexture(aspect: string, seed = 0): SurfaceTex
   const inner = W - pad * 2;
   const top = pad * 0.8;
 
-  // Header rule: a lime tick and a hairline, the station's own furniture.
+  // Header rule: a blue tick and a hairline, the station's own furniture.
   ctx.fillStyle = "rgba(105,170,193,0.85)";
   ctx.fillRect(pad, top, Math.round(W * 0.05), Math.max(2, Math.round(H * 0.018)));
   ctx.fillStyle = "rgba(255,255,255,0.12)";

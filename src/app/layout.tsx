@@ -17,8 +17,8 @@ const DESCRIPTION =
   "Live television and programmable advertising on Solana. Pay in SOL. AIRTIME is launching on StonkFun.";
 
 /**
- * The icon and the social card are the files beside this one — Next picks up
- * icon.png, apple-icon.png, opengraph-image.png and twitter-image.png by name.
+ * Versioned brand icons avoid stale browser favicon caches. Social cards and
+ * the fallback favicon are picked up from the files beside this one.
  * metadataBase is what turns them into the absolute URLs a crawler needs, so it
  * has to match the origin the station is actually served from.
  */
@@ -27,6 +27,11 @@ export const metadata: Metadata = {
   title: { default: "AIRTIME", template: "%s · AIRTIME" },
   description: DESCRIPTION,
   applicationName: "AIRTIME",
+  icons: {
+    icon: [{ url: "/airtime-icon-v2.png", type: "image/png", sizes: "256x256" }],
+    shortcut: "/airtime-icon-v2.png",
+    apple: [{ url: "/airtime-apple-icon-v2.png", sizes: "180x180" }],
+  },
   robots: { index: true, follow: true },
   openGraph: {
     type: "website",

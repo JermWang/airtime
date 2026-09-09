@@ -32,7 +32,7 @@ const PUBLIC_DIR = path.join(ROOT, "public", "panels");
 const LOGO = path.join(ROOT, "public", "anduril logo.png");
 
 const INK = { 950: "#050607", 900: "#0a0b0d", 800: "#15181c", 700: "#1d2126", 600: "#2a2f36", 500: "#3c434c", 400: "#5b6470", 300: "#8b95a3", 100: "#e6e9ee", 50: "#f7f8fa" };
-const SIGNAL = "#ccff00";
+const SIGNAL = "#69aac1";
 
 /* -------------------------------------------------------------------------- */
 /*  The board: a price walking down                                           */
