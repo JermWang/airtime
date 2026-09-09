@@ -10,6 +10,7 @@ import { ContentNotice } from "@/components/hud/ContentNotice";
 import { SiteFooter } from "@/components/hud/SiteFooter";
 import { MobileDock } from "@/components/hud/MobileDock";
 import { Wordmark } from "@/components/hud/Wordmark";
+import { TokenContractChip } from "@/components/hud/AddressChip";
 import { Reveal, RevealWords } from "@/components/marketing/Reveal";
 import { FlipCard } from "@/components/marketing/FlipCard";
 import { SurfaceWall, PriceTicker } from "@/components/marketing/SurfaceWall";
@@ -68,19 +69,27 @@ const NAV = [
 function SiteHeader() {
   return (
     <header
-      className="fixed inset-x-0 top-0 z-40 flex items-center justify-between gap-4 px-6 backdrop-blur-[14px]"
-      style={{ height: 60, background: "linear-gradient(180deg,rgba(5,6,7,.82),rgba(5,6,7,0))" }}
+      className="fixed inset-x-0 top-0 z-40 flex h-[96px] items-start justify-between gap-3 px-4 pt-[13px] backdrop-blur-[14px] md:h-[60px] md:items-center md:px-6 md:pt-0"
+      style={{ background: "linear-gradient(180deg,rgba(5,6,7,.82),rgba(5,6,7,0))" }}
     >
-      <Link href="/" className="flex shrink-0 items-center">
+      <Link href="/" className="flex h-[34px] shrink-0 items-center">
         <Wordmark size={12.5} />
       </Link>
-      <nav className="readout hidden items-center gap-7 text-[10px] uppercase tracking-[0.18em] md:flex">
+      <nav className="readout hidden items-center gap-4 text-[10px] uppercase tracking-[0.18em] md:flex lg:gap-7">
         {NAV.map((n) => (
           <Link key={n.href} href={n.href} className="text-ink-300 transition hover:text-signal">
             {n.label}
           </Link>
         ))}
       </nav>
+      <div className="absolute left-4 top-[60px] flex items-center gap-4 md:static md:shrink-0 md:gap-3">
+        <a href="https://x.com/airtimetech" target="_blank" rel="noopener noreferrer"
+          className="readout text-[10px] uppercase tracking-[0.12em] text-ink-300 transition hover:text-signal"
+          aria-label="AIRTIME on X (@airtimetech)">
+          X <span className="md:hidden lg:inline">· @airtimetech</span>
+        </a>
+        <TokenContractChip className="whitespace-nowrap" />
+      </div>
       <div className="flex shrink-0 items-center gap-3">
         <SoundControl compact />
         <Link
@@ -119,7 +128,7 @@ function Fold({ channelId }: { channelId: string }) {
         Expanded, the wall is given the whole viewport and the copy starts below
         it, so it is off the fold entirely rather than half on screen.
       */}
-      <div className="flex min-h-[max(100svh,760px)] flex-col pt-[70px]">
+      <div className="flex min-h-[max(100svh,760px)] flex-col pt-[106px] md:pt-[70px]">
         <SurfaceWall
           channelId={channelId}
           sizeClassName={expanded ? "h-[max(calc(100svh-70px),690px)] shrink-0" : "flex-1"}
