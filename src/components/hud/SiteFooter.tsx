@@ -100,9 +100,6 @@ export function SiteFooter({ wide = false }: { wide?: boolean }) {
               <TokenContractChip />
               <div className="readout text-[9.5px] uppercase tracking-[0.16em] text-ink-500">© {year} AIRTIME · Solana · Launching on StonkFun</div>
             </div>
-            <div className="readout text-[9.5px] uppercase tracking-[0.16em] text-ink-500">
-              Payment facts come from the chain · delivery numbers come from first-party analytics
-            </div>
           </div>
         </div>
       </div>
