@@ -29,11 +29,11 @@ export const PARTNERS: LogoEntry[] = [
     role: "Named pre-stock allocation in the AIRTIME treasury model",
     href: "https://www.anduril.com",
     mark: (
-      <span className="relative block h-[28px] w-[28px] shrink-0 overflow-hidden mix-blend-screen">
-        {/* Use the supplied PNG directly, framing its symbol without stretching. */}
+      <span className="block h-[28px] w-[28px] shrink-0">
+        {/* Transparent symbol cropped from the supplied PNG. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/anduril%20logo.png" alt="Anduril logo" width={1280} height={698}
-          className="absolute left-[-50px] top-[-18px] h-auto w-[128px] max-w-none" />
+        <img src="/anduril-mark-transparent.png" alt="Anduril logo" width={280} height={267}
+          className="h-full w-full object-contain" />
       </span>
     ),
   },
