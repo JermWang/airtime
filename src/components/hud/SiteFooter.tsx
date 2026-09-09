@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Wordmark } from "./Wordmark";
-import { CONTENT_NOTICE_SHORT } from "./ContentNotice";
 import { TokenContractChip } from "./AddressChip";
 import { cn } from "@/lib/format";
 
@@ -94,8 +93,7 @@ export function SiteFooter({ wide = false }: { wide?: boolean }) {
         </div>
 
         <div className="mt-12 border-t border-white/8 pt-6">
-          <p className="body-copy max-w-3xl text-ink-400">{CONTENT_NOTICE_SHORT}</p>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
               <TokenContractChip />
               <div className="readout text-[9.5px] uppercase tracking-[0.16em] text-ink-500">© {year} AIRTIME · Solana · Launching on StonkFun</div>
