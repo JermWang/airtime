@@ -342,7 +342,7 @@ export const HOUSE_PLACEHOLDERS: Array<typeof schema.showcaseCreatives.$inferIns
     placementId: null,
     label: "AIRTIME",
     headline: "Buy the screen",
-    sublabel: "Runtime from 0.5 SOL · every fee buys Anduril pre-stock",
+    sublabel: "Runtime from 0.5 SOL · advertising supports AIRTIME buybacks",
     accent: "#69aac1",
     sortOrder: 1,
   },

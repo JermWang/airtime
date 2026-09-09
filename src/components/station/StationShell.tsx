@@ -147,7 +147,7 @@ export function StationShell({ channelId = "MAIN" }: { channelId?: string }) {
           <Link href="/docs" className="text-ink-300 transition hover:text-signal">
             docs
           </Link>{" "}
-          · Every fee buys Anduril pre-stock ·{" "}
+          · Ad revenue supports AIRTIME buybacks ·{" "}
           <Link href="/treasury" className="text-signal">
             treasury
           </Link>

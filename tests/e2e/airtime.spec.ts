@@ -57,7 +57,7 @@ test("panel artwork itself flips the card and the Anduril panel carries the logo
   // already exposed the original turn-over control.
   await page.mouse.click(box!.x + box!.width / 2, box!.y + 80);
   await expect(back).toHaveAttribute("aria-hidden", "false");
-  await expect(back.getByText("What the network earns is used to buy Anduril pre-stock")).toBeVisible();
+  await expect(back.getByText("Advertising revenue is designated for AIRTIME buybacks and burns")).toBeVisible();
 });
 
 test("buy airtime asks for a show or an ad, with both prices live", async ({ page }) => {

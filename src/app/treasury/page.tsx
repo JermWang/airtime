@@ -3,7 +3,7 @@
 import { PageFrame } from "@/components/hud/PageFrame";
 import { useTreasury } from "@/lib/hooks";
 import { airtimeTokenDecimals } from "@/lib/chain/chains";
-import { formatWei, formatDateTime, formatPercentFromPpm, shortHash, cn } from "@/lib/format";
+import { formatWei, formatDateTime, shortHash, cn } from "@/lib/format";
 import type { TreasuryLedgerRowDto } from "@/lib/api";
 
 const KIND_LABEL: Record<TreasuryLedgerRowDto["kind"], string> = {
@@ -28,16 +28,12 @@ function Figure({ label, value, sub, tone }: { label: string; value: string; sub
 export default function TreasuryPage() {
   const { data, isLoading } = useTreasury();
   const s = data?.summary;
-  const allocationPct = s ? (s.allocationBps / 100).toFixed(s.allocationBps % 100 === 0 ? 0 : 2) : "100";
   // Parts per million, so 0.005% survives the trip without a rounding story.
-  const holderCapPct = formatPercentFromPpm(s?.holderRewardCapPpm ?? 50);
 
   return (
     <PageFrame title="Treasury" wide>
       <p className="mb-5 max-w-3xl text-[13px] leading-relaxed text-ink-200">
-        {allocationPct}% of what this network earns is used to buy Anduril pre-stock, and every holder of the token is rewarded in pre-IPO shares — up to {holderCapPct}%
-        each. Airtime revenue is counted automatically from payments the station verified on chain. Token tax, pre-stock purchases, distributions, and $AIRTIME bought back or
-        burned happen off this chain, so they are recorded by the station operator and shown here as recorded figures with a reference where one exists.
+        Launch policy: advertising revenue is designated for AIRTIME buybacks and burns; StonkFun creator fees are designated for Anduril pre-stock rewards. Token and rewards automation is pending activation. Advertising payments are verified on chain; other ledger entries are operator records and require supporting references.
       </p>
 
       {isLoading && !s && <div className="label">Loading treasury…</div>}
@@ -47,8 +43,8 @@ export default function TreasuryPage() {
           <section className="mb-4 grid gap-3 md:grid-cols-4">
             <Figure label="Airtime revenue" value={formatWei(s.airtimeRevenueWei)} sub={`${s.airtimePayments} verified payment${s.airtimePayments === 1 ? "" : "s"}`} />
             <Figure label="Token tax received" value={formatWei(s.taxInflowWei)} sub="operator recorded" />
-            <Figure label="Total income" value={formatWei(s.totalInflowWei)} sub={`${allocationPct}% earmarked for pre-stock`} />
-            <Figure label="Awaiting deployment" value={formatWei(s.awaitingDeploymentWei)} sub="earmarked, not yet spent" tone="muted" />
+            <Figure label="Total income" value={formatWei(s.totalInflowWei)} sub="combined historical receipts, not a shared allocation" />
+            <Figure label="Reward policy" value="Pending activation" sub="see token and rewards documentation" tone="muted" />
           </section>
 
           <section className="mb-6 grid gap-3 md:grid-cols-4">
@@ -59,7 +55,7 @@ export default function TreasuryPage() {
               value={`${s.sharesDistributed} sh`}
               sub={s.distributions ? `${s.distributions} distribution${s.distributions === 1 ? "" : "s"} · ${s.holdersReached} holder payouts` : "none yet"}
             />
-            <Figure label="Reward cap per holder" value={`${holderCapPct}%`} sub="of the Anduril pre-IPO allocation" tone="signal" />
+            <Figure label="Planned allocation" value="Pro-rata" sub="minimum 1 AIRTIME at daily snapshot" tone="signal" />
           </section>
 
           <section className="mb-6 grid gap-3 md:grid-cols-3">

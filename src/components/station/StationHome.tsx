@@ -220,7 +220,7 @@ function Panels({ channelId }: { channelId: string }) {
               cta={{ href: "/airtime", label: "Take a surface" }}
             >
               <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
-                No rate card, no sales call, no minimum. Every surface carries its own price clock, and the clock is the whole negotiation. Demand is the only
+                No rate card or sales call. Prices start at 0.5 SOL. Every surface carries its own price clock, and the clock is the whole negotiation. Demand is the only
                 thing that raises a price.
               </p>
               <div className="mt-4 flex flex-col">
@@ -300,18 +300,16 @@ function Panels({ channelId }: { channelId: string }) {
               id="treasury"
               index="04"
               eyebrow="Treasury"
-              title="Every fee buys Anduril pre-stock."
+              title="Two streams. Two purposes."
               frontNote="Where the money goes"
               media={<TreasuryArt />}
               cta={{ href: "/treasury", label: "Open the ledger" }}
             >
               <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
-                What the network earns is used to buy Anduril pre-stock, which is then distributed to holders. Airtime revenue is derived from payments the
-                station verified on chain and can never be typed in by hand.
+                Advertising revenue is designated for AIRTIME buybacks and burns. Creator fees from StonkFun are designated for Anduril pre-stock rewards to eligible holders.
               </p>
               <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
-                Token tax, pre-stock purchases and distributions happen off this chain through a broker, so they are recorded by the operator and always labelled
-                as recorded figures rather than proven ones.
+                The token and automated rewards are pending activation. Read the Token and rewards section of the docs for the daily schedule, eligibility and separate uses of each revenue stream.
               </p>
               <LedgerGrid />
               <p className="mt-3.5 text-[11.5px] leading-[1.7] text-ink-500">This is not an offer, a prospectus, or investment advice.</p>
@@ -362,7 +360,7 @@ function Panels({ channelId }: { channelId: string }) {
               </p>
               <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
                 AIRTIME puts the whole thing back in the open. The station runs around the clock in a browser, the price of every surface is on the screen, and
-                anyone with a wallet can take one. No sales call, no minimum, no gatekeeper.
+                anyone with a wallet can take one. No sales call, no gatekeeper. Prices start at 0.5 SOL.
               </p>
               <div className="mt-5 border-l-2 border-signal pl-3.5">
                 <div className="text-[15px] font-medium tracking-[-0.025em] text-ink-50">Jeff Miller</div>

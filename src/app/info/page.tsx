@@ -32,9 +32,9 @@ const MISSION_TITLE = "Advertising should be something you can buy from your sea
 
 const MISSION = [
   "Television built the largest advertising business in history on a simple idea: a channel has a finite amount of time and space, and anyone can buy a piece of it. Somewhere along the way that stopped being true. Buying a spot now means a rate card, a sales call, an agency, an insertion order, and a minimum spend that rules out almost everybody.",
-  "AIRTIME puts the whole thing back in the open. The station runs around the clock in a browser. Every surface in it, starting with the picture itself, is inventory with a price on the screen. You can see what a surface costs, see your own creative on it before you commit, take it with a wallet, and watch it go up. No sales call, no minimum, no gatekeeper.",
+  "AIRTIME puts the whole thing back in the open. The station runs around the clock in a browser. Every surface in it, starting with the picture itself, is inventory with a price on the screen. You can see what a surface costs, see your own creative on it before you commit, take it with a wallet, and watch it go up. No sales call, no gatekeeper. Prices start at 0.5 SOL.",
   "The price is not negotiated behind a door either. Each surface runs its own clock that walks the price down until somebody thinks it is worth taking, and taking it from the current holder always costs more than they paid. That is the entire rate card, and anyone can reproduce it from the numbers on the placement.",
-  "The last part is what the network does with the money. Every fee it collects goes toward Anduril pre-stock, which is distributed to holders. Revenue is derived from payments verified on chain and cannot be typed in by hand, and every figure that is recorded by an operator instead of proven by the chain is labelled that way.",
+  "The launch policy separates two streams: advertising revenue is designated for AIRTIME buybacks and burns; StonkFun creator fees are designated for Anduril pre-stock rewards. Token and rewards automation is pending activation. See the Token and rewards documentation for eligibility and timing.",
 ];
 
 const STEPS = [
@@ -148,9 +148,7 @@ export default function InfoPage() {
         <div>
           <h2 className="section-title">Where the money goes</h2>
           <p className="body-copy mt-4 max-w-2xl">
-            What the network earns is used to buy Anduril pre-stock, which is then distributed to holders. Airtime revenue is derived from payments the station
-            verified on chain and can never be typed in by hand. Token tax, pre-stock purchases and distributions happen off this chain through a broker, so they
-            are recorded by the operator and always labelled as recorded figures rather than proven ones.
+            Advertising revenue is designated for AIRTIME buybacks and burns. StonkFun creator fees are designated for Anduril pre-stock rewards. These services are pending activation; the token and rewards documentation explains the launch policy.
           </p>
           <Link href="/treasury" className="btn btn-sm mt-6">
             Open the treasury
