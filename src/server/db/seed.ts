@@ -352,8 +352,8 @@ export const HOUSE_PLACEHOLDERS: Array<typeof schema.showcaseCreatives.$inferIns
   // the middle of a 9:16 field of the same black.)
   artCard("rh-anduril", "Anduril", "Anduril", "AD", "anduril-promo.mp4", "FILL", { durationSec: 74 }),
   artCard("rh-anduril-panel", "Anduril", "Anduril", "PANEL_LEFT", "anduril-panel.png", "FIT"),
-  artCard("rh-dune", "Dune", "Dune Analytics", "PANEL_TOP_LEFT", "dune.jpg"),
-  artCard("rh-cashcat", "$CASHCAT", "Cash Cat", "PANEL_TOP_MID", "cashcat.jpg"),
+  { ...artCard("rh-pump", "$PUMP", "Pump.fun flagship token", "PANEL_TOP_LEFT", "pump-panel.png", "FIT"), sublabel: "pump.fun · $PUMP" },
+  { ...artCard("rh-zcat", "$ZCAT", "Anonymous Cat", "PANEL_TOP_MID", "zcat.png", "FIT"), sublabel: "Solana token paired with Zcash (ZEC) · zcat.world" },
   {
     ...artCard("rh-stonkfun", "StonkFun", "Launch, discover & trade", "PANEL_RIGHT", "stonkfun-panel.png", "FIT"),
     sublabel: "stonkfun.xyz · Coins paired with memes, stocks, currencies, commodities & more.",
@@ -363,7 +363,7 @@ export const HOUSE_PLACEHOLDERS: Array<typeof schema.showcaseCreatives.$inferIns
   artCard("rh-fomo", "FOMO", "Fomo", "PANEL_TOP_RIGHT", "fomo.jpg"),
   // The tower's column is far narrower than the 9:16 this was drawn for, and
   // filling it cut the sides off the mark, so this one is shown whole.
-  artCard("rh-hype", "HYPE", "Hype", "PANEL_TOWER", "HYPE.jpg", "FIT"),
+  { ...artCard("rh-solana", "Solana", "Powered by SOL", "PANEL_TOWER", "solana-panel.png", "FIT"), sublabel: "solana.com · Solana" },
 
 ];
 
