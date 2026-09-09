@@ -55,7 +55,6 @@ const COLUMNS: Array<{ heading: string; links: Array<{ href: string; label: stri
 ];
 
 export function SiteFooter({ wide = false }: { wide?: boolean }) {
-  const year = new Date().getFullYear();
   return (
     <footer className="mt-20 border-t border-white/8">
       <div className={cn("mx-auto px-4 py-12", wide ? "max-w-[1400px]" : "max-w-5xl")}>
@@ -96,7 +95,7 @@ export function SiteFooter({ wide = false }: { wide?: boolean }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
               <TokenContractChip />
-              <div className="readout text-[9.5px] uppercase tracking-[0.16em] text-ink-500">© {year} AIRTIME · Solana · Launching on StonkFun</div>
+              <div className="readout text-[9.5px] uppercase tracking-[0.16em] text-ink-500">SOLANA | STONKFUN</div>
             </div>
           </div>
         </div>

@@ -91,7 +91,7 @@ export function AddressChip({
 export function TokenContractChip({ className }: { className?: string }) {
   const configured = process.env.NEXT_PUBLIC_SOLANA_TOKEN_MINT;
   if (configured && isSolanaAddress(configured)) {
-    return <AddressChip address={configured} label="Mint" className={className} />;
+    return <AddressChip address={configured} label="CA:" className={className} />;
   }
   return (
     <span
@@ -101,8 +101,8 @@ export function TokenContractChip({ className }: { className?: string }) {
       )}
       title="The AIRTIME Solana token mint will be announced at launch"
     >
-      <span>Mint</span>
-      <span className="text-ink-300">Coming soon</span>
+      <span>CA:</span>
+      <span className="text-ink-300">COMING SOON</span>
     </span>
   );
 }
