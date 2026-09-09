@@ -36,8 +36,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    site: "@airtimemedia_",
-    creator: "@airtimemedia_",
+    site: "@airtimetech",
+    creator: "@airtimetech",
     title: "AIRTIME",
     description: DESCRIPTION,
   },

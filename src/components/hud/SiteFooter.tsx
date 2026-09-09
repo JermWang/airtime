@@ -37,7 +37,7 @@ const COLUMNS: Array<{ heading: string; links: Array<{ href: string; label: stri
   {
     heading: "Network",
     links: [
-      { href: "https://x.com/airtimemedia_", label: "X · @airtimemedia_", external: true },
+      { href: "https://x.com/airtimetech", label: "X · @airtimetech", external: true },
       { href: "/treasury", label: "Treasury" },
       { href: "/docs#content", label: "Content policy" },
       { href: "/docs#payments", label: "How payment works" },
