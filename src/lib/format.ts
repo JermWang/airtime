@@ -1,8 +1,8 @@
-import { formatUnits } from "viem";
+import { formatUnits } from "./units";
 
 export function shortAddress(address: string | null | undefined, chars = 4): string {
   if (!address) return "—";
-  return `${address.slice(0, 2 + chars)}…${address.slice(-chars)}`;
+  return `${address.slice(0, chars)}…${address.slice(-chars)}`;
 }
 
 export function shortHash(hash: string | null | undefined): string {
@@ -10,8 +10,8 @@ export function shortHash(hash: string | null | undefined): string {
   return `${hash.slice(0, 10)}…${hash.slice(-6)}`;
 }
 
-/** Format wei (as bigint or decimal string) to a compact ETH string. */
-export function formatWei(wei: bigint | string | null | undefined, decimals = 18, symbol = "ETH"): string {
+/** Format lamports (as bigint or decimal string) to a compact SOL string. */
+export function formatWei(wei: bigint | string | null | undefined, decimals = 9, symbol = "SOL"): string {
   if (wei === null || wei === undefined) return "—";
   const value = typeof wei === "bigint" ? wei : BigInt(wei);
   const str = formatUnits(value, decimals);
@@ -88,3 +88,5 @@ export function cn(...parts: Array<string | false | null | undefined>): string {
 export function statusLabel(status: string): string {
   return status.replace(/_/g, " ");
 }
+
+export const formatPayment = (amount: string | null, chainId: number) => formatWei(amount, [900, 901, 902].includes(chainId) ? 9 : 18, [900, 901, 902].includes(chainId) ? "SOL" : "historical native");

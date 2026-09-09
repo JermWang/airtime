@@ -220,7 +220,7 @@ export function BillboardSurface({ placement, surface, campaign, preview, allowV
       {/* Thin anodized frame */}
       <mesh position={[0, 0, -0.02]} scale={[transform.scale[0] * 1.04, transform.scale[1] * (ah / aw) * 1.04, 1]}>
         <planeGeometry args={[1, 1]} />
-        <meshStandardMaterial color="#0a0b0d" metalness={0.9} roughness={0.35} />
+        <meshStandardMaterial color="#102127" metalness={0.9} roughness={0.35} />
       </mesh>
       {planeRef.current && (
         <PlacementHighlight

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useAccount } from "wagmi";
+import { useAccount } from "@/lib/solana-wallet";
 import { AnimatePresence, motion } from "motion/react";
 import { api, type CampaignDto, type CreativeDto, type PlacementDto, type QuoteDto } from "@/lib/api";
 import { useServerNow, useSurface } from "@/lib/hooks";
@@ -37,6 +37,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
   const { isConnected } = useAccount();
   const auth = useWalletAuth();
   const purchase = usePurchase();
+  const resetPurchase = purchase.reset;
   const now = useServerNow(500);
   const setPreview = useStation((s) => s.setPreview);
   const setShowSafeZones = useStation((s) => s.setShowSafeZones);
@@ -48,8 +49,6 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
   const [displayName, setDisplayName] = useState("");
   const [fit, setFit] = useState<"FIT" | "FILL">(placement.material.fit);
   const [quote, setQuote] = useState<QuoteDto | null>(null);
-  // Only expose chains with this deployment's protected payment contract.
-  // Direct treasury transfers cannot provide atomic loser refunds.
   const preferredChain = activeChain();
   const chains = paymentChains().filter((chain) => chain.id === preferredChain.id);
   const [payChainId, setPayChainId] = useState<number>(preferredChain.id);
@@ -149,8 +148,13 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
     const t = setInterval(async () => {
       try {
         const c = await api<CampaignDto>(`/api/campaigns/${campaign.id}`);
+        if (c.status === "READY_TO_PURCHASE") {
+          resetPurchase(); setQuote(null); setError("The previous transaction did not land. You can request a new quote.");
+        }
+        if (c.status === "REJECTED") setError(c.rejectionReason ?? "Payment received; contact the station to arrange a refund.");
         if (["PAID", "AIRING", "COMPLETED"].includes(c.status)) {
           setCampaign(c);
+
           onConfirmed?.(c);
         }
       } catch {
@@ -158,7 +162,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
       }
     }, 3000);
     return () => clearInterval(t);
-  }, [campaign, step, purchase.state.phase, onConfirmed]);
+  }, [campaign, step, purchase.state.phase, onConfirmed, resetPurchase]);
 
   const Stepper = () => {
     const steps: Array<[Step, string]> = [
@@ -309,7 +313,7 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                   </button>
                   <p className="readout text-[9.5px] uppercase leading-relaxed tracking-[0.12em] text-ink-500">
                     Guaranteed {formatDurationSec(placement.auction.minHoldSeconds)} of runtime, then it runs on until outbid. No refunds when you are outbid: the
-                    runtime you paid for was delivered. If two payments race for this surface, the contract accepts the first and reverts the other before its payment value moves.
+                    runtime you paid for was delivered. A quote briefly reserves the surface. If your transfer arrives after the reservation expires and the surface has changed hands, contact the station for a verified refund.
                   </p>
                 </>
               )}
@@ -369,9 +373,9 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
                         <span className="text-ink-100">
                           {purchase.state.phase === "wallet" && "Confirm in your wallet…"}
                           {purchase.state.phase === "pending" && "Transaction submitted · waiting for the block…"}
-                          {purchase.state.phase === "verifying" && "Mined · station is verifying the on-chain event…"}
+                          {purchase.state.phase === "verifying" && "Finalized · station is verifying the Solana transfer…"}
                           {purchase.state.phase === "confirming" && `Waiting for confirmation (${purchase.state.outcome})`}
-                          {purchase.state.phase === "confirmed" && "Payment verified · you have the surface"}
+                          {purchase.state.phase === "confirmed" && "Payment verified · checking your surface"}
                         </span>
                       </div>
                       {purchase.state.txHash && <div className="readout mt-1 text-[10px] text-ink-400">tx {shortHash(purchase.state.txHash)}</div>}

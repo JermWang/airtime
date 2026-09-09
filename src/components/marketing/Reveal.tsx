@@ -79,8 +79,9 @@ export function RevealWords({ text, className, immediate = false }: { text: stri
       aria-label={text}
     >
       {text.split(" ").map((w, i) => (
-        // The wrapper clips the rise so words come up out of the line above.
-        <span key={`${w}-${i}`} className="inline-block overflow-hidden align-bottom" aria-hidden>
+        // Leave room below the line box for descenders while clipping the reveal.
+        // The negative margin preserves the heading's original line spacing.
+        <span key={`${w}-${i}`} className="inline-block overflow-hidden align-bottom pb-[0.18em] -mb-[0.18em]" aria-hidden>
           <motion.span className="inline-block" variants={word}>
             {w}
             {i < text.split(" ").length - 1 ? " " : ""}

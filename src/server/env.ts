@@ -9,19 +9,9 @@ const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().optional().default(""),
   NEXT_PUBLIC_APP_URL: z.string().default("http://localhost:3000"),
-  NEXT_PUBLIC_CHAIN_ENV: z.enum(["local", "testnet", "mainnet"]).default("local"),
-  ROBINHOOD_MAINNET_RPC_URL: z.string().default("https://rpc.mainnet.chain.robinhood.com"),
-  ROBINHOOD_TESTNET_RPC_URL: z.string().default("https://rpc.testnet.chain.robinhood.com"),
-  LOCAL_RPC_URL: z.string().default("http://127.0.0.1:8545"),
-  AIRTIME_QUOTE_SIGNER_PRIVATE_KEY: z.string().optional().default(""),
-  NEXT_PUBLIC_AIRTIME_PAYMENT_CONTRACT: z.string().optional().default(""),
-  AIRTIME_PAYMENT_CONTRACT_DEPLOY_BLOCK: z.coerce.number().int().nonnegative().default(0),
-  AIRTIME_PAYMENT_CONFIRMATIONS: z.coerce.number().int().min(0).max(64).default(1),
-  /** The AIRTIME treasury. Every airtime payment is sent here and confirmed from it. */
-  NEXT_PUBLIC_TREASURY_ADDRESS: z.string().optional().default("0xaF259a8Daf123Db203Fe5eA39fc9BE1b98048601"),
-  TREASURY_ADDRESS: z.string().optional().default(""),
-  /** RPC for Ethereum mainnet, the second chain a buyer may pay from. */
-  ETHEREUM_RPC_URL: z.string().optional().default(""),
+  NEXT_PUBLIC_SOLANA_NETWORK: z.enum(["local", "devnet", "mainnet"]).default("devnet"),
+  SOLANA_RPC_URL: z.string().default(""),
+  SOLANA_TREASURY_ADDRESS: z.string().default(""),
   AIRTIME_SESSION_SECRET: z.string().optional().default(""),
   AIRTIME_UPLOAD_SECRET: z.string().optional().default(""),
   ADMIN_EMAIL: z.string().default("admin@airtime.local"),
@@ -40,9 +30,6 @@ const schema = z.object({
     .optional()
     .default("true")
     .transform((v) => v === "true" || v === "1"),
-  NEXT_PUBLIC_USDG_ADDRESS: z.string().optional().default(""),
-  NEXT_PUBLIC_EXPLORER_URL: z.string().optional().default(""),
-  NEXT_PUBLIC_DEV_WALLET_PRIVATE_KEY: z.string().optional().default(""),
   AIRTIME_CRON_SECRET: z.string().optional().default(""),
   AIRTIME_MIGRATE_ON_BOOT: z
     .string()
@@ -76,7 +63,7 @@ export function env(): ServerEnv {
 }
 
 export const isProduction = () => env().NODE_ENV === "production";
-export const isMainnet = () => env().NEXT_PUBLIC_CHAIN_ENV === "mainnet";
+export const isMainnet = () => env().NEXT_PUBLIC_SOLANA_NETWORK === "mainnet";
 
 /**
  * The station simulation clock moves every viewer's playback, quote expiry and

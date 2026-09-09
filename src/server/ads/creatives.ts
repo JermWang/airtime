@@ -1,6 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
-import { keccak256, toHex } from "viem";
 import { db, schema } from "../db/client";
 import { validateCreativeFile, validateTextCreative, validateClickUrl } from "../media/validate";
 import { mediaProvider } from "../media/provider";
@@ -22,7 +21,7 @@ export async function loadActivePlacement(placementId: string): Promise<Placemen
 }
 
 export async function createCreativeFromUpload(input: {
-  walletAddress: `0x${string}`;
+  walletAddress: string;
   placementId: string;
   bytes: Buffer;
   filename: string;
@@ -42,7 +41,7 @@ export async function createCreativeFromUpload(input: {
         originalFilename: filename,
         sizeBytes: input.bytes.length,
         contentHash: createHash("sha256").update(input.bytes).digest("hex"),
-        creativeHash: keccak256(input.bytes),
+        creativeHash: createHash("sha256").update(input.bytes).digest("hex"),
         validationErrors: result.errors,
         metadata: { placementId: placement.id },
       })
@@ -52,7 +51,7 @@ export async function createCreativeFromUpload(input: {
 
   const { file } = result;
   const contentHash = createHash("sha256").update(file.bytes).digest("hex");
-  const creativeHash = keccak256(file.bytes);
+  const creativeHash = createHash("sha256").update(file.bytes).digest("hex");
   const id = randomUUID();
   const key = `creatives/${input.walletAddress.slice(2, 10)}/${id}`;
   const processed = file.type === "IMAGE" ? await mediaProvider().processImage({ key, bytes: file.bytes, mimeType: file.mimeType, extension: file.extension }) : await mediaProvider().processVideo({ key, bytes: file.bytes, mimeType: file.mimeType, extension: file.extension });
@@ -88,7 +87,7 @@ export async function createCreativeFromUpload(input: {
   return row;
 }
 
-export async function createTextCreative(input: { walletAddress: `0x${string}`; placementId: string; text: string; clickUrl?: string | null }): Promise<Creative> {
+export async function createTextCreative(input: { walletAddress: string; placementId: string; text: string; clickUrl?: string | null }): Promise<Creative> {
   const placement = await loadActivePlacement(input.placementId);
   if (!placement.mediaTypes.includes("TEXT")) throw new HttpError(400, "This placement does not accept text creatives");
   const result = validateTextCreative(input.text);
@@ -103,7 +102,7 @@ export async function createTextCreative(input: { walletAddress: `0x${string}`; 
       textContent: result.text,
       sizeBytes: bytes.length,
       contentHash: createHash("sha256").update(bytes).digest("hex"),
-      creativeHash: keccak256(toHex(bytes)),
+      creativeHash: createHash("sha256").update(bytes).digest("hex"),
       clickUrl: placement.allowsClickThrough ? validateClickUrl(input.clickUrl) : null,
       metadata: { placementId: placement.id },
     })
@@ -161,7 +160,7 @@ export function publicCreative(c: Creative | null | undefined) {
  * unlike an upload, whose bytes we hold — and the station says so on the
  * receipt rather than pretending otherwise.
  */
-export async function createLinkCreative(input: { walletAddress: `0x${string}`; placementId: string; url: string }): Promise<Creative> {
+export async function createLinkCreative(input: { walletAddress: string; placementId: string; url: string }): Promise<Creative> {
   const placement = await loadActivePlacement(input.placementId);
   if (!placement.mediaTypes.includes("VIDEO")) throw new HttpError(400, "This surface does not accept video");
   const maxDurationSec = placement.maxCreativeSec > 0 ? placement.maxCreativeSec : 30;
@@ -188,7 +187,7 @@ export async function createLinkCreative(input: { walletAddress: `0x${string}`; 
       codec: probe.codec,
       // The link itself is the thing being committed to on chain.
       contentHash: createHash("sha256").update(canonical).digest("hex"),
-      creativeHash: keccak256(toHex(canonical)),
+      creativeHash: createHash("sha256").update(canonical).digest("hex"),
       validationErrors: [],
       metadata: { placementId: placement.id, source: "link", kind: probe.kind, cors: probe.cors, warnings: probe.warnings },
     })

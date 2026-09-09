@@ -7,7 +7,7 @@ import styles from "./SignalStory.module.css";
 const chapters = [
   { label: "Choose your surface", word: "A place", title: "Your idea. In the picture.", copy: "Take the programme, the commercial break, or a panel beside the screen. Each surface has its own asking price.", detail: "Programme · Commercial · Display panels", href: "/airtime", cta: "Explore the surfaces" },
   { label: "Take the asking price", word: "A price", title: "Timing becomes your advantage.", copy: "The ask falls with time. Take the price you see and the station locks a quote for your creative. A higher bid takes over after the guaranteed runtime.", detail: "Descending ask · Locked quote · Guaranteed runtime", href: "#clock", cta: "Understand the auction" },
-  { label: "Verify the payment", word: "A proof", title: "A signature. A verifiable record.", copy: "Your payment is bound to the surface and the creative’s hash. The station checks the on-chain event before putting your campaign on air.", detail: "Your wallet → Payment contract → Station verification", href: "#honesty", cta: "See what is verified" },
+  { label: "Verify the payment", word: "A proof", title: "A signature. A verifiable record.", copy: "Your payment is bound to the surface and the creative’s hash. The station checks the finalized Solana transfer before putting your campaign on air.", detail: "Your wallet → SOL treasury → Station verification", href: "#honesty", cta: "See what is verified" },
   { label: "Become the broadcast", word: "A signal", title: "From your wallet to the world.", copy: "Your creative runs on its surface until you are outbid, withdraw, or the station ends the run. An AirLog records the payment and the application’s delivery measurements separately.", detail: "On-air creative · Open-ended run · AirLog receipt", href: "/watch", cta: "Watch the station" },
 ];
 
@@ -34,7 +34,7 @@ export function SignalStory() {
           <div className={styles.displayTop}><span>Signal architecture</span><span>Illustrated sequence / 0{active + 1}</span></div>
           <div className={styles.diagram} aria-hidden="true">
             <svg viewBox="0 0 700 260" fill="none">
-              <defs><linearGradient id="signal-line"><stop stopColor="#ccff00" stopOpacity=".1" /><stop offset="1" stopColor="#ccff00" /></linearGradient></defs>
+              <defs><linearGradient id="signal-line"><stop stopColor="#69aac1" stopOpacity=".1" /><stop offset="1" stopColor="#69aac1" /></linearGradient></defs>
               <path d="M95 55H200L275 130H385M95 130H385M95 205H200L275 130" className={styles.routes} />
               <path d="M490 130H610" className={styles.routes} />
               {[55, 130, 205].map((y, i) => <g key={y}><rect x="50" y={y - 17} width="45" height="34" rx="3" className={styles.source} /><path d={`M60 ${y}h25`} stroke="currentColor" opacity=".5" /><text x="18" y={y + 4} className={styles.diagramLabel}>0{i + 1}</text></g>)}
@@ -58,7 +58,7 @@ export function SignalStory() {
           </div>
         </div>
       </div>
-      <div className={styles.footer}><span>Creative → Quote → Verification → Broadcast</span><span>Built on Robinhood Chain</span></div>
+      <div className={styles.footer}><span>Creative → Quote → Verification → Broadcast</span><span>Solana · Launching on StonkFun</span></div>
     </section>
   );
 }

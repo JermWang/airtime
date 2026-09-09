@@ -11,7 +11,7 @@ export function Wordmark({ size = 16, className, muted = false }: { size?: numbe
       <span
         aria-hidden
         className={cn("inline-block rounded-[1px]", muted ? "bg-ink-300" : "bg-signal")}
-        style={{ width: bar, height: size * 0.92, boxShadow: muted ? "none" : "0 0 12px rgba(204,255,0,0.55)" }}
+        style={{ width: bar, height: size * 0.92, boxShadow: muted ? "none" : "0 0 12px rgba(105,170,193,0.55)" }}
       />
       <span className="font-sans font-semibold uppercase leading-none tracking-[0.22em] text-ink-50" style={{ fontSize: size * 0.82 }}>
         Airtime

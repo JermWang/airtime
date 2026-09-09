@@ -1,84 +1,26 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 import type { QuoteDto } from "@/lib/api";
-
-const mocks = vi.hoisted(() => ({
-  setState: vi.fn(),
-  simulate: vi.fn(),
-  receipt: vi.fn(),
-  write: vi.fn(),
-  api: vi.fn(),
-  chainId: 31337,
-  address: "0x1111111111111111111111111111111111111111" as string | undefined,
-}));
-// Exercise the asynchronous payment orchestration without a browser renderer.
+const mocks = vi.hoisted(() => ({ setState: vi.fn(), signTransaction: vi.fn(), api: vi.fn() }));
 vi.mock("react", () => ({ useCallback: (fn: unknown) => fn, useState: (initial: unknown) => [initial, mocks.setState] }));
-vi.mock("wagmi", () => ({
-  useAccount: () => ({ address: mocks.address }),
-  useWriteContract: () => ({ writeContractAsync: mocks.write }),
-  usePublicClient: () => ({ chain: { id: mocks.chainId }, simulateContract: mocks.simulate, waitForTransactionReceipt: mocks.receipt }),
-}));
+vi.mock("@/lib/solana-wallet", () => ({ useSolanaWallet: () => ({ address: "buyer", signTransaction: mocks.signTransaction }) }));
+vi.mock("@solana/web3.js", () => ({ Transaction: { from: () => ({}) } }));
 vi.mock("@/lib/api", () => ({ api: mocks.api }));
-
 import { usePurchase } from "@/components/airtime/usePurchase";
-
-const original = `0x${"11".repeat(32)}` as const;
-const replacement = `0x${"22".repeat(32)}` as const;
-const quote: QuoteDto = {
-  campaignId: "campaign-id", settlement: "contract",
-  amountWei: "1000", breakdown: [], expiresAt: "2026-09-06T12:00:00Z",
-  startsAt: "2026-09-06T11:00:00Z", guaranteedUntil: "2026-09-06T11:01:00Z",
-  guaranteedSeconds: 60, placementId: "AD", outbids: null, treasury: null,
-  payTo: "0x2222222222222222222222222222222222222222", chainId: 31337,
-  quote: {
-    quoteId: original, buyer: "0x1111111111111111111111111111111111111111",
-    placementId: original, creativeHash: original, startAt: "1", endAt: "100",
-    expiresAt: "90", nonce: "1", amount: "1000", paymentToken: "0x0000000000000000000000000000000000000000",
-    signature: "0x12", chainId: 31337, contract: "0x2222222222222222222222222222222222222222",
-  },
-};
-
-beforeEach(() => {
-  vi.resetAllMocks();
-  mocks.chainId = 31337;
-  mocks.address = quote.quote.buyer;
-  mocks.write.mockResolvedValue(original);
-  mocks.simulate.mockResolvedValue({});
-  mocks.receipt.mockResolvedValue({ status: "success", transactionHash: replacement });
-  mocks.api.mockResolvedValue({ outcome: { status: "confirmed" }, campaign: { id: quote.campaignId, status: "AIRING" } });
+const quote = { campaignId: "campaign", settlement: "solana", chainId: 902, quote: { buyer: "buyer" } } as QuoteDto;
+beforeEach(() => { vi.resetAllMocks(); mocks.signTransaction.mockResolvedValue({ serialize: () => new Uint8Array([1,2,3]) }); });
+it("confirms the server-broadcast Solana signature", async () => {
+ mocks.api.mockResolvedValueOnce({ transaction: "AQID" }).mockResolvedValueOnce({ signature: "signature" }).mockResolvedValueOnce({ outcome: { status: "confirmed" }, campaign: { status:"AIRING" } });
+ expect(await usePurchase().pay(quote)).toEqual({ status:"AIRING" });
+ expect(mocks.setState).toHaveBeenLastCalledWith(expect.objectContaining({ phase:"confirmed", txHash:"signature" }));
 });
-
-describe("purchase recovery", () => {
-  it("verifies the mined replacement hash after a wallet speed-up", async () => {
-    await expect(usePurchase().pay(quote)).resolves.toMatchObject({ status: "AIRING" });
-    expect(mocks.api).toHaveBeenCalledWith("/api/campaigns/campaign-id/confirm", { method: "POST", json: { txHash: replacement } });
-    expect(mocks.setState).toHaveBeenLastCalledWith(expect.objectContaining({ phase: "confirmed", txHash: replacement }));
-  });
-
-  it("keeps independent confirmation polling active after a receipt timeout", async () => {
-    mocks.receipt.mockRejectedValue(new Error("RPC timeout"));
-    await expect(usePurchase().pay(quote)).resolves.toBeNull();
-    expect(mocks.setState).toHaveBeenLastCalledWith(expect.objectContaining({ phase: "confirming", txHash: original, error: null }));
-    expect(mocks.write).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not verify a reverted transaction", async () => {
-    mocks.receipt.mockResolvedValue({ status: "reverted", transactionHash: original });
-    await expect(usePurchase().pay(quote)).resolves.toBeNull();
-    expect(mocks.api).not.toHaveBeenCalled();
-    expect(mocks.setState).toHaveBeenLastCalledWith(expect.objectContaining({ phase: "error" }));
-  });
-
-  it("refuses to simulate or send on the wrong network", async () => {
-    mocks.chainId = 1;
-    await expect(usePurchase().pay(quote)).resolves.toBeNull();
-    expect(mocks.simulate).not.toHaveBeenCalled();
-    expect(mocks.write).not.toHaveBeenCalled();
-  });
-
-  it("reports a disconnected wallet before attempting payment", async () => {
-    mocks.address = undefined;
-    await expect(usePurchase().pay(quote)).resolves.toBeNull();
-    expect(mocks.write).not.toHaveBeenCalled();
-    expect(mocks.setState).toHaveBeenLastCalledWith(expect.objectContaining({ error: "Connect your wallet before paying." }));
-  });
+it("keeps recovery active when submission response is lost", async () => {
+ mocks.api.mockResolvedValueOnce({ transaction: "AQID" }).mockRejectedValueOnce(new Error("timeout"));
+ expect(await usePurchase().pay(quote)).toBeNull();
+ expect(mocks.setState).toHaveBeenLastCalledWith(expect.objectContaining({ phase:"confirming", error:null }));
 });
+it("allows retry after wallet rejection before submission", async () => {
+ mocks.api.mockResolvedValueOnce({ transaction: "AQID" }); mocks.signTransaction.mockRejectedValueOnce(new Error("Rejected"));
+ await usePurchase().pay(quote);
+ expect(mocks.api).toHaveBeenCalledTimes(1); expect(mocks.setState).toHaveBeenLastCalledWith(expect.objectContaining({ phase:"error" }));
+});
+it("does not pay a quote for a different network", async () => { await usePurchase().pay({...quote,chainId:900}); expect(mocks.api).not.toHaveBeenCalled(); });

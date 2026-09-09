@@ -4,7 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { PageFrame } from "@/components/hud/PageFrame";
 import { useCampaign } from "@/lib/hooks";
-import { formatDateTime, formatDurationSec, formatWei, shortHash, statusLabel, cn } from "@/lib/format";
+import { formatPayment, formatDateTime, formatDurationSec, shortHash, statusLabel, cn } from "@/lib/format";
 
 const STEPS = ["DRAFT", "READY_TO_PURCHASE", "AWAITING_PAYMENT", "PAID", "AIRING", "COMPLETED"];
 
@@ -32,7 +32,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                     ? `ran ${formatDurationSec(c.durationSec ?? 0)} from ${formatDateTime(c.startsAt)}`
                     : `on air since ${formatDateTime(c.startsAt)} · until outbid`
                   : "not on a surface yet"}
-                {c.pricePaidWei ? ` · paid ${formatWei(c.pricePaidWei)}` : ""}
+                {c.pricePaidWei ? ` · paid ${formatPayment(c.pricePaidWei, c.payment?.chainId ?? 0)}` : ""}
               </div>
               {c.rejectionReason && <div className="mt-2 text-[11.5px] text-amber">{c.rejectionReason}</div>}
               <ol className="mt-4 flex flex-wrap items-center gap-1.5">
@@ -90,7 +90,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
               {c.payment ? (
                 <dl className="readout grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[10.5px] text-ink-300">
                   <dt>Amount</dt>
-                  <dd className="text-ink-50">{formatWei(c.payment.amountWei)}</dd>
+                  <dd className="text-ink-50">{formatPayment(c.payment.amountWei, c.payment.chainId)}</dd>
                   <dt>Status</dt>
                   <dd className="text-ink-100">{c.payment.status}</dd>
                   <dt>Transaction</dt>

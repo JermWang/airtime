@@ -61,7 +61,7 @@ export const users = pgTable("users", {
 });
 
 export const wallets = pgTable("wallets", {
-  address: text("address").primaryKey(), // lowercase 0x…
+  address: text("address").primaryKey(), // case-sensitive public key
   userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
   lastChainId: integer("last_chain_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -283,7 +283,7 @@ export const creatives = pgTable(
     codec: text("codec"),
     /** sha256 hex of the stored bytes. */
     contentHash: text("content_hash").notNull(),
-    /** keccak256 (bytes32 hex) of the stored bytes – the on-chain creativeHash. */
+    /** SHA-256 hex of the stored bytes – the on-chain creativeHash. */
     creativeHash: text("creative_hash").notNull(),
     textContent: text("text_content"),
     clickUrl: text("click_url"),
@@ -376,6 +376,10 @@ export const quotes = pgTable(
      * is stored so the scheduler can finish the verification if the tab closes.
      */
     txHint: text("tx_hint"),
+    txPayload: text("tx_payload"),
+    txBlockhash: text("tx_blockhash"),
+    txLastValidBlockHeight: bigint("tx_last_valid_block_height", { mode: "bigint" }),
+    txError: text("tx_error"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("quotes_status_expires_idx").on(t.status, t.expiresAt)],
@@ -530,11 +534,11 @@ export const treasuryEntries = pgTable(
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
     /** Value moved, in wei of `assetSymbol`. Inflows and purchase costs. */
     amountWei: numeric("amount_wei", { precision: 78, scale: 0 }).notNull().default("0"),
-    assetSymbol: text("asset_symbol").notNull().default("ETH"),
+    assetSymbol: text("asset_symbol").notNull().default("SOL"),
     /** Pre-stock quantity: positive on a purchase, positive on a distribution (moving out). */
     shares: numeric("shares", { precision: 30, scale: 6 }).notNull().default("0"),
     /**
-     * $AIRTIME moved, in base units (18 decimals), like every other quantity of
+     * $AIRTIME moved, in base units (configured mint decimals), like every other quantity of
      * money here: bought on a BUYBACK, destroyed on a BURN. Kept apart from
      * `shares`, which counts Anduril pre-stock and nothing else.
      */
@@ -577,7 +581,7 @@ export const showcaseCreatives = pgTable("showcase_creatives", {
   label: text("label").notNull(),
   headline: text("headline").notNull(),
   sublabel: text("sublabel"),
-  accent: text("accent").notNull().default("#ccff00"),
+  accent: text("accent").notNull().default("#69aac1"),
   /**
    * House media for this slot. Null leaves the text card, which is what every
    * slot draws until its artwork has landed. Same-origin paths under

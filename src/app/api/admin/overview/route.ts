@@ -6,8 +6,7 @@ import { db, schema } from "@/server/db/client";
 import { getBroadcastState } from "@/server/broadcast/schedule";
 import { getSettings } from "@/server/settings";
 import { serverNowMs, clockOffsetMs } from "@/server/time/clock";
-import { paymentContractAddress } from "@/server/chain/client";
-import { quoteSignerAddress } from "@/server/chain/quoteSigner";
+import { treasuryAddress } from "@/server/chain/treasuryTransfer";
 import { activeChain, explorerAddressUrl } from "@/lib/chain/chains";
 
 export const dynamic = "force-dynamic";
@@ -37,13 +36,13 @@ export const GET = route(async () => {
   const [revenue] = await db()
     .select({ total: sql<string>`coalesce(sum(${schema.payments.amountWei}), 0)::text`, count: sql<number>`count(*)` })
     .from(schema.payments)
-    .where(and(eq(schema.payments.status, "CONFIRMED")));
-  const contract = paymentContractAddress();
+    .where(and(eq(schema.payments.status, "CONFIRMED"), eq(schema.payments.paymentToken, "SOL"), eq(schema.payments.chainId, activeChain().id)));
+  const contract = treasuryAddress();
   return json({
     serverTime: serverNowMs(),
     simulatedOffsetMs: clockOffsetMs(),
     settings: await getSettings(),
-    chain: { id: activeChain().id, name: activeChain().name, contract, contractUrl: contract ? explorerAddressUrl(contract) : null, quoteSigner: quoteSignerAddress() },
+    chain: { id: activeChain().id, name: activeChain().name, contract, contractUrl: contract ? explorerAddressUrl(contract) : null, quoteSigner: "Solana finalized transfers" },
     channels: states,
     counts: { ...counts, pendingModeration: Number(pendingModeration[0]?.n ?? 0) },
     revenue: { totalWei: revenue?.total ?? "0", payments: Number(revenue?.count ?? 0) },

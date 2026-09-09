@@ -2,6 +2,7 @@
 
 import { PageFrame } from "@/components/hud/PageFrame";
 import { useTreasury } from "@/lib/hooks";
+import { airtimeTokenDecimals } from "@/lib/chain/chains";
 import { formatWei, formatDateTime, formatPercentFromPpm, shortHash, cn } from "@/lib/format";
 import type { TreasuryLedgerRowDto } from "@/lib/api";
 
@@ -64,16 +65,16 @@ export default function TreasuryPage() {
           <section className="mb-6 grid gap-3 md:grid-cols-3">
             <Figure
               label="$AIRTIME bought back"
-              value={formatWei(s.buybackTokens, 18, "AIRTIME")}
+              value={formatWei(s.buybackTokens, airtimeTokenDecimals(), "AIRTIME")}
               sub={`${formatWei(s.buybackSpentWei)} spent · ${s.buybacks} buyback${s.buybacks === 1 ? "" : "s"} · operator recorded`}
               tone="signal"
             />
             <Figure
               label="$AIRTIME burned"
-              value={formatWei(s.burnedTokens, 18, "AIRTIME")}
+              value={formatWei(s.burnedTokens, airtimeTokenDecimals(), "AIRTIME")}
               sub={s.burns ? `${s.burns} burn${s.burns === 1 ? "" : "s"} · operator recorded` : "none yet"}
             />
-            <Figure label="$AIRTIME held" value={formatWei(s.tokensHeld, 18, "AIRTIME")} sub="bought back, not yet burned" tone="muted" />
+            <Figure label="$AIRTIME held" value={formatWei(s.tokensHeld, airtimeTokenDecimals(), "AIRTIME")} sub="bought back, not yet burned" tone="muted" />
           </section>
 
           <section className="glass rounded-lg p-3">
@@ -104,9 +105,9 @@ export default function TreasuryPage() {
                         <span className={cn("chip", r.kind === "STOCK_PURCHASE" || r.kind === "BUYBACK" ? "chip-signal" : r.kind === "DISTRIBUTION" || r.kind === "BURN" ? "chip-amber" : "")}>{KIND_LABEL[r.kind]}</span>
                         {r.isDevData && <span className="chip ml-1">dev data</span>}
                       </td>
-                      <td className="readout text-[10.5px] text-ink-50">{BigInt(r.amountWei) > 0n ? formatWei(r.amountWei, 18, r.assetSymbol) : "—"}</td>
+                      <td className="readout text-[10.5px] text-ink-50">{BigInt(r.amountWei) > 0n ? formatWei(r.amountWei, 9, r.assetSymbol) : "—"}</td>
                       <td className="readout text-[10.5px] text-ink-50">{Number(r.shares) > 0 ? `${r.shares} sh` : "—"}</td>
-                      <td className="readout text-[10.5px] text-ink-50">{BigInt(r.tokenAmountWei) > 0n ? formatWei(r.tokenAmountWei, 18, "AIRTIME") : "—"}</td>
+                      <td className="readout text-[10.5px] text-ink-50">{BigInt(r.tokenAmountWei) > 0n ? formatWei(r.tokenAmountWei, airtimeTokenDecimals(), "AIRTIME") : "—"}</td>
                       <td className="readout text-[10.5px]">{r.holders ?? "—"}</td>
                       <td className="readout text-[10.5px]">
                         {r.txUrl ? (

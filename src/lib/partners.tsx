@@ -29,31 +29,16 @@ export const PARTNERS: LogoEntry[] = [
     role: "Named pre-stock allocation in the AIRTIME treasury model",
     href: "https://www.anduril.com",
     mark: (
-      <span
-        role="img"
-        aria-label="Anduril logo"
-        className="block h-[22px] w-[22px] shrink-0 mix-blend-screen [background-position:50%_39%] [background-repeat:no-repeat] [background-size:430%_auto]"
-        style={{ backgroundImage: 'url("/anduril%20logo.png")' }}
-      />
+      <span className="relative block h-[28px] w-[28px] shrink-0 overflow-hidden mix-blend-screen">
+        {/* Use the supplied PNG directly, framing its symbol without stretching. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/anduril%20logo.png" alt="Anduril logo" width={1280} height={698}
+          className="absolute left-[-50px] top-[-18px] h-auto w-[128px] max-w-none" />
+      </span>
     ),
   },
-  {
-    name: "Robinhood Chain",
-    role: "Settlement layer for every protected airtime purchase",
-    href: "https://chain.robinhood.com",
-    mark: (
-      <BrandMark
-        title="Robinhood"
-        path="M2.84 24h.53c.096 0 .192-.048.224-.128C7.591 13.696 11.94 8.656 14.67 5.638c.112-.128.064-.225-.096-.225h-4.88a.55.55 0 0 0-.45.225L5.746 9.972c-.514.642-.642 1.236-.642 2.086v4.43c-1.14 3.194-1.862 5.361-2.392 7.32-.032.125.016.192.129.192M20.447.646c-.754-.802-4.157-.834-5.73-.224a3 3 0 0 0-.786.465 41 41 0 0 0-3.323 3.178c-.112.113-.064.225.097.225h5.409c.497 0 .786.289.786.786v6.1c0 .16.128.208.225.064l3.258-4.254c.53-.69.69-.898.835-1.861.192-1.413.08-3.58-.77-4.479m-6.982 16.18 2.231-3.676a.7.7 0 0 0 .064-.29V6.73c0-.16-.112-.225-.224-.097-3.355 3.74-5.971 7.672-8.395 12.407-.06.12.016.225.16.177l5.009-1.54c.565-.174.882-.402 1.155-.852"
-      />
-    ),
-  },
-  {
-    name: "Ethereum",
-    role: "EVM execution and native payment standard",
-    href: "https://ethereum.org",
-    mark: <BrandMark title="Ethereum" path="M11.944 17.97 4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0 4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />,
-  },
+  { name: "Solana", role: "SOL payment settlement", href: "https://solana.com", mark: <BrandMark title="Solana" path="M4 4h18l-4 4H0zm-4 6h18l4 4H4zm4 6h18l-4 4H0z" /> },
+  { name: "StonkFun", role: "AIRTIME launch venue", href: "https://www.stonkfun.xyz", mark: <span aria-hidden className="text-xl font-black">↗</span> },
   {
     name: "Next.js",
     role: "Application server and route handlers",
@@ -98,15 +83,5 @@ export const PARTNERS: LogoEntry[] = [
       />
     ),
   },
-  {
-    name: "WalletConnect",
-    role: "Wallet connection transport",
-    href: "https://walletconnect.com",
-    mark: (
-      <BrandMark
-        title="WalletConnect"
-        path="M4.913 7.519c3.915-3.831 10.26-3.831 14.174 0l.471.461a.483.483 0 0 1 0 .694l-1.611 1.577a.252.252 0 0 1-.354 0l-.649-.634c-2.73-2.673-7.157-2.673-9.887 0l-.694.68a.255.255 0 0 1-.355 0L4.397 8.719a.482.482 0 0 1 0-.693l.516-.507Zm17.506 3.263 1.434 1.404a.483.483 0 0 1 0 .694l-6.466 6.331a.508.508 0 0 1-.709 0l-4.588-4.493a.126.126 0 0 0-.178 0l-4.589 4.493a.508.508 0 0 1-.709 0L.147 12.88a.483.483 0 0 1 0-.694l1.434-1.404a.508.508 0 0 1 .709 0l4.589 4.493c.05.048.129.048.178 0l4.589-4.493a.508.508 0 0 1 .709 0l4.589 4.493c.05.048.128.048.178 0l4.589-4.493a.507.507 0 0 1 .708 0Z"
-      />
-    ),
-  },
+
 ];

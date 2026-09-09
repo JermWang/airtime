@@ -140,9 +140,10 @@ export async function takeSurface(tx: Tx, input: TakeSurfaceInput): Promise<{ ok
     .where(and(eq(schema.campaigns.placementId, placement.id), eq(schema.campaigns.status, "AIRING")));
 
   if (incumbent && incumbent.id !== campaign.id) {
+    if (incumbent.guaranteedUntil && now < incumbent.guaranteedUntil) return { ok: false, reason: "The current run is still within its guaranteed runtime; a refund is required" };
     const held = BigInt(incumbent.paidPriceWei ?? "0");
     if (amountWei <= held) {
-      return { ok: false, reason: `The surface was taken at a higher price (${held} wei) before this payment confirmed` };
+      return { ok: false, reason: `The surface was taken at a higher price (${held} lamports) before this payment confirmed` };
     }
     await endRun(tx, incumbent, { reason: "OUTBID", now });
   }

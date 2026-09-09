@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 const body = z.object({
   /** Refuse the quote if the ask has moved above this, in wei. */
   maxPriceWei: z.string().regex(/^\d+$/).optional(),
-  paymentToken: z.string().regex(/^0x[0-9a-fA-F]{40}$/).optional(),
+  paymentToken: z.literal("SOL").optional(),
   /** Network the buyer wants to pay from. Validated against the accepted list. */
   chainId: z.coerce.number().int().positive().optional(),
 });
@@ -29,7 +29,7 @@ export const POST = route<Params<{ id: string }>>(async (req, { params }) => {
     campaignId: id,
     walletAddress: wallet.address,
     maxPriceWei: input.maxPriceWei ? BigInt(input.maxPriceWei) : undefined,
-    paymentToken: input.paymentToken as `0x${string}` | undefined,
+    paymentToken: input.paymentToken,
     chainId: input.chainId,
   });
   return json(result, { status: 201 });
@@ -55,7 +55,7 @@ export const GET = route<Params<{ id: string }>>(async (_req, { params }) => {
     placementId: placement?.id ?? quote.placementId,
     outbids: null,
     treasury: treasuryAddress(),
-    settlement: quote.contractAddress.toLowerCase() === treasuryAddress().toLowerCase() ? "treasury" : "contract",
+    settlement: "solana",
     payTo: quote.contractAddress,
     chainId: quote.chainId,
   });

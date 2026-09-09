@@ -85,7 +85,7 @@ export default function MasterControlPage() {
               <dd className="text-ink-50">
                 {data.chain.name} ({data.chain.id})
               </dd>
-              <dt>Payment contract</dt>
+              <dt>SOL treasury</dt>
               <dd className="break-all text-ink-50">
                 {data.chain.contract ? (
                   data.chain.contractUrl ? (
@@ -99,7 +99,7 @@ export default function MasterControlPage() {
                   <span className="text-amber">not configured — purchases disabled</span>
                 )}
               </dd>
-              <dt>Quote signer</dt>
+              <dt>Verification</dt>
               <dd className="break-all text-ink-50">{data.chain.quoteSigner}</dd>
               <dt>Purchases</dt>
               <dd>{data.settings.purchasesPaused ? <span className="text-amber">PAUSED</span> : <span className="text-signal">OPEN</span>}</dd>

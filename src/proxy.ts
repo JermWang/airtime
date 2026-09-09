@@ -7,7 +7,6 @@ import { jwtVerify } from "jose";
  *   - server-side gate for /control-room and /api/admin (the routes re-verify)
  */
 
-const WALLETCONNECT = "https://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.org wss://*.walletconnect.com https://*.reown.com wss://*.reown.com https://*.web3modal.org https://*.web3modal.com";
 
 function mediaOrigins(): string {
   return (process.env.NEXT_PUBLIC_MEDIA_ORIGINS ?? "")
@@ -19,12 +18,10 @@ function mediaOrigins(): string {
 
 function rpcOrigins(): string {
   const list = [
-    "https://rpc.mainnet.chain.robinhood.com",
-    "https://rpc.testnet.chain.robinhood.com",
-    "http://127.0.0.1:8545",
-    "http://localhost:8545",
-    "ws://127.0.0.1:8545",
-    "ws://localhost:8545",
+    "http://127.0.0.1:8899",
+    "http://localhost:8899",
+    "ws://127.0.0.1:8899",
+    "ws://localhost:8899",
   ];
   const custom = process.env.NEXT_PUBLIC_RPC_URL;
   if (custom) {
@@ -53,16 +50,16 @@ function buildCsp(nonce: string): string {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: ${media} ${storage} https://*.walletconnect.com https://*.walletconnect.org https://*.reown.com https://storage.googleapis.com`,
+    `img-src 'self' data: blob: ${media} ${storage} https://storage.googleapis.com`,
     // Shows and spots may be submitted as links to media hosted anywhere, so the
     // picture can come off any https origin. `connect-src` has to follow it
     // because an HLS playlist and its segments are fetched by hls.js rather than
     // by the video element. Neither widens what code can run: script-src stays
     // nonce-locked and no advertiser markup exists to abuse the reach.
     `media-src 'self' blob: data: https:`,
-    `connect-src 'self' https: ${rpcOrigins()} ${media} ${storage} ${WALLETCONNECT}${dev ? " ws://localhost:* http://localhost:* ws://127.0.0.1:*" : ""}`,
+    `connect-src 'self' https: ${rpcOrigins()} ${media} ${storage}${dev ? " ws://localhost:* http://localhost:* ws://127.0.0.1:*" : ""}`,
     "font-src 'self' data:",
-    `frame-src 'self' https://verify.walletconnect.com https://verify.walletconnect.org https://*.reown.com`,
+    `frame-src 'self' `,
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",

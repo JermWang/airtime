@@ -7,13 +7,13 @@ import { audit, type Actor } from "../audit";
 import { creativeSellable, publicCreative, getOwnedCreative, loadActivePlacement } from "./creatives";
 import { describeSurface, type SurfaceState } from "./auction";
 import { endRun, withdrawRun } from "./activation";
-import { explorerTxUrl } from "@/lib/chain/chains";
+import { explorerTxUrl, activeChain } from "@/lib/chain/chains";
 import { shortAddress } from "@/lib/format";
 import { verifyRefund } from "../chain/refundVerifier";
-import type { Hex } from "viem";
+
 import type { Campaign, Placement, Creative, Payment, AirLog } from "../db/schema";
 
-export async function createCampaign(input: { walletAddress: `0x${string}`; placementId: string; displayName: string; creativeId?: string | null; fit?: "FIT" | "FILL"; clickUrl?: string | null }): Promise<Campaign> {
+export async function createCampaign(input: { walletAddress: string; placementId: string; displayName: string; creativeId?: string | null; fit?: "FIT" | "FILL"; clickUrl?: string | null }): Promise<Campaign> {
   const placement = await loadActivePlacement(input.placementId);
   let status: Campaign["status"] = "DRAFT";
   let creative: Creative | null = null;
@@ -47,7 +47,7 @@ export async function getOwnedCampaign(id: string, walletAddress: string): Promi
   return row;
 }
 
-export async function updateCampaignDraft(id: string, walletAddress: `0x${string}`, patch: { creativeId?: string | null; displayName?: string; fit?: "FIT" | "FILL"; clickUrl?: string | null }): Promise<Campaign> {
+export async function updateCampaignDraft(id: string, walletAddress: string, patch: { creativeId?: string | null; displayName?: string; fit?: "FIT" | "FILL"; clickUrl?: string | null }): Promise<Campaign> {
   const campaign = await getOwnedCampaign(id, walletAddress);
   if (!["DRAFT", "VALIDATING", "READY_TO_PURCHASE"].includes(campaign.status)) throw new HttpError(409, "Campaign can no longer be edited");
   const placement = await loadActivePlacement(campaign.placementId);
@@ -70,7 +70,7 @@ export async function updateCampaignDraft(id: string, walletAddress: `0x${string
   return row;
 }
 
-export async function cancelCampaign(id: string, walletAddress: `0x${string}`): Promise<Campaign> {
+export async function cancelCampaign(id: string, walletAddress: string): Promise<Campaign> {
   const campaign = await getOwnedCampaign(id, walletAddress);
   if (!["DRAFT", "VALIDATING", "READY_TO_PURCHASE", "AWAITING_PAYMENT"].includes(campaign.status)) throw new HttpError(409, "Paid campaigns cannot be cancelled here");
   return db().transaction(async (tx) => {
@@ -84,7 +84,7 @@ export async function cancelCampaign(id: string, walletAddress: `0x${string}`): 
 }
 
 /** The buyer gives the surface back early. The runtime already delivered is not refunded. */
-export async function withdrawCampaign(id: string, walletAddress: `0x${string}`): Promise<Campaign> {
+export async function withdrawCampaign(id: string, walletAddress: string): Promise<Campaign> {
   const campaign = await getOwnedCampaign(id, walletAddress);
   if (campaign.status !== "AIRING") throw new HttpError(409, "This campaign is not on a surface");
   await withdrawRun(id, { type: "WALLET", id: walletAddress });
@@ -120,7 +120,7 @@ export async function adminSetCampaignStatus(
   id: string,
   status: "REJECTED" | "REFUNDED" | "CANCELLED",
   actor: Actor,
-  options: { reason?: string; refundTxHash?: Hex } = {},
+  options: { reason?: string; refundTxHash?: string } = {},
 ): Promise<Campaign> {
   const { reason, refundTxHash } = options;
   let verifiedRefund: Extract<Awaited<ReturnType<typeof verifyRefund>>, { status: "confirmed" }> | null = null;
@@ -129,7 +129,7 @@ export async function adminSetCampaignStatus(
     const [payment] = await db().select().from(schema.payments).where(eq(schema.payments.campaignId, id));
     if (!payment) throw new HttpError(409, "This campaign has no confirmed payment to refund");
     if (payment.status === "REFUNDED") {
-      if (payment.refundTxHash?.toLowerCase() === refundTxHash.toLowerCase()) {
+      if (payment.refundTxHash === refundTxHash) {
         const [campaign] = await db().select().from(schema.campaigns).where(eq(schema.campaigns.id, id));
         if (!campaign) throw new HttpError(404, "Campaign not found");
         return campaign;
@@ -242,7 +242,7 @@ export function toQueueEntry(c: Campaign, placement: Placement, creative: Creati
     durationSec: c.durationSec,
     wallet: shortAddress(c.walletAddress),
     txHash: payment?.txHash ?? null,
-    txUrl: payment ? explorerTxUrl(payment.txHash) : null,
+    txUrl: payment ? explorerTxUrl(payment.txHash, payment.chainId) : null,
     creative: publicCreative(creative),
     fit: c.fit,
     clickUrl: c.clickUrl,
@@ -264,7 +264,7 @@ export async function getPublicQueue(channelId: string): Promise<{ serverTime: n
     .innerJoin(schema.placements, eq(schema.campaigns.placementId, schema.placements.id))
     .leftJoin(schema.creatives, eq(schema.campaigns.creativeId, schema.creatives.id))
     .leftJoin(schema.payments, eq(schema.payments.campaignId, schema.campaigns.id))
-    .where(and(eq(schema.campaigns.channelId, channelId), inArray(schema.campaigns.status, ["AIRING", "PAID"])))
+    .where(and(eq(schema.campaigns.channelId, channelId), eq(schema.payments.chainId, activeChain().id), inArray(schema.campaigns.status, ["AIRING", "PAID"])))
     .orderBy(asc(schema.placements.sortOrder));
 
   const recentRows = await db()
@@ -273,7 +273,7 @@ export async function getPublicQueue(channelId: string): Promise<{ serverTime: n
     .innerJoin(schema.placements, eq(schema.campaigns.placementId, schema.placements.id))
     .leftJoin(schema.creatives, eq(schema.campaigns.creativeId, schema.creatives.id))
     .leftJoin(schema.payments, eq(schema.payments.campaignId, schema.campaigns.id))
-    .where(and(eq(schema.campaigns.channelId, channelId), eq(schema.campaigns.status, "COMPLETED"), gt(schema.campaigns.endsAt, addSeconds(now, -24 * 3600))))
+    .where(and(eq(schema.campaigns.channelId, channelId), eq(schema.payments.chainId, activeChain().id), eq(schema.campaigns.status, "COMPLETED"), gt(schema.campaigns.endsAt, addSeconds(now, -24 * 3600))))
     .orderBy(desc(schema.campaigns.endsAt))
     .limit(12);
 
@@ -379,7 +379,7 @@ export function campaignView(detail: CampaignDetail, opts: { owner: boolean }) {
     payment: payment
       ? {
           txHash: payment.txHash,
-          txUrl: explorerTxUrl(payment.txHash),
+          txUrl: explorerTxUrl(payment.txHash, payment.chainId),
           blockNumber: payment.blockNumber.toString(),
           amountWei: payment.amountWei,
           paymentToken: payment.paymentToken,
@@ -387,7 +387,7 @@ export function campaignView(detail: CampaignDetail, opts: { owner: boolean }) {
           confirmedAt: payment.confirmedAt.toISOString(),
           chainId: payment.chainId,
           refundTxHash: payment.refundTxHash,
-          refundTxUrl: payment.refundTxHash ? explorerTxUrl(payment.refundTxHash) : null,
+          refundTxUrl: payment.refundTxHash ? explorerTxUrl(payment.refundTxHash, payment.chainId) : null,
           refundBlockNumber: payment.refundBlockNumber?.toString() ?? null,
           refundedAt: payment.refundedAt?.toISOString() ?? null,
         }

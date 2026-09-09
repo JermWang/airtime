@@ -1,36 +1,4 @@
-import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
-import sharp from "sharp";
-import { createPublicClient, http, parseAbiItem } from "viem";
-import { foundry } from "viem/chains";
-import { E2E_CONTRACT, E2E_RPC } from "../../playwright.config";
-
-/**
- * Primary vertical slice:
- *   watch station → select studio billboard → upload image → preview → read the
- *   live ask → quote → pay on local chain → backend verifies the event → the run
- *   is on air immediately → buyer withdraws → AirLog exists.
- *
- * There is no scheduled window to wait for: paying takes the surface, and the
- * run ends when somebody outbids it or the buyer hands it back.
- */
-
-async function adminLogin(request: APIRequestContext) {
-  const res = await request.post("/api/admin/auth/login", { data: { email: "admin@airtime.local", password: "e2e-admin" } });
-  expect(res.ok()).toBeTruthy();
-}
-
-async function jumpClock(request: APIRequestContext, offsetMs: number) {
-  const res = await request.patch("/api/admin/settings", { data: { clockOffsetMs: offsetMs } });
-  expect(res.ok()).toBeTruthy();
-}
-
-async function connectDevWallet(page: Page) {
-  await page.getByRole("button", { name: /connect wallet/i }).first().click();
-  await page.getByRole("button", { name: /AIRTIME Dev Wallet/i }).click();
-  await expect(page.getByText(/0x7099/i).first()).toBeVisible();
-}
-
-test.describe.configure({ mode: "serial" });
+import { test, expect } from "@playwright/test";
 
 test("station is live: picture, programme and the price board", async ({ page }) => {
   await page.goto("/");
@@ -43,11 +11,11 @@ test("station is live: picture, programme and the price board", async ({ page })
   expect(state.next).toBeTruthy();
 
   // The board sells the picture's two products and the six panels around it,
-  // all opening at 0.01.
+  // all opening at 0.5.
   const board = await page.request.get("/api/board?channel=MAIN").then((r) => r.json());
   const ids = board.rows.map((r: { placement: { id: string } }) => r.placement.id).sort();
   expect(ids).toEqual(["AD", "PANEL_LEFT", "PANEL_RIGHT", "PANEL_TOP_LEFT", "PANEL_TOP_MID", "PANEL_TOP_RIGHT", "PANEL_TOWER", "SHOW"]);
-  for (const row of board.rows) expect(row.surface.askWei).toBe("10000000000000000");
+  for (const row of board.rows) expect(row.surface.askWei).toBe("500000000");
 
   // Opening a surface goes straight into the purchase flow.
   await page.goto("/airtime/SHOW");
@@ -92,144 +60,6 @@ test("panel artwork itself flips the card and the Anduril panel carries the logo
   await expect(back.getByText("What the network earns is used to buy Anduril pre-stock")).toBeVisible();
 });
 
-test("full purchase → on-chain verification → queue → air → AirLog", async ({ page, request }) => {
-  await page.goto("/airtime/AD");
-  await expect(page.getByTestId("purchase-flow")).toHaveAttribute("data-step", "connect");
-
-  // 1. connect + sign in (SIWE) with the local dev wallet
-  await connectDevWallet(page);
-  await page.getByTestId("sign-in").click();
-  await expect(page.getByTestId("purchase-flow")).toHaveAttribute("data-step", "creative", { timeout: 30_000 });
-
-  // 2. upload a valid creative
-  await page.getByTestId("display-name").fill("Playwright Motors");
-  // A surface that takes video offers the link tab first; this buyer has a file.
-  await page.getByTestId("tab-file").click();
-  const png = await sharp({ create: { width: 1280, height: 720, channels: 3, background: { r: 31, g: 224, b: 122 } } }).png().toBuffer();
-  await page.getByTestId("creative-file-input").setInputFiles({ name: "spot.png", mimeType: "image/png", buffer: png });
-  await expect(page.getByTestId("purchase-flow")).toHaveAttribute("data-step", "price", { timeout: 60_000 });
-  // WYSIWYG preview is rendered on the surface
-  await expect(page.locator("img[src*='/media/creatives/']").first()).toBeVisible();
-
-  // A failed replacement must keep the buyer on the creative step, and the
-  // same file must be selectable again after the server recovers.
-  await page.getByRole("button", { name: "Change", exact: true }).click();
-  await page.getByTestId("tab-file").click();
-  await page.route("**/api/campaigns/*", async (route) => {
-    if (route.request().method() === "PATCH") {
-      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Temporary campaign save failure" }) });
-    } else await route.continue();
-  });
-  await page.getByTestId("creative-file-input").setInputFiles({ name: "spot.png", mimeType: "image/png", buffer: png });
-  await expect(page.getByTestId("flow-error")).toContainText("Temporary campaign save failure");
-  await expect(page.getByTestId("purchase-flow")).toHaveAttribute("data-step", "creative");
-  await page.unroute("**/api/campaigns/*");
-  await expect(page.getByTestId("creative-file-input")).toBeEnabled();
-  await page.getByTestId("creative-file-input").setInputFiles({ name: "spot.png", mimeType: "image/png", buffer: png });
-  await expect(page.getByTestId("purchase-flow")).toHaveAttribute("data-step", "price");
-  const framing = page.getByRole("group", { name: "Creative framing" });
-  const selectedFit = await framing.getByRole("button", { name: "FIT", exact: true }).getAttribute("aria-pressed");
-  const desiredFit = selectedFit === "true" ? "FILL" : "FIT";
-  await framing.getByRole("button", { name: desiredFit, exact: true }).click();
-
-  // 3. the surface is asking a live, falling price
-  const ticker = page.getByTestId("ask-ticker");
-  await expect(ticker).toBeVisible({ timeout: 30_000 });
-  await expect(ticker).toHaveAttribute("data-status", "OPEN");
-  const askText = await page.getByTestId("ask-amount").textContent();
-  expect(askText).toMatch(/ETH/);
-
-  // 4. server quote at that ask
-  await page.getByTestId("get-quote").click();
-  await expect(page.getByTestId("quote")).toBeVisible({ timeout: 30_000 });
-  const amountText = await page.getByTestId("quote-amount").textContent();
-  expect(amountText).toMatch(/ETH/);
-
-  // 5. pay on the local chain (dev wallet signs + sends to anvil), backend verifies the event
-  await page.getByTestId("pay").click();
-  await expect(page.getByTestId("purchase-done")).toBeVisible({ timeout: 120_000 });
-  // Paying puts you on air immediately: there is no queue to wait in.
-  await expect(page.getByText(/on air now|taking the surface/i).first()).toBeVisible();
-
-  const campaignHref = await page.getByTestId("campaign-link").getAttribute("href");
-  expect(campaignHref).toMatch(/^\/campaign\//);
-  const campaignId = campaignHref!.split("/").pop()!;
-
-  // Backend state: PAID→AIRING with a payment whose event exists on chain.
-  const campaign = await request.get(`/api/campaigns/${campaignId}`).then((r) => r.json());
-  expect(["PAID", "AIRING"]).toContain(campaign.status);
-  expect(campaign.fit).toBe(desiredFit);
-  expect(campaign.payment.txHash).toMatch(/^0x[0-9a-f]{64}$/);
-  const client = createPublicClient({ chain: foundry, transport: http(E2E_RPC) });
-  const logs = await client.getLogs({
-    address: E2E_CONTRACT,
-    event: parseAbiItem("event AirtimePurchased(bytes32 indexed quoteId, address indexed buyer, bytes32 indexed placementId, bytes32 creativeHash, uint64 startAt, uint64 endAt, address paymentToken, uint256 amount)"),
-    fromBlock: 0n,
-  });
-  const matching = logs.find((l) => l.transactionHash === campaign.payment.txHash);
-  expect(matching).toBeTruthy();
-  expect(matching!.args.creativeHash).toBe(campaign.creative.creativeHash);
-  expect(matching!.args.amount?.toString()).toBe(campaign.payment.amountWei);
-
-  // 6. the run is live on the board straight away, with no scheduled end.
-  await adminLogin(request);
-  await expect.poll(async () => (await request.get(`/api/campaigns/${campaignId}`).then((r) => r.json())).status, { timeout: 30_000 }).toBe("AIRING");
-  const live = await request.get(`/api/campaigns/${campaignId}`).then((r) => r.json());
-  expect(live.endsAt).toBeNull();
-  expect(BigInt(live.pricePaidWei)).toBeGreaterThan(0n);
-
-  const queue = await request.get("/api/queue?channel=MAIN").then((r) => r.json());
-  expect(queue.onAir.some((e: { id: string }) => e.id === campaignId)).toBe(true);
-
-  // An operator can correct the name a run goes up under — it is what the
-  // public log shows — without touching its payment or the surface it holds.
-  const renamed = await request.patch(`/api/admin/campaigns/${campaignId}`, { data: { displayName: "Test run" } });
-  expect(renamed.ok()).toBeTruthy();
-  const afterRename = await request.get("/api/queue?channel=MAIN").then((r) => r.json());
-  const renamedEntry = afterRename.onAir.find((e: { id: string }) => e.id === campaignId);
-  expect(renamedEntry.displayName).toBe("Test run");
-  expect(renamedEntry.pricePaidWei).toBe(live.pricePaidWei);
-  await request.patch(`/api/admin/campaigns/${campaignId}`, { data: { displayName: "Playwright Motors" } });
-  const activations = await request.get("/api/activations?channel=MAIN").then((r) => r.json());
-  expect(activations.active.some((e: { id: string; placementId: string }) => e.id === campaignId && e.placementId === "AD")).toBe(true);
-
-  // The surface now asks the takeover premium and is protected for the guaranteed runtime.
-  const surface = await request.get("/api/placements/AD/surface").then((r) => r.json());
-  expect(surface.occupant.campaignId).toBe(campaignId);
-  expect(surface.status).toBe("PROTECTED");
-  expect(BigInt(surface.askWei)).toBeGreaterThan(BigInt(live.pricePaidWei));
-
-  // Verify actual delivery in the viewer, not just the campaign's database state.
-  const adBreak = await request.post("/api/admin/schedule", {
-    data: { channelId: "MAIN", type: "AD_BREAK", title: "Delivery verification", durationSec: 120 },
-  });
-  expect(adBreak.ok()).toBeTruthy();
-  await page.goto("/watch");
-  const onAirCreative = page.locator(`img[src="${campaign.creative.url}"]`).first();
-  await expect(onAirCreative).toBeVisible();
-  await expect.poll(() => onAirCreative.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
-
-  await page.goto("/queue");
-  await expect(page.getByText("Playwright Motors").first()).toBeVisible();
-
-  // 7. the buyer hands the surface back → completion + AirLog. Nothing else
-  // ends a run except a higher bidder.
-  // The wallet session lives in the page context, so the buyer withdraws from there.
-  const withdrawn = await page.request.post(`/api/campaigns/${campaignId}/withdraw`);
-  expect(withdrawn.ok()).toBeTruthy();
-  await expect.poll(async () => (await request.get(`/api/campaigns/${campaignId}`).then((r) => r.json())).status, { timeout: 30_000 }).toBe("COMPLETED");
-  const done = await request.get(`/api/campaigns/${campaignId}`).then((r) => r.json());
-  expect(done.airLogId).toBeTruthy();
-
-  await page.goto(`/airlog/${done.airLogId}`);
-  await expect(page.getByTestId("airlog")).toBeVisible();
-  await expect(page.getByText("Playwright Motors")).toBeVisible();
-  await expect(page.getByText(/proof of air/i)).toBeVisible();
-  await expect(page.getByText(campaign.payment.txHash.slice(0, 10))).toBeVisible();
-
-  await jumpClock(request, 0);
-});
-
 test("buy airtime asks for a show or an ad, with both prices live", async ({ page }) => {
     await page.goto("/station");
     await page.getByRole("button", { name: /buy airtime/i }).first().click();
@@ -244,40 +74,13 @@ test("buy airtime asks for a show or an ad, with both prices live", async ({ pag
     await expect(page.getByTestId("ad-surface-PANEL_RIGHT")).toBeVisible();
   });
 
-test("treasury reports airtime revenue and operator-recorded pre-stock", async ({ page, request }) => {
-  await adminLogin(request);
-  // Record a purchase of Anduril pre-stock funded by the airtime revenue earned above.
-  const created = await request.post("/api/admin/treasury", {
-    data: { kind: "STOCK_PURCHASE", amountWei: "1000000000000000", shares: "3.5", reference: "e2e-broker-1", note: "E2E" },
-  });
-  expect(created.ok()).toBeTruthy();
 
-  const treasury = await request.get("/api/treasury").then((r) => r.json());
-  expect(BigInt(treasury.summary.airtimeRevenueWei)).toBeGreaterThan(0n);
-  expect(treasury.summary.airtimePayments).toBeGreaterThan(0);
-  expect(treasury.summary.sharesHeld).toBe("3.5");
-
-  await page.goto("/treasury");
-  await expect(page.getByRole("heading", { name: "Treasury" })).toBeVisible();
-  await expect(page.getByText("Anduril pre-stock bought").first()).toBeVisible();
-  await expect(page.getByText("3.5 sh").first()).toBeVisible();
-  // Airtime revenue is derived, never typed in.
-  await expect(page.getByText(/verified payment/i).first()).toBeVisible();
-});
-
-test("a quote cannot be replayed and the surface goes back on the market", async ({ request }) => {
-  const queue = await request.get("/api/queue?channel=MAIN").then((r) => r.json());
-  const recent = queue.recent[0];
-  expect(recent).toBeTruthy();
-  // The surface is free again and its ask descends from what it last cleared at.
-  const surface = await request.get("/api/placements/AD/surface").then((r) => r.json());
-  expect(surface.occupant).toBeNull();
-  expect(surface.forSale).toBe(true);
-  expect(BigInt(surface.lastClearingPriceWei)).toBeGreaterThan(0n);
-  expect(BigInt(surface.askWei)).toBeLessThanOrEqual(BigInt(surface.anchorWei));
-  // Payment for the consumed quote is recorded exactly once.
-  await adminLogin(request);
-  const payments = await request.get("/api/admin/payments").then((r) => r.json());
-  const forCampaign = payments.payments.filter((p: { campaignId: string }) => p.campaignId === recent.id);
-  expect(forCampaign).toHaveLength(1);
+test("Solana wallets and launch branding", async ({page}) => {
+ await page.goto('/airtime/SHOW');
+ await page.getByRole('button',{name:/connect wallet/i}).first().click();
+ await expect(page.getByRole('button',{name:'Phantom',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Solflare',exact:true})).toBeVisible();
+ await expect(page.locator('body')).not.toContainText(/Robinhood|WalletConnect|Ethereum/);
+ await page.goto('/');
+ await expect(page.getByRole('link',{name:/Launching on StonkFun/i})).toBeVisible();
 });

@@ -199,7 +199,7 @@ export default function InfoPage() {
       </div>
 
       <p className="body-copy mx-auto mt-14 max-w-2xl text-center text-ink-400">
-        AIRTIME is an independent product. It is not affiliated with, endorsed by, or operated by Robinhood or Anduril. Robinhood Chain is used as payment
+        AIRTIME is an independent product. It is not affiliated with, endorsed by, or operated by Solana Foundation or Anduril. Solana is used as payment
         infrastructure.
       </p>
     </PageFrame>

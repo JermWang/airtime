@@ -78,6 +78,20 @@
       "when": 1788820000000,
       "tag": "0010_house_artwork_fit",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788900000000,
+      "tag": "0011_solana_launch",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788980000000,
+      "tag": "0012_half_sol_minimum",
+      "breakpoints": true
     }
   ]
 }

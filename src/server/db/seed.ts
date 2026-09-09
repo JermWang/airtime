@@ -17,26 +17,26 @@ import type { NewPlacement, PlacementAuctionRules, PlacementAvailabilityRules } 
  *                       DEV DATA). Never runs on mainnet / when disabled.
  */
 
-const ETH = 10n ** 18n;
+const SOL = 10n ** 9n;
 const continuous = (hoursUtc: { from: number; to: number } | null = null): PlacementAvailabilityRules => ({ inventoryMode: "CONTINUOUS", hoursUtc });
 const adBreak = (): PlacementAvailabilityRules => ({ inventoryMode: "AD_BREAK", hoursUtc: null });
 
-/** ETH as a decimal with three places, returned as integer wei. eth(2.5) = 2.5 ETH. */
-const eth = (n: number) => ((ETH * BigInt(Math.round(n * 1000))) / 1000n).toString();
+/** SOL as a decimal with three places, returned as integer lamports. sol(2.5) = 2.5 SOL. */
+const sol = (n: number) => ((SOL * BigInt(Math.round(n * 1000))) / 1000n).toString();
 
 /**
  * A configured price, never below the station minimum. Defaults to it, which is
  * what every placement here opens at.
  */
 const startingPrice = (n?: number) => {
-  const wei = n === undefined ? MIN_PRICE_WEI : BigInt(eth(n));
+  const wei = n === undefined ? MIN_PRICE_WEI : BigInt(sol(n));
   return (wei > MIN_PRICE_WEI ? wei : MIN_PRICE_WEI).toString();
 };
 
 /**
  * Auction rules.
  *
- * Everything opens at 0.01 ETH and stays there until somebody buys it. A sale
+ * Everything opens at 0.5 SOL and stays there until somebody buys it. A sale
  * is what moves the price: the ask jumps to `takeoverPremiumBps` of whatever
  * was paid and then walks back down over `decayHours`, never below what the
  * current holder paid plus 5%. Demand is the only thing that raises a price
@@ -293,13 +293,8 @@ export const RETIRED_PLACEMENT_IDS = [
  * House content for surfaces nobody has booked. Always badged EXAMPLE, never a
  * paid campaign: no queue entry, no AirLog, no analytics event, no revenue.
  *
- * The examples name the memecoins with the most volume on Robinhood Chain, so
- * an empty surface shows what a spot on it would look like for the kind of
- * buyer this network is for. They are text only — the station draws them from
- * the ticker and the name, and never carries anybody else's artwork — and the
- * EXAMPLE stamp is permanent, so no card can be read as a spot that token
- * bought. Rankings move: this list is a snapshot taken while the placeholders
- * stand in, not a feed.
+ * House artwork shows how an unoccupied surface can look. It does not represent
+ * paid placements, trading rankings or sponsorship.
  *
  * To put a clip or a still on a surface, drop the file in `public/placeholders/`
  * and point `mediaUrl` at `/placeholders/<file>` — same origin, so the WebGL
@@ -329,7 +324,7 @@ const artCard = (
   label,
   headline: name,
   sublabel: houseSublabel(placementId),
-  accent: "#ccff00",
+  accent: "#69aac1",
   mediaUrl: `/placeholders/${file}`,
   mediaType: clip ? "VIDEO" : "IMAGE",
   // A clip in a break is anchored to the top of that break, so every viewer is
@@ -347,8 +342,8 @@ export const HOUSE_PLACEHOLDERS: Array<typeof schema.showcaseCreatives.$inferIns
     placementId: null,
     label: "AIRTIME",
     headline: "Buy the screen",
-    sublabel: "Runtime from 0.01 ETH · every fee buys Anduril pre-stock",
-    accent: "#ccff00",
+    sublabel: "Runtime from 0.5 SOL · every fee buys Anduril pre-stock",
+    accent: "#69aac1",
     sortOrder: 1,
   },
   // The break runs the promo; the panel carries the mark on its own black
@@ -418,7 +413,7 @@ export async function ensureBaseline(): Promise<{ adminPassword: string | null }
           label: card.label,
           headline: card.headline,
           sublabel: card.sublabel ?? null,
-          accent: card.accent ?? "#ccff00",
+          accent: card.accent ?? "#69aac1",
           mediaUrl: card.mediaUrl ?? null,
           mediaType: card.mediaType ?? null,
           posterUrl: card.posterUrl ?? null,

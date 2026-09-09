@@ -5,8 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Panel, Stat, Field } from "@/components/control-room/ui";
 import { useAdminMutation } from "@/components/control-room/adminApi";
 import { api, type TreasuryDto } from "@/lib/api";
+import { airtimeTokenDecimals } from "@/lib/chain/chains";
 import { formatWei, formatDateTime, shortHash, cn } from "@/lib/format";
-import { parseEther } from "viem";
+import { parseSol, parseUnits } from "@/lib/units";
 
 type Kind = "TAX_INFLOW" | "STOCK_PURCHASE" | "DISTRIBUTION" | "BUYBACK" | "BURN";
 
@@ -48,9 +49,9 @@ export default function TreasuryAdminPage() {
     try {
       const body: Record<string, unknown> = { kind, note: note || null, reference: reference || null, txHash: txHash || null };
       if (occurredAt) body.occurredAt = new Date(occurredAt).toISOString();
-      if (amount) body.amountWei = parseEther(amount as `${number}`).toString();
+      if (amount) body.amountWei = parseSol(amount).toString();
       if (shares) body.shares = shares;
-      if (tokens) body.tokenAmountWei = parseEther(tokens as `${number}`).toString();
+      if (tokens) body.tokenAmountWei = parseUnits(tokens, airtimeTokenDecimals()).toString();
       if (holders) body.holders = Number(holders);
       await record.mutateAsync(body);
       setAmount("");
@@ -75,8 +76,8 @@ export default function TreasuryAdminPage() {
         <Stat label="Awaiting deployment" value={s ? formatWei(s.awaitingDeploymentWei) : "—"} tone="amber" />
         <Stat label="Pre-stock held" value={s ? `${s.sharesHeld}` : "—"} tone="signal" />
         <Stat label="Distributed" value={s ? `${s.sharesDistributed}` : "—"} />
-        <Stat label="$AIRTIME bought back" value={s ? formatWei(s.buybackTokens, 18, "AIRTIME") : "—"} tone="signal" />
-        <Stat label="$AIRTIME burned" value={s ? formatWei(s.burnedTokens, 18, "AIRTIME") : "—"} />
+        <Stat label="$AIRTIME bought back" value={s ? formatWei(s.buybackTokens, airtimeTokenDecimals(), "AIRTIME") : "—"} tone="signal" />
+        <Stat label="$AIRTIME burned" value={s ? formatWei(s.burnedTokens, airtimeTokenDecimals(), "AIRTIME") : "—"} />
       </div>
 
       <Panel title="Record an event">
@@ -94,7 +95,7 @@ export default function TreasuryAdminPage() {
         </div>
         <div className="grid gap-3 md:grid-cols-4">
           {kind !== "DISTRIBUTION" && kind !== "BURN" && (
-            <Field label={kind === "TAX_INFLOW" ? "Amount received (ETH)" : "Amount spent (ETH)"}>
+            <Field label={kind === "TAX_INFLOW" ? "Amount received (SOL)" : "Amount spent (SOL)"}>
               <input className="field" inputMode="decimal" placeholder="0.0" value={amount} onChange={(e) => setAmount(e.target.value)} />
             </Field>
           )}
@@ -106,7 +107,7 @@ export default function TreasuryAdminPage() {
           {TOKEN_KINDS.includes(kind) && (
             <Field
               label={kind === "BUYBACK" ? "$AIRTIME bought" : "$AIRTIME burned"}
-              hint={kind === "BURN" && s ? `${formatWei(s.tokensHeld, 18, "AIRTIME")} held` : "tokens, as you would write them"}
+              hint={kind === "BURN" && s ? `${formatWei(s.tokensHeld, airtimeTokenDecimals(), "AIRTIME")} held` : "tokens, as you would write them"}
             >
               <input className="field" inputMode="decimal" placeholder="0.0" value={tokens} onChange={(e) => setTokens(e.target.value)} />
             </Field>
@@ -120,7 +121,7 @@ export default function TreasuryAdminPage() {
             <input className="field" type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
           </Field>
           <Field label="Transaction hash" hint="optional, linked to the explorer">
-            <input className="field" placeholder="0x…" value={txHash} onChange={(e) => setTxHash(e.target.value)} />
+            <input className="field" placeholder="Solana transaction signature" value={txHash} onChange={(e) => setTxHash(e.target.value)} />
           </Field>
           <Field label="Reference" hint="broker order id, statement, …">
             <input className="field" value={reference} onChange={(e) => setReference(e.target.value)} />
@@ -154,9 +155,9 @@ export default function TreasuryAdminPage() {
               <tr key={r.id}>
                 <td className="readout whitespace-nowrap text-[10.5px]">{formatDateTime(r.occurredAt)}</td>
                 <td className="text-[11.5px] text-ink-50">{KIND_LABEL[r.kind]}</td>
-                <td className="readout text-[10.5px]">{BigInt(r.amountWei) > 0n ? formatWei(r.amountWei, 18, r.assetSymbol) : "—"}</td>
+                <td className="readout text-[10.5px]">{BigInt(r.amountWei) > 0n ? formatWei(r.amountWei, 9, r.assetSymbol) : "—"}</td>
                 <td className="readout text-[10.5px]">{Number(r.shares) > 0 ? r.shares : "—"}</td>
-                <td className="readout text-[10.5px]">{BigInt(r.tokenAmountWei) > 0n ? formatWei(r.tokenAmountWei, 18, "AIRTIME") : "—"}</td>
+                <td className="readout text-[10.5px]">{BigInt(r.tokenAmountWei) > 0n ? formatWei(r.tokenAmountWei, airtimeTokenDecimals(), "AIRTIME") : "—"}</td>
                 <td className="readout text-[10.5px]">{r.holders ?? "—"}</td>
                 <td className="readout text-[10.5px]">{r.txHash ? shortHash(r.txHash) : r.reference ?? "—"}</td>
                 <td className="text-right">

@@ -188,7 +188,7 @@ export interface QuoteDto {
   placementId: string;
   outbids: { displayName: string; pricePaidWei: string } | null;
   treasury: string | null;
-  settlement: "contract" | "treasury";
+  settlement: "solana";
   payTo: string;
   chainId: number;
 }

@@ -51,14 +51,14 @@ export function StudioCanvas({ channelId = "MAIN" }: { channelId?: string }) {
       camera={{ fov: mobile ? 58 : 42, near: 0.1, far: 120, position: [0, 3.6, 6.2] }}
       frameloop="always"
       className="!fixed inset-0"
-      style={{ background: "#050607" }}
+      style={{ background: "#071013" }}
       onCreated={({ gl: renderer }) => {
-        renderer.setClearColor("#050607", 1);
+        renderer.setClearColor("#071013", 1);
       }}
       eventSource={typeof document !== "undefined" ? document.body : undefined}
       eventPrefix="client"
     >
-      <color attach="background" args={["#050607"]} />
+      <color attach="background" args={["#071013"]} />
       <fog attach="fog" args={["#060709", 22, 58]} />
       <PerformanceMonitor onDecline={() => degrade()} flipflops={2} factor={0.5} />
       {tier !== "low" && <AdaptiveDpr pixelated={false} />}
@@ -66,8 +66,8 @@ export function StudioCanvas({ channelId = "MAIN" }: { channelId?: string }) {
         <Environment resolution={cfg.environmentResolution} frames={1}>
           <Lightformer intensity={2.2} form="rect" color="#dfe7ee" position={[0, 8, -6]} scale={[14, 1.2, 1]} target={[0, 3, -6]} />
           <Lightformer intensity={1.2} form="rect" color="#c9d3dc" position={[0, 8, 2]} scale={[14, 1.2, 1]} target={[0, 3, 0]} />
-          <Lightformer intensity={0.5} form="rect" color="#ccff00" position={[-14, 6, -2]} scale={[1, 12, 1]} rotation={[0, Math.PI / 2, 0]} />
-          <Lightformer intensity={0.5} form="rect" color="#ccff00" position={[14, 6, -2]} scale={[1, 12, 1]} rotation={[0, -Math.PI / 2, 0]} />
+          <Lightformer intensity={0.5} form="rect" color="#69aac1" position={[-14, 6, -2]} scale={[1, 12, 1]} rotation={[0, Math.PI / 2, 0]} />
+          <Lightformer intensity={0.5} form="rect" color="#69aac1" position={[14, 6, -2]} scale={[1, 12, 1]} rotation={[0, -Math.PI / 2, 0]} />
         </Environment>
         <EnvironmentalLights tier={tier} />
         <BroadcastStudio channelId={channelId} onReady={() => setSceneReady(true)} />

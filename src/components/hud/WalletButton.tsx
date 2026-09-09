@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount } from "@/lib/solana-wallet";
 import { AnimatePresence, motion } from "motion/react";
 import { useWalletAuth } from "@/components/airtime/useWalletAuth";
 import { shortAddress, cn } from "@/lib/format";
@@ -12,7 +12,8 @@ import { shortAddress, cn } from "@/lib/format";
  */
 export function WalletButton({ prominent = false, className }: { prominent?: boolean; className?: string }) {
   const { address, isConnected } = useAccount();
-  const { connectors, connectAsync, isPending } = useConnect();
+  const { connect, isPending } = useAccount();
+  const connectors = [{uid:"phantom", name:"Phantom" as const}, {uid:"solflare", name:"Solflare" as const}];
   const auth = useWalletAuth();
   const [open, setOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -72,7 +73,7 @@ export function WalletButton({ prominent = false, className }: { prominent?: boo
                   onClick={async () => {
                     setErr(null);
                     try {
-                      await connectAsync({ connector: c });
+                      await connect(c.name);
                       setOpen(false);
                     } catch (e) {
                       setErr((e as Error).message?.split("\n")[0] ?? "Connection failed");
@@ -80,12 +81,12 @@ export function WalletButton({ prominent = false, className }: { prominent?: boo
                   }}
                 >
                   <span>{c.name}</span>
-                  {c.type === "airtimeDev" && <span className="chip chip-amber">dev</span>}
+
                 </button>
               ))}
             </div>
             {err && <div className="mt-2 text-[11px] text-live">{err}</div>}
-            <div className="mt-3 text-[10px] leading-relaxed text-ink-400">Built on Robinhood Chain. Robinhood Wallet connects through WalletConnect or its browser extension.</div>
+            <div className="mt-3 text-[10px] leading-relaxed text-ink-400">Pay in SOL with Phantom or Solflare. Use a browser extension or open AIRTIME inside your wallet’s browser.</div>
           </motion.div>
         )}
       </AnimatePresence>

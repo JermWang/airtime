@@ -42,8 +42,8 @@ export function EnvironmentalLights({ tier }: { tier: Tier }) {
           light the wall and floor a little, never ring the frame with a halo. */}
       <rectAreaLight position={[0, 6.4, -5.1]} width={17.8} height={10} intensity={2.2} color="#cfd8e3" rotation={[0, 0, 0]} />
       {/* Signal-green hairlines high on the side walls. */}
-      <pointLight position={[-12.6, 10.5, 2]} intensity={9} distance={14} decay={2} color="#ccff00" />
-      <pointLight position={[12.6, 10.5, 2]} intensity={9} distance={14} decay={2} color="#ccff00" />
+      <pointLight position={[-12.6, 10.5, 2]} intensity={9} distance={14} decay={2} color="#69aac1" />
+      <pointLight position={[12.6, 10.5, 2]} intensity={9} distance={14} decay={2} color="#69aac1" />
     </>
   );
 }

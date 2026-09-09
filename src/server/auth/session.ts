@@ -1,3 +1,5 @@
+import { isSolanaAddress } from "@/lib/chain/solana";
+import { activeChain } from "@/lib/chain/chains";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { sessionSecret, isProduction } from "../env";
@@ -5,7 +7,7 @@ import { sessionSecret, isProduction } from "../env";
 /**
  * Stateless signed sessions (HS256 JWT in an httpOnly cookie).
  *
- *   airtime_wallet – advertiser session established through Sign-In With Ethereum
+ *   airtime_wallet – advertiser session established through a signed Solana message
  *   airtime_admin  – control-room session established with email + password
  */
 
@@ -14,7 +16,7 @@ export const ADMIN_COOKIE = "airtime_admin";
 
 export interface WalletSession {
   kind: "wallet";
-  address: `0x${string}`; // lowercase
+  address: string; // case-sensitive Solana public key
   chainId: number;
 }
 
@@ -45,6 +47,7 @@ export async function verifySessionToken<T extends Session>(token: string, kind:
   try {
     const { payload } = await jwtVerify(token, secretKey(), { issuer: "airtime", audience: kind });
     if (payload.kind !== kind) return null;
+    if (kind === "wallet" && (typeof payload.address !== "string" || !isSolanaAddress(payload.address) || payload.chainId !== activeChain().id)) return null;
     return payload as unknown as T;
   } catch {
     return null;

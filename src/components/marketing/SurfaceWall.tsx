@@ -330,7 +330,7 @@ export function SurfaceWall({ channelId = "MAIN", sizeClassName, expanded, onTog
         </div>
         <div className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-2 sm:bottom-auto sm:right-3 sm:top-3">
           <span className="readout inline-flex items-center gap-[7px] rounded-sm border border-signal/40 bg-ink-950/80 px-2 py-[5px] text-[9.5px] uppercase tracking-[0.16em] text-signal">
-            <span className="h-[5px] w-[5px] rounded-full bg-signal shadow-[0_0_8px_rgba(204,255,0,0.8)]" />
+            <span className="h-[5px] w-[5px] rounded-full bg-[#39d6a3] shadow-[0_0_8px_#39d6a3]" />
             {playing ? "On air" : "Stand by"}
           </span>
           {onToggleExpand && (

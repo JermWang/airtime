@@ -1,26 +1,17 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { paymentChains } from "@/lib/chain/chains";
-
-const originalEnv = process.env.NEXT_PUBLIC_CHAIN_ENV;
-const originalIds = process.env.NEXT_PUBLIC_PAYMENT_CHAIN_IDS;
-
-afterEach(() => {
-  if (originalEnv === undefined) delete process.env.NEXT_PUBLIC_CHAIN_ENV;
-  else process.env.NEXT_PUBLIC_CHAIN_ENV = originalEnv;
-  if (originalIds === undefined) delete process.env.NEXT_PUBLIC_PAYMENT_CHAIN_IDS;
-  else process.env.NEXT_PUBLIC_PAYMENT_CHAIN_IDS = originalIds;
+import { afterEach, expect, it } from "vitest";
+import { activeChain, paymentChains, explorerTxUrl, isPaymentChain, paymentAssets } from "@/lib/chain/chains";
+const original = process.env.NEXT_PUBLIC_SOLANA_NETWORK;
+afterEach(() => { process.env.NEXT_PUBLIC_SOLANA_NETWORK = original; });
+it("accepts only the configured Solana network", () => {
+ process.env.NEXT_PUBLIC_SOLANA_NETWORK = "mainnet";
+ expect(activeChain().name).toBe("Solana");
+ expect(paymentChains().map(c => c.id)).toEqual([900]);
+ expect(isPaymentChain(4663)).toBe(false); expect(isPaymentChain(901)).toBe(false);
+ expect(paymentAssets()).toEqual([{address:"SOL", symbol:"SOL", decimals:9, isNative:true}]);
 });
-
-describe("payment chain configuration", () => {
-  it("cannot exclude the active deployment chain", () => {
-    process.env.NEXT_PUBLIC_CHAIN_ENV = "testnet";
-    process.env.NEXT_PUBLIC_PAYMENT_CHAIN_IDS = "11155111";
-    expect(paymentChains().map((chain) => chain.id)).toEqual([46630, 11155111]);
-  });
-
-  it("falls back to the environment defaults when no configured ids are known", () => {
-    process.env.NEXT_PUBLIC_CHAIN_ENV = "local";
-    process.env.NEXT_PUBLIC_PAYMENT_CHAIN_IDS = "999999999";
-    expect(paymentChains().map((chain) => chain.id)).toEqual([31337]);
-  });
+it("links devnet signatures with the cluster and never relabels historical signatures", () => {
+ process.env.NEXT_PUBLIC_SOLANA_NETWORK = "devnet";
+ expect(explorerTxUrl("signature")).toBe("https://explorer.solana.com/tx/signature?cluster=devnet");
+ expect(explorerTxUrl("0x123",4663)).toBeNull();
+ expect(explorerTxUrl("signature",900)).toBe("https://explorer.solana.com/tx/signature");
 });

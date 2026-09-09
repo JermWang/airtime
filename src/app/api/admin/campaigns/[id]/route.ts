@@ -1,5 +1,6 @@
+import { isSolanaSignature } from "@/lib/chain/solana";
 import { z } from "zod";
-import type { Hex } from "viem";
+
 import { route, type Params } from "@/server/route";
 import { json, parseBody, assertSameOrigin } from "@/server/http";
 import { requireAdmin } from "@/server/auth/session";
@@ -13,7 +14,7 @@ const body = z
     displayName: z.string().min(1).max(80).optional(),
     status: z.enum(["REJECTED", "REFUNDED", "CANCELLED"]).optional(),
     reason: z.string().max(500).optional(),
-    refundTxHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/, "Invalid refund transaction hash").optional(),
+    refundTxHash: z.string().refine(isSolanaSignature, "Invalid Solana signature").optional(),
   })
   .superRefine((value, ctx) => {
     if (!value.status && value.displayName === undefined) {
@@ -31,7 +32,7 @@ export const PATCH = route<Params<{ id: string }>>(async (req, { params }) => {
   const { displayName, status, reason, refundTxHash } = await parseBody(req, body);
   const actor = { type: "ADMIN" as const, id: admin.adminId };
   if (displayName !== undefined) await adminRenameCampaign(id, displayName, actor);
-  if (status) await adminSetCampaignStatus(id, status, actor, { reason, refundTxHash: refundTxHash as Hex | undefined });
+  if (status) await adminSetCampaignStatus(id, status, actor, { reason, refundTxHash: refundTxHash });
   const detail = await getCampaignDetail(id);
   return json(campaignView(detail!, { owner: true }));
 });

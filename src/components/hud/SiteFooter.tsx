@@ -37,6 +37,7 @@ const COLUMNS: Array<{ heading: string; links: Array<{ href: string; label: stri
   {
     heading: "Network",
     links: [
+      { href: "https://x.com/airtimemedia_", label: "X · @airtimemedia_", external: true },
       { href: "/treasury", label: "Treasury" },
       { href: "/docs#content", label: "Content policy" },
       { href: "/docs#payments", label: "How payment works" },
@@ -97,7 +98,7 @@ export function SiteFooter({ wide = false }: { wide?: boolean }) {
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
               <TokenContractChip />
-              <div className="readout text-[9.5px] uppercase tracking-[0.16em] text-ink-500">© {year} AIRTIME · Built on Robinhood Chain</div>
+              <div className="readout text-[9.5px] uppercase tracking-[0.16em] text-ink-500">© {year} AIRTIME · Solana · Launching on StonkFun</div>
             </div>
             <div className="readout text-[9.5px] uppercase tracking-[0.16em] text-ink-500">
               Payment facts come from the chain · delivery numbers come from first-party analytics

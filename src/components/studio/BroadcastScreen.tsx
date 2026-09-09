@@ -168,7 +168,7 @@ export function BroadcastScreen({ surface, placements, active, mainPlacement }: 
       {safeZones && focused && (mainPlacement?.id === focused || overlays.some((o) => o.id === focused)) && (
         <lineSegments position={[0, 0, 0.02]}>
           <edgesGeometry args={[new THREE.PlaneGeometry(W * 0.9, H * 0.9)]} />
-          <lineBasicMaterial color="#ccff00" transparent opacity={0.6} />
+          <lineBasicMaterial color="#69aac1" transparent opacity={0.6} />
         </lineSegments>
       )}
       {overlays.map((p) => {
@@ -257,7 +257,7 @@ function OverlayPlane({ placement, layout, campaign, preview }: { placement: Pla
       {show && (
         <lineSegments position={[0, 0, 0.004]}>
           <edgesGeometry args={[new THREE.PlaneGeometry(layout.size[0] * 1.02, layout.size[1] * 1.06)]} />
-          <lineBasicMaterial color="#ccff00" transparent opacity={hovered || focused ? 0.9 : 0.4} />
+          <lineBasicMaterial color="#69aac1" transparent opacity={hovered || focused ? 0.9 : 0.4} />
         </lineSegments>
       )}
     </group>

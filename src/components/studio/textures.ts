@@ -252,7 +252,7 @@ export function createHouseTexture(opts: HouseOptions): SurfaceTexture {
 
   if (opts.variant === "ribbon") {
     const { lines, size } = fitText(ctx, (opts.label ?? "AIRTIME").toUpperCase(), { weight: 600, family: sans(), size: H * 0.55, minSize: 12, maxWidth: inner - barW * 3, maxLines: 1, letterSpacing: 0.18 });
-    ctx.fillStyle = "#ccff00";
+    ctx.fillStyle = "#69aac1";
     ctx.fillRect(pad, H * 0.25, barW, H * 0.5);
     ctx.fillStyle = "#f2f4f7";
     ctx.textBaseline = "middle";
@@ -265,8 +265,8 @@ export function createHouseTexture(opts: HouseOptions): SurfaceTexture {
     const blockH = head.lines.length * lineH + (sub ? sub.lines.length * sub.size * 1.4 + head.size * 0.35 : 0);
     let y = H / 2 - blockH / 2;
 
-    ctx.fillStyle = "#ccff00";
-    ctx.shadowColor = "rgba(204, 255, 0, 0.55)";
+    ctx.fillStyle = "#69aac1";
+    ctx.shadowColor = "rgba(105,170,193, 0.55)";
     ctx.shadowBlur = unit * 0.04;
     ctx.fillRect(pad, y, barW, blockH);
     ctx.shadowBlur = 0;
@@ -323,7 +323,7 @@ export function createTickerTexture(text: string, aspect: string): SurfaceTextur
     ctx.fillRect(0, 0, W, H);
     ctx.font = font;
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#ccff00";
+    ctx.fillStyle = "#69aac1";
     let x = -scroll;
     while (x < W) {
       ctx.fillText(content, x, H / 2);
@@ -363,7 +363,7 @@ export interface ShowcaseCard {
 function paintShowcaseCard(ctx: CanvasRenderingContext2D, card: ShowcaseCard, x0: number, y0: number, w: number, h: number, badge: boolean): void {
   const unit = Math.min(w, h);
   const pad = Math.round(unit * 0.09);
-  const accent = card.accent || "#ccff00";
+  const accent = card.accent || "#69aac1";
   const barW = Math.max(3, Math.round(unit * 0.022));
   const textX = x0 + pad + barW + Math.round(unit * 0.05);
   const maxW = x0 + w - pad - textX;
@@ -573,7 +573,7 @@ export function createStudioGraphicTexture(aspect: string, seed = 0): SurfaceTex
   const top = pad * 0.8;
 
   // Header rule: a lime tick and a hairline, the station's own furniture.
-  ctx.fillStyle = "rgba(204,255,0,0.85)";
+  ctx.fillStyle = "rgba(105,170,193,0.85)";
   ctx.fillRect(pad, top, Math.round(W * 0.05), Math.max(2, Math.round(H * 0.018)));
   ctx.fillStyle = "rgba(255,255,255,0.12)";
   ctx.fillRect(pad + Math.round(W * 0.07), top, inner - Math.round(W * 0.07), 1);
@@ -592,7 +592,7 @@ export function createStudioGraphicTexture(aspect: string, seed = 0): SurfaceTex
       const w = gap * 0.62;
       ctx.fillStyle = "rgba(255,255,255,0.10)";
       ctx.fillRect(x, bodyTop, w, bodyH);
-      ctx.fillStyle = i % 5 === 2 ? "rgba(204,255,0,0.55)" : "rgba(185,193,204,0.34)";
+      ctx.fillStyle = i % 5 === 2 ? "rgba(105,170,193,0.55)" : "rgba(185,193,204,0.34)";
       ctx.fillRect(x, bodyTop + bodyH - h, w, h);
     }
   } else if (variant === 1) {
@@ -606,7 +606,7 @@ export function createStudioGraphicTexture(aspect: string, seed = 0): SurfaceTex
       ctx.lineTo(W - pad, y);
       ctx.stroke();
     }
-    ctx.strokeStyle = "rgba(204,255,0,0.62)";
+    ctx.strokeStyle = "rgba(105,170,193,0.62)";
     ctx.lineWidth = Math.max(1.5, H * 0.012);
     ctx.beginPath();
     const steps = 48;
@@ -627,7 +627,7 @@ export function createStudioGraphicTexture(aspect: string, seed = 0): SurfaceTex
     for (let r = 0; r < rows; r += 1) {
       for (let c = 0; c < cols; c += 1) {
         const on = rand();
-        ctx.fillStyle = on > 0.88 ? "rgba(204,255,0,0.5)" : on > 0.55 ? "rgba(185,193,204,0.22)" : "rgba(255,255,255,0.07)";
+        ctx.fillStyle = on > 0.88 ? "rgba(105,170,193,0.5)" : on > 0.55 ? "rgba(185,193,204,0.22)" : "rgba(255,255,255,0.07)";
         ctx.fillRect(pad + c * cw, bodyTop + r * ch, cw * 0.82, ch * 0.62);
       }
     }

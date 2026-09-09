@@ -23,7 +23,7 @@ export const GET = route(async () => {
       placementId: campaign.placementId,
       quoteId: payment.quoteId,
       txHash: payment.txHash,
-      txUrl: explorerTxUrl(payment.txHash),
+      txUrl: explorerTxUrl(payment.txHash, payment.chainId),
       blockNumber: payment.blockNumber.toString(),
       buyer: payment.buyer,
       paymentToken: payment.paymentToken,

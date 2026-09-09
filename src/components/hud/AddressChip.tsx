@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isSolanaAddress } from "@/lib/chain/solana";
 import { cn } from "@/lib/format";
 
 function shortenAddress(address: string, lead = 6, tail = 4): string {
@@ -84,13 +85,13 @@ export function AddressChip({
  * than showing a placeholder address: a mock-up contract in the interface is
  * indistinguishable from a real one to anyone reading it.
  *
- * When the token ships, set NEXT_PUBLIC_TOKEN_ADDRESS and this becomes an
+ * When the token ships, set NEXT_PUBLIC_SOLANA_TOKEN_MINT and this becomes an
  * ordinary copyable chip with no other change.
  */
 export function TokenContractChip({ className }: { className?: string }) {
-  const configured = process.env.NEXT_PUBLIC_TOKEN_ADDRESS;
-  if (configured && /^0x[0-9a-fA-F]{40}$/.test(configured)) {
-    return <AddressChip address={configured} label="Contract" className={className} />;
+  const configured = process.env.NEXT_PUBLIC_SOLANA_TOKEN_MINT;
+  if (configured && isSolanaAddress(configured)) {
+    return <AddressChip address={configured} label="Mint" className={className} />;
   }
   return (
     <span
@@ -98,9 +99,9 @@ export function TokenContractChip({ className }: { className?: string }) {
         "readout inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.02] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-ink-500",
         className,
       )}
-      title="The AIRTIME token contract has not been deployed yet"
+      title="The AIRTIME Solana token mint will be announced at launch"
     >
-      <span>Contract</span>
+      <span>Mint</span>
       <span className="text-ink-300">Coming soon</span>
     </span>
   );

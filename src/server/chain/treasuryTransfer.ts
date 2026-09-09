@@ -1,83 +1,41 @@
-import { getAddress, type Hex } from "viem";
-import { NATIVE_TOKEN } from "@/lib/chain/chains";
+import { PublicKey, type ParsedTransactionWithMeta, type ParsedInstruction } from "@solana/web3.js";
+import { NATIVE_TOKEN, isPaymentChain } from "@/lib/chain/chains";
+import { MEMO_PROGRAM, isSolanaAddress, isSolanaSignature, quoteMemo } from "@/lib/chain/solana";
+import { assertConfiguredCluster } from "./client";
 import { clientFor } from "./clients";
-import { requiredConfirmations } from "./client";
 import { env } from "../env";
 import type { Quote } from "../db/schema";
-
-/**
- * Treasury-transfer payments.
- *
- * When no payment contract is deployed on the chain a buyer chose, the quote is
- * settled by a plain native transfer into the AIRTIME treasury. The browser
- * still decides nothing: it may hint a transaction hash, and the server then
- * reads that transaction from its own RPC for that chain and checks
- *
- *   - it is mined, successful, and has enough confirmations
- *   - it was sent by the wallet the quote was issued to
- *   - it went to the treasury address this deployment is configured with
- *   - its value is exactly the quoted amount
- *   - its calldata carries the quote id, which is what binds an otherwise
- *     ordinary transfer to this specific quote and stops an unrelated payment
- *     (or the same payment twice) being claimed for airtime
- *
- * A transfer without the quote id in its calldata is not accepted, so a buyer
- * cannot point at somebody else's transaction.
- */
-
-export type TransferOutcome =
-  | { status: "confirmed"; txHash: Hex; blockNumber: bigint }
-  | { status: "pending"; reason: string }
-  | { status: "not_found" }
-  | { status: "mismatch"; reason: string };
-
-export function treasuryAddress(): `0x${string}` {
-  const configured = env().TREASURY_ADDRESS || env().NEXT_PUBLIC_TREASURY_ADDRESS;
-  return getAddress(configured);
+export type TransferOutcome = { status: "confirmed"; txHash: string; blockNumber: bigint } | { status: "pending"; reason: string } | { status: "not_found" } | { status: "mismatch"; reason: string };
+export function treasuryAddress(): string {
+ const address = env().SOLANA_TREASURY_ADDRESS;
+ return isSolanaAddress(address) ? new PublicKey(address).toBase58() : "";
 }
-
-/** The calldata a buyer must attach: the 32-byte quote id, nothing else. */
-export function memoFor(quote: Pick<Quote, "id">): Hex {
-  return quote.id as Hex;
+export const memoFor = (quote: Pick<Quote, "id">): string => quoteMemo(quote.id);
+/** Only the exact native transfer + memo transaction built by AIRTIME is accepted. */
+export function transferMismatch(tx: ParsedTransactionWithMeta, buyer: string, treasury: string, amount: string, memo: string): string | null {
+ if (!tx.meta || tx.meta.err) return "transaction failed";
+ const keys = tx.transaction.message.accountKeys;
+ if (keys[0]?.pubkey.toBase58() !== buyer || !keys[0].signer) return "buyer must be the fee payer and signer";
+ const instructions = tx.transaction.message.instructions;
+ if (instructions.length !== 2 || tx.meta.innerInstructions?.some((group) => group.instructions.length)) return "unexpected transaction instructions";
+ const transfer = instructions[0] as ParsedInstruction;
+ if (transfer.programId.toBase58() !== "11111111111111111111111111111111" || transfer.parsed?.type !== "transfer") return "expected a native SOL transfer";
+ const info = transfer.parsed.info;
+ if (info.source !== buyer || info.destination !== treasury) return "transfer wallet or treasury mismatch";
+ if (!Number.isSafeInteger(info.lamports) || BigInt(info.lamports) !== BigInt(amount)) return "amount does not match the quote";
+ const note = instructions[1] as ParsedInstruction;
+ if (note.programId.toBase58() !== MEMO_PROGRAM || note.parsed !== memo) return "quote memo mismatch";
+ return null;
 }
-
-function carriesQuoteId(input: string, quoteId: string): boolean {
-  const needle = quoteId.toLowerCase().replace(/^0x/, "");
-  return input.toLowerCase().includes(needle);
-}
-
-export async function verifyTreasuryTransfer(quote: Quote, txHash: Hex): Promise<TransferOutcome> {
-  const client = clientFor(quote.chainId);
-
-  const tx = await client.getTransaction({ hash: txHash }).catch(() => null);
-  if (!tx) return { status: "not_found" };
-  if (tx.blockNumber === null || tx.blockNumber === undefined) return { status: "pending", reason: "transaction is not mined yet" };
-
-  const receipt = await client.getTransactionReceipt({ hash: txHash }).catch(() => null);
-  if (!receipt) return { status: "pending", reason: "receipt is not available yet" };
-  if (receipt.status !== "success") return { status: "mismatch", reason: "transaction reverted" };
-
-  if (quote.paymentToken.toLowerCase() !== NATIVE_TOKEN) {
-    return { status: "mismatch", reason: "only native transfers are accepted without a payment contract" };
-  }
-  if ((tx.from ?? "").toLowerCase() !== quote.walletAddress.toLowerCase()) {
-    return { status: "mismatch", reason: "sent by a different wallet than the quote was issued to" };
-  }
-  if ((tx.to ?? "").toLowerCase() !== treasuryAddress().toLowerCase()) {
-    return { status: "mismatch", reason: "not sent to the AIRTIME treasury" };
-  }
-  if (tx.value !== BigInt(quote.amountWei)) {
-    return { status: "mismatch", reason: "amount does not match the quote" };
-  }
-  if (!carriesQuoteId(tx.input ?? "0x", quote.id)) {
-    return { status: "mismatch", reason: "transaction does not carry this quote id" };
-  }
-
-  const head = await client.getBlockNumber();
-  const confirmations = head >= receipt.blockNumber ? head - receipt.blockNumber + 1n : 0n;
-  if (confirmations < BigInt(requiredConfirmations())) {
-    return { status: "pending", reason: `waiting for ${requiredConfirmations()} confirmations` };
-  }
-
-  return { status: "confirmed", txHash, blockNumber: receipt.blockNumber };
+export async function verifyTreasuryTransfer(quote: Quote, signature: string): Promise<TransferOutcome> {
+ if (!isPaymentChain(quote.chainId) || quote.paymentToken !== NATIVE_TOKEN) return { status: "mismatch", reason: "quote belongs to another network or asset" };
+ if (quote.txHint !== signature) return { status: "mismatch", reason: "This signature was not submitted for the quote" };
+ if (!isSolanaSignature(signature)) return { status: "mismatch", reason: "invalid Solana signature" };
+ await assertConfiguredCluster();
+ const tx = await clientFor(quote.chainId).getParsedTransaction(signature, { commitment: "finalized", maxSupportedTransactionVersion: 0 });
+ if (!tx) return { status: "pending", reason: "Waiting for Solana finality" };
+ const mismatch = transferMismatch(tx, quote.walletAddress, quote.contractAddress, quote.amountWei, memoFor(quote));
+ if (mismatch) return { status: "mismatch", reason: mismatch };
+ if (quote.issuedAtBlock !== null && BigInt(tx.slot) < quote.issuedAtBlock) return { status: "mismatch", reason: "transaction predates the quote" };
+ return { status: "confirmed", txHash: signature, blockNumber: BigInt(tx.slot) };
 }

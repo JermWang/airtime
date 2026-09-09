@@ -92,7 +92,7 @@ export default function AirLogPage({ params }: { params: Promise<{ id: string }>
               {log.payment ? (
                 <dl className="readout grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[10.5px] text-ink-300">
                   <dt>Amount</dt>
-                  <dd className="text-ink-50">{formatWei(log.payment.amountWei)}</dd>
+                  <dd className="text-ink-50">{formatWei(log.payment.amountWei, log.payment.paymentToken === "SOL" ? 9 : 18, log.payment.paymentToken === "SOL" ? "SOL" : "historical native")}</dd>
                   <dt>Network</dt>
                   <dd className="text-ink-50">
                     {log.payment.chainName} ({log.payment.chainId})

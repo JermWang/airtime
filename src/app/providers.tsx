@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { WagmiProvider } from "wagmi";
+import { SolanaWalletProvider } from "@/lib/solana-wallet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { getWagmiConfig } from "@/lib/wagmi";
+
 import { useRealtimeConnection, useServerClockSync } from "@/lib/hooks";
 
 function Bridges() {
@@ -21,13 +21,13 @@ export function Providers({ children }: { children: ReactNode }) {
         },
       }),
   );
-  const [config] = useState(() => getWagmiConfig());
+
   return (
-    <WagmiProvider config={config}>
+    <SolanaWalletProvider>
       <QueryClientProvider client={queryClient}>
         <Bridges />
         {children}
       </QueryClientProvider>
-    </WagmiProvider>
+    </SolanaWalletProvider>
   );
 }

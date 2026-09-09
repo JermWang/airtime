@@ -18,7 +18,7 @@ function sign(payload: string): string {
 }
 
 export function issueUploadTicket(wallet: string, placementId: string, ttlSec = 600): string {
-  const payload = Buffer.from(JSON.stringify({ wallet: wallet.toLowerCase(), placementId, exp: Math.floor(Date.now() / 1000) + ttlSec } satisfies UploadTicket)).toString("base64url");
+  const payload = Buffer.from(JSON.stringify({ wallet: wallet, placementId, exp: Math.floor(Date.now() / 1000) + ttlSec } satisfies UploadTicket)).toString("base64url");
   return `${payload}.${sign(payload)}`;
 }
 
@@ -29,7 +29,7 @@ export function verifyUploadTicket(ticket: string, wallet: string, placementId: 
   if (expected.length !== sig.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) return false;
   try {
     const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as UploadTicket;
-    return parsed.wallet === wallet.toLowerCase() && parsed.placementId === placementId && parsed.exp > Math.floor(Date.now() / 1000);
+    return parsed.wallet === wallet && parsed.placementId === placementId && parsed.exp > Math.floor(Date.now() / 1000);
   } catch {
     return false;
   }

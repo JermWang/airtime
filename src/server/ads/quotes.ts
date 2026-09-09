@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { and, eq, inArray, lt } from "drizzle-orm";
-import { hexToBigInt, type Address, type Hex } from "viem";
+
 import { db, schema, type Tx } from "../db/client";
 import { serverNow, addSeconds } from "../time/clock";
 import { getSettings } from "../settings";
@@ -8,7 +8,7 @@ import { HttpError } from "../http";
 import { activeHold, describeSurface, currentOccupant, askBreakdown } from "./auction";
 import { creativeSellable } from "./creatives";
 import { signQuote, placementIdHash } from "../chain/quoteSigner";
-import { paymentContractAddress, publicClient } from "../chain/client";
+import { publicClient, assertConfiguredCluster } from "../chain/client";
 import { activeChain, paymentAssets, paymentChains, chainById, NATIVE_TOKEN } from "@/lib/chain/chains";
 import { treasuryAddress } from "../chain/treasuryTransfer";
 import type { SignedQuoteWire, QuoteStruct } from "@/lib/chain/airtimePayments";
@@ -28,18 +28,18 @@ import type { Quote, PriceBreakdownLine } from "../db/schema";
  *   4. reads the ask off the descending clock
  *   5. writes a HELD reservation that expires with the quote (~3 minutes), so
  *      two buyers cannot pay the same ask for the same surface
- *   6. signs the EIP-712 quote with the backend signer
+ *   6. records a quote integrity tag
  *
  * `startAt`/`endAt` on the signed quote are the run's *guaranteed* window: the
- * buyer goes live at `startAt` and cannot be outbid before `endAt`. The run
+ * guaranteed duration begins when payment finalizes. The run
  * itself continues past `endAt` until somebody pays more.
  */
 
 export interface CreateQuoteInput {
   campaignId: string;
-  walletAddress: `0x${string}`;
-  paymentToken?: Address;
-  /** Refuse to quote above this, in wei: protects a buyer from a takeover mid-click. */
+  walletAddress: string;
+  paymentToken?: string;
+  /** Refuse to quote above this, in lamports: protects a buyer from a takeover mid-click. */
   maxPriceWei?: bigint;
   /** Chain the buyer wants to pay on. Defaults to the station's own chain. */
   chainId?: number;
@@ -59,9 +59,9 @@ export interface QuoteResponse {
   /** The occupant this purchase would displace, if any. */
   outbids: { displayName: string; pricePaidWei: string } | null;
   treasury: string | null;
-  /** How this quote is paid: through the payment contract, or by a transfer to the treasury. */
-  settlement: "contract" | "treasury";
-  /** Address the transaction must be sent to. */
+  /** SOL transfer settlement. */
+  settlement: "solana";
+  /** string the transaction must be sent to. */
   payTo: string;
   chainId: number;
 }
@@ -77,19 +77,19 @@ function paymentChainFor(chainId?: number) {
 
 export function toWire(q: Quote): SignedQuoteWire {
   return {
-    quoteId: q.id as Hex,
-    buyer: q.walletAddress as Address,
-    placementId: q.placementIdHash as Hex,
-    creativeHash: q.creativeHash as Hex,
+    quoteId: q.id as string,
+    buyer: q.walletAddress as string,
+    placementId: q.placementIdHash as string,
+    creativeHash: q.creativeHash as string,
     startAt: Math.floor(q.startsAt.getTime() / 1000).toString(),
     endAt: Math.floor(q.endsAt.getTime() / 1000).toString(),
-    paymentToken: q.paymentToken as Address,
+    paymentToken: q.paymentToken as string,
     amount: q.amountWei,
     expiresAt: Math.floor(q.expiresAt.getTime() / 1000).toString(),
     nonce: q.nonce,
-    signature: q.signature as Hex,
+    signature: q.signature as string,
     chainId: q.chainId,
-    contract: q.contractAddress as Address,
+    contract: q.contractAddress as string,
   };
 }
 
@@ -108,32 +108,26 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRespons
   const settings = await getSettings();
   if (settings.purchasesPaused) throw new HttpError(503, "Purchases are temporarily paused by the station");
 
-  // New purchases must use the payment contract. A direct treasury transfer
-  // cannot atomically reject a losing same-surface transaction, so issuing one
-  // would make an automatic race refund impossible.
   const payChain = paymentChainFor(input.chainId);
-  const contract = paymentContractAddress();
-  if (!contract) throw new HttpError(503, "Protected payments are not configured on this station");
-  if (payChain.id !== activeChain().id) {
-    throw new HttpError(400, `Protected payments are not deployed on ${payChain.name}`);
-  }
-  const settlement = "contract" as const;
-  const payTo = contract as Address;
-
-  const paymentToken = (input.paymentToken ?? NATIVE_TOKEN).toLowerCase() as Address;
-  const asset = paymentAssets().find((a) => a.address.toLowerCase() === paymentToken);
+  const payTo = treasuryAddress();
+  if (!payTo) throw new HttpError(503, "SOL payments are being configured. Please check back soon.");
+  if (payChain.id !== activeChain().id) throw new HttpError(400, "Wrong Solana network");
+  const settlement = "solana" as const;
+  const paymentToken = (input.paymentToken ?? NATIVE_TOKEN) as string;
+  const asset = paymentAssets().find((a) => a.address === paymentToken);
   if (!asset) throw new HttpError(400, "Payment asset is not enabled");
   if (!asset.isNative) {
-    // ERC-20 pricing requires a configured conversion rate; nothing is invented.
+    // SPL token pricing requires a configured conversion rate; nothing is invented.
     throw new HttpError(400, `${asset.symbol} payments are not enabled for quotes yet`);
   }
 
   const now = serverNow();
 
   // Best effort chain height so the payment watcher only scans recent blocks.
+  await assertConfiguredCluster();
   let issuedAtBlock: bigint | null = null;
   try {
-    issuedAtBlock = await publicClient().getBlockNumber();
+    issuedAtBlock = BigInt(await publicClient().getSlot("finalized"));
   } catch {
     issuedAtBlock = null;
   }
@@ -158,6 +152,8 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRespons
     const sellable = creativeSellable(creative, placement);
     if (!sellable.ok) throw new HttpError(409, sellable.reason);
 
+    const submitted = await tx.select().from(schema.quotes).where(and(eq(schema.quotes.campaignId, campaign.id), inArray(schema.quotes.status, ["ACTIVE", "EXPIRED", "CANCELLED"])));
+    if (submitted.some(q => q.txHint && !q.txError)) throw new HttpError(409, "Your submitted payment is still being checked. Do not pay again.");
     await releaseCampaignHolds(tx, campaign.id);
 
     const occupant = await currentOccupant(placement.id, tx);
@@ -177,12 +173,13 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRespons
     if (input.maxPriceWei !== undefined && amountWei > input.maxPriceWei) {
       throw new HttpError(409, "The ask moved above your limit before the quote was issued", { askWei: surface.askWei });
     }
+    if (amountWei > BigInt(Number.MAX_SAFE_INTEGER)) throw new HttpError(400, "This amount exceeds the supported SOL payment size");
     if (amountWei <= 0n) throw new HttpError(500, "Surface is misconfigured: the ask is zero");
 
     const guaranteedSeconds = Math.max(1, placement.auction.minHoldSeconds);
     const guaranteedUntil = addSeconds(now, guaranteedSeconds);
-    const quoteId = `0x${randomBytes(32).toString("hex")}` as Hex;
-    const nonce = hexToBigInt(`0x${randomBytes(16).toString("hex")}`);
+    const quoteId = `0x${randomBytes(32).toString("hex")}` as string;
+    const nonce = BigInt(`0x${randomBytes(16).toString("hex")}`);
     const expiresAt = addSeconds(now, settings.quoteHoldSeconds);
     const chainId = payChain.id;
     const pHash = placementIdHash(placement.id);
@@ -191,7 +188,7 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteRespons
       quoteId,
       buyer: input.walletAddress,
       placementId: pHash,
-      creativeHash: creative.creativeHash as Hex,
+      creativeHash: creative.creativeHash as string,
       startAt: BigInt(Math.floor(now.getTime() / 1000)),
       endAt: BigInt(Math.floor(guaranteedUntil.getTime() / 1000)),
       paymentToken,
@@ -281,7 +278,7 @@ export async function expireQuotes(now = serverNow()): Promise<number> {
       .where(and(inArray(schema.reservations.quoteId, ids), eq(schema.reservations.status, "HELD")));
     for (const q of expired) {
       const [campaign] = await tx.select().from(schema.campaigns).where(eq(schema.campaigns.id, q.campaignId));
-      if (campaign && campaign.status === "AWAITING_PAYMENT" && campaign.activeQuoteId === q.id) {
+      if (campaign && campaign.status === "AWAITING_PAYMENT" && campaign.activeQuoteId === q.id && !(q.txHint && !q.txError)) {
         await tx
           .update(schema.campaigns)
           .set({ status: "READY_TO_PURCHASE", activeQuoteId: null, updatedAt: now })

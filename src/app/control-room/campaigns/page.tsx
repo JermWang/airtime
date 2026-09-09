@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { isSolanaSignature } from "@/lib/chain/solana";
 import Link from "next/link";
 import { useAdminCampaigns, useAdminMutation } from "@/components/control-room/adminApi";
 import { Panel, StatusChip } from "@/components/control-room/ui";
 import { api } from "@/lib/api";
-import { formatDateTime, formatDurationSec, formatWei, shortAddress, shortHash, cn } from "@/lib/format";
+import { formatPayment, formatDateTime, formatDurationSec, shortAddress, shortHash, cn } from "@/lib/format";
 
 const FILTERS = ["ACTIVE", "COMPLETED", "AWAITING_PAYMENT", "REFUNDED", "REJECTED", "CANCELLED", "ALL"];
 
@@ -99,7 +100,7 @@ export default function CampaignsPage() {
                 <td className="readout text-[10.5px]">
                   {c.payment ? (
                     <>
-                      {formatWei(c.payment.amountWei)} ·{" "}
+                      {formatPayment(c.payment.amountWei, c.payment.chainId)} ·{" "}
                       {c.payment.txUrl ? (
                         <a href={c.payment.txUrl} target="_blank" rel="noreferrer" className="text-signal">
                           {shortHash(c.payment.txHash)}
@@ -141,7 +142,7 @@ export default function CampaignsPage() {
                       />
                       <button
                         className="btn btn-sm"
-                        disabled={setState.isPending || !/^0x[0-9a-fA-F]{64}$/.test(refundHashes[c.id] ?? "")}
+                        disabled={setState.isPending || !isSolanaSignature(refundHashes[c.id] ?? "")}
                         onClick={() => setState.mutate({ id: c.id, status: "REFUNDED", reason: "Verified treasury refund", refundTxHash: refundHashes[c.id] })}
                       >
                         Verify refund

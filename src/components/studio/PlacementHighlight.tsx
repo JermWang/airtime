@@ -23,7 +23,7 @@ interface Props {
  * plus a small contextual label. Fades in/out; never a hard modal.
  */
 export function PlacementHighlight({ surface, placement, visible, strong, campaign, local }: Props) {
-  const lineMat = useMemo(() => new THREE.LineBasicMaterial({ color: "#ccff00", transparent: true, opacity: 0, toneMapped: false }), []);
+  const lineMat = useMemo(() => new THREE.LineBasicMaterial({ color: "#69aac1", transparent: true, opacity: 0, toneMapped: false }), []);
   const geometry = useMemo(() => new THREE.EdgesGeometry(new THREE.PlaneGeometry(surface.width * 1.012, surface.height * 1.02)), [surface.width, surface.height]);
   const opacity = useRef(0);
   const target = visible ? (strong ? 0.95 : 0.42) : 0;

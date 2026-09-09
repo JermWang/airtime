@@ -1,7 +1,7 @@
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db, schema } from "../db/client";
 import { getSettings } from "../settings";
-import { explorerTxUrl } from "@/lib/chain/chains";
+import { explorerTxUrl, activeChain } from "@/lib/chain/chains";
 import { audit, type Actor } from "../audit";
 import { HttpError } from "../http";
 import type { TreasuryEntry } from "../db/schema";
@@ -18,7 +18,7 @@ import type { TreasuryEntry } from "../db/schema";
  * Two very different kinds of number meet here, and the split is deliberate:
  *
  *   Derived   – airtime revenue. Computed from confirmed payments, each of which
- *               was verified against an on-chain AirtimePurchased event. Nobody
+ *               was verified against an finalized Solana transaction. Nobody
  *               types these in.
  *   Recorded  – token-tax inflows, pre-stock purchases, distributions, and the
  *               $AIRTIME the treasury buys back and burns. These happen off this
@@ -116,7 +116,7 @@ export async function getTreasurySummary(): Promise<TreasurySummary> {
       count: sql<number>`count(*)::int`,
     })
     .from(schema.payments)
-    .where(and(eq(schema.payments.status, "CONFIRMED"), ne(schema.payments.paymentToken, "__never__")));
+    .where(and(eq(schema.payments.status, "CONFIRMED"), eq(schema.payments.paymentToken, "SOL"), eq(schema.payments.chainId, activeChain().id)));
 
   const rows = await database
     .select({
@@ -129,6 +129,7 @@ export async function getTreasurySummary(): Promise<TreasurySummary> {
       last: sql<string | null>`max(${schema.treasuryEntries.occurredAt})::text`,
     })
     .from(schema.treasuryEntries)
+    .where(eq(schema.treasuryEntries.assetSymbol, "SOL"))
     .groupBy(schema.treasuryEntries.kind);
 
   const by = (kind: TreasuryEntry["kind"]) => rows.find((r) => r.kind === kind);
@@ -182,7 +183,7 @@ export async function getTreasurySummary(): Promise<TreasurySummary> {
 }
 
 export async function getTreasuryLedger(limit = 100): Promise<TreasuryLedgerRow[]> {
-  const rows = await db().select().from(schema.treasuryEntries).orderBy(desc(schema.treasuryEntries.occurredAt)).limit(limit);
+  const rows = await db().select().from(schema.treasuryEntries).where(eq(schema.treasuryEntries.assetSymbol, "SOL")).orderBy(desc(schema.treasuryEntries.occurredAt)).limit(limit);
   return rows.map((r) => ({
     id: r.id,
     kind: r.kind,
@@ -247,7 +248,7 @@ export async function recordTreasuryEntry(input: TreasuryEntryInput, actor: Acto
       kind: input.kind,
       occurredAt: input.occurredAt,
       amountWei: input.amountWei ?? "0",
-      assetSymbol: input.assetSymbol ?? "ETH",
+      assetSymbol: input.assetSymbol ?? "SOL",
       shares: input.shares ?? "0",
       tokenAmountWei: input.tokenAmountWei ?? "0",
       pricePerShareWei: input.pricePerShareWei ?? null,

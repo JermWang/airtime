@@ -1,8 +1,8 @@
 # AIRTIME — working notes
 
-Browser-native linear TV network where every display surface is data-driven advertising inventory, paid on Robinhood Chain. See `README.md` for the full architecture.
+Browser-native linear TV network where every display surface is data-driven advertising inventory, paid on Solana. See `README.md` for the full architecture.
 
-**Nobody buys a fixed-length spot here.** Each surface runs a continuous descending auction: it asks a price that falls linearly toward a floor, a buyer takes it at the current ask and stays on air until somebody pays more. A sale ratchets the ask to `takeoverPremiumBps` of what was paid and restarts the descent; while a surface is occupied the ask can never fall to or below what the occupant paid, so a takeover is always a higher bid. Everything opens at 0.01 ETH and only demand moves a price up. The curve lives in `src/lib/auction.ts` and is shared verbatim by the server and the browser.
+**Nobody buys a fixed-length spot here.** Each surface runs a continuous descending auction: it asks a price that falls linearly toward a floor, a buyer takes it at the current ask and stays on air until somebody pays more. A sale ratchets the ask to `takeoverPremiumBps` of what was paid and restarts the descent; while a surface is occupied the ask can never fall to or below what the occupant paid, so a takeover is always a higher bid. Everything opens at 0.5 SOL and only demand moves a price up. The curve lives in `src/lib/auction.ts` and is shared verbatim by the server and the browser.
 
 **The room is a theatre with four things for sale.** One picture on the back wall, one display panel either side of it:
 
@@ -16,8 +16,8 @@ Which product a main-stream campaign bought is read off `availability.inventoryM
 
 ## Ground rules for changes here
 
-- **Money is bigint wei.** Never introduce a float into a monetary path. Multipliers are integer basis points (10000 = 1.0x).
-- **The browser never decides that something is paid.** A tx hash from the client is only a lookup key; the server reads the `AirtimePurchased` event from its own RPC and re-checks every field against the quote it signed.
+- **Money is bigint lamports.** Never introduce a float into a monetary path. Multipliers are integer basis points (10000 = 1.0x).
+- **The browser never decides that something is paid.** A tx hash from the client is only a lookup key; the server reads the finalized SOL transfer from its own RPC and re-checks every field against the quote it signed.
 - **Inventory is data.** No placement, price or surface may be hardcoded in a React component. Add placements through the control room or `BASE_PLACEMENTS` in `src/server/db/seed.ts`.
 - **Submissions can be links.** A show or a spot may be a URL to media hosted anywhere. `src/server/media/link.ts` probes it server-side (SSRF guard, content type, real duration, CORS) before it can be sold against, and the URL is what gets hashed into the quote. Never embed a third-party player: no iframes, no third-party scripts, watch pages are rejected with an explanation.
 - **The viewer count is real.** It counts live event streams (`src/server/realtime/presence.ts`). Never seed it, smooth it or floor it at a nicer number.
@@ -33,10 +33,8 @@ Which product a main-stream campaign bought is read off `availability.inventoryM
 ```bash
 pnpm dev                 # station on :3000 (embedded PGlite, seeds DEV DATA)
 pnpm studio:build        # regenerate public/models/studio.glb
-pnpm chain:local         # anvil
-pnpm contract:build && pnpm contract:deploy:local
+pnpm chain:local         # Solana local validator
 pnpm test                # vitest (unit + API integration)
-pnpm contract:test       # foundry
 pnpm test:e2e            # playwright (builds and starts the production server)
 pnpm db:reset            # wipe embedded DB + local uploads
 ```
@@ -65,30 +63,7 @@ Delete Namecheap's parking CNAME and its URL-redirect record first; they conflic
 
 ## Chain
 
-`AirtimePayments` on Robinhood testnet (chain id 46630), deployed 2026-09-05:
-
-| | |
-| --- | --- |
-| Address | `0x8e5F3d24eaFEB4B5Df72673D65cbF4803c649F07` |
-| Deploy block | `113553774` |
-| Owner / treasury | `0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f` |
-| Quote signer | `0x9059Fb9e9dbcc06d9258FFC15Faa5128499ABaeB` |
-
-`forge` writes its record to `contracts/broadcast`, which is ignored (its sibling
-`contracts/cache` holds the deployer key), so this table is the only copy in the
-repo. Both `NEXT_PUBLIC_AIRTIME_PAYMENT_CONTRACT` and
-`AIRTIME_PAYMENT_CONTRACT_DEPLOY_BLOCK` must be set or `paymentContractAddress()`
-returns null and every purchase is refused at boot — the log line to look for is
-`contract  NOT CONFIGURED – purchases disabled`.
-
-The quote signer here must stay equal to the address derived from
-`AIRTIME_QUOTE_SIGNER_PRIVATE_KEY` on the server. If they drift the contract
-rejects every quote the backend signs, and the failure looks like a wallet
-problem rather than a configuration one.
-
-It was broadcast from Anvil's account #1, whose key is public. That is harmless
-for a deploy but never acceptable as an owner, so ownership was set to the
-treasury. Never deploy leaving the owner defaulted to that deployer.
+Solana native SOL transfers with finalized verification. Configure NEXT_PUBLIC_SOLANA_NETWORK, SOLANA_RPC_URL and SOLANA_TREASURY_ADDRESS. See README for migration and refund details. No treasury private key belongs in this server.
 
 ## Hosting
 
@@ -96,4 +71,4 @@ The repo root is the Next.js app; Vercel needs no root override. On any serverle
 
 ## Brand
 
-Accent is the Robinhood lime `#ccff00` on graphite/near-black. Red is reserved for genuine LIVE indicators. "Built on Robinhood Chain" is infrastructure phrasing only. The owner asked for no non-affiliation disclaimer in the UI — do not add one back.
+Accent is acid yellow #d5ff00 on warm charcoal, aligned with StonkFun. Solana is the only payment network. Red marks live indicators. Do not add non-affiliation disclaimers.

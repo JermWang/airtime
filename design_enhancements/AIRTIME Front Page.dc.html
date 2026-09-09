@@ -17,8 +17,8 @@
   * { box-sizing:border-box; }
   ::selection { background:rgba(204,255,0,.35); color:#fff; }
   a { color:#b9c1cc; text-decoration:none; }
-  a:hover { color:#ccff00; }
-  :focus-visible { outline:1.5px solid #ccff00; outline-offset:3px; }
+  a:hover { color:#d5ff00; }
+  :focus-visible { outline:1.5px solid #d5ff00; outline-offset:3px; }
   [data-rv] { transition:opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1), filter .8s cubic-bezier(.16,1,.3,1); }
   [data-w] { transition:opacity .72s cubic-bezier(.16,1,.3,1), transform .72s cubic-bezier(.16,1,.3,1), filter .72s cubic-bezier(.16,1,.3,1); }
   @keyframes at-run { from { transform:translate3d(0,0,0) } to { transform:translate3d(-50%,0,0) } }
@@ -35,7 +35,7 @@
 
   <header style="position:fixed;inset-inline:0;top:0;z-index:40;display:flex;height:60px;align-items:center;justify-content:space-between;gap:16px;padding:0 24px;background:linear-gradient(180deg,rgba(5,6,7,.72),rgba(5,6,7,0));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)">
     <a href="#top" style="display:inline-flex;align-items:center;gap:.5em;flex-shrink:0;font-size:15px;user-select:none">
-      <span aria-hidden="true" style="display:inline-block;width:3px;height:14px;border-radius:1px;background:#ccff00;box-shadow:0 0 12px rgba(204,255,0,.55)"></span>
+      <span aria-hidden="true" style="display:inline-block;width:3px;height:14px;border-radius:1px;background:#d5ff00;box-shadow:0 0 12px rgba(204,255,0,.55)"></span>
       <span style="font-weight:600;text-transform:uppercase;line-height:1;letter-spacing:.24em;color:#f7f8fa;font-size:12.5px">Airtime</span>
     </a>
     <nav data-md="1" style="display:flex;align-items:center;gap:28px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.18em">
@@ -47,7 +47,7 @@
     </nav>
     <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
       <span data-lg="1" data-clock="1" style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:10px;letter-spacing:.16em;color:#5b6470">--:--:-- UTC</span>
-      <a href="#clock" style="display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 16px;border-radius:2px;background:#ccff00;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#0d1400;white-space:nowrap" style-hover="background:#d9ff33;color:#0d1400">Buy airtime</a>
+      <a href="#clock" style="display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 16px;border-radius:2px;background:#d5ff00;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#0d1400;white-space:nowrap" style-hover="background:#d9ff33;color:#0d1400">Buy airtime</a>
     </div>
   </header>
 
@@ -63,14 +63,14 @@
     <sc-if value="{{ surfaceHints }}" hint-placeholder-val="{{ true }}">
       <div style="flex:1 1 auto;min-height:64px;margin:0 24px;display:grid;grid-template-columns:1fr 3.4fr 1fr;gap:12px;align-items:stretch">
         <a href="#clock" style="position:relative;border:1px solid rgba(255,255,255,.13);border-radius:3px;display:flex;align-items:flex-end;padding:8px" style-hover="border-color:rgba(204,255,0,.6);background:rgba(204,255,0,.04)">
-          <span style="display:inline-flex;align-items:center;gap:8px;background:rgba(5,6,7,.78);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#b9c1cc">Panel left<span style="color:#ccff00">0.01 ETH</span></span>
+          <span style="display:inline-flex;align-items:center;gap:8px;background:rgba(5,6,7,.78);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#b9c1cc">Panel left<span style="color:#d5ff00">0.01 SOL</span></span>
         </a>
         <a href="#picture" style="position:relative;border:1px solid rgba(255,255,255,.13);border-radius:3px;display:flex;align-items:flex-end;padding:8px;gap:8px" style-hover="border-color:rgba(204,255,0,.6);background:rgba(204,255,0,.04)">
-          <span style="display:inline-flex;align-items:center;gap:8px;background:rgba(5,6,7,.78);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#b9c1cc">Runtime<span style="color:#ccff00">0.01 ETH</span></span>
-          <span data-md="1" style="display:inline-flex;align-items:center;gap:8px;background:rgba(5,6,7,.78);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#b9c1cc">Commercial<span style="color:#ccff00">0.01 ETH</span></span>
+          <span style="display:inline-flex;align-items:center;gap:8px;background:rgba(5,6,7,.78);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#b9c1cc">Runtime<span style="color:#d5ff00">0.01 SOL</span></span>
+          <span data-md="1" style="display:inline-flex;align-items:center;gap:8px;background:rgba(5,6,7,.78);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#b9c1cc">Commercial<span style="color:#d5ff00">0.01 SOL</span></span>
         </a>
         <a href="#clock" style="position:relative;border:1px solid rgba(255,255,255,.13);border-radius:3px;display:flex;align-items:flex-end;justify-content:flex-end;padding:8px" style-hover="border-color:rgba(204,255,0,.6);background:rgba(204,255,0,.04)">
-          <span style="display:inline-flex;align-items:center;gap:8px;background:rgba(5,6,7,.78);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#b9c1cc">Panel right<span style="color:#ccff00">0.01 ETH</span></span>
+          <span style="display:inline-flex;align-items:center;gap:8px;background:rgba(5,6,7,.78);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:5px 8px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#b9c1cc">Panel right<span style="color:#d5ff00">0.01 SOL</span></span>
         </a>
       </div>
     </sc-if>
@@ -79,7 +79,7 @@
       <div style="margin:0 auto;max-width:1560px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:32px">
         <div style="flex:1 1 520px;min-width:0">
           <div data-rv="1" style="opacity:0;transform:translateY(12px);filter:blur(6px);display:flex;align-items:center;gap:12px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em">
-            <span style="display:inline-flex;align-items:center;gap:7px;color:#ccff00"><span style="width:6px;height:6px;border-radius:50%;background:#ccff00;box-shadow:0 0 10px rgba(204,255,0,.8)"></span>On air</span>
+            <span style="display:inline-flex;align-items:center;gap:7px;color:#d5ff00"><span style="width:6px;height:6px;border-radius:50%;background:#d5ff00;box-shadow:0 0 10px rgba(204,255,0,.8)"></span>On air</span>
             <span style="width:1px;height:11px;background:rgba(255,255,255,.22)"></span>
             <span style="color:#b9c1cc">Airtime Main</span>
             <span data-md="1" style="width:1px;height:11px;background:rgba(255,255,255,.22)"></span>
@@ -98,14 +98,14 @@
           <p data-rv="1" style="opacity:0;transform:translateY(16px);filter:blur(6px);transition-delay:.3s;margin:18px 0 0;max-width:34rem;font-size:15.5px;line-height:1.62;color:#b9c1cc">Every display surface in the broadcast is inventory. The price on each one falls until somebody takes it, payment settles on chain, and the station verifies it before a frame airs.</p>
 
           <div data-rv="1" style="opacity:0;transform:translateY(16px);filter:blur(6px);transition-delay:.42s;margin-top:22px;display:flex;flex-wrap:wrap;align-items:center;gap:12px">
-            <a href="#clock" style="display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 22px;border-radius:2px;background:#ccff00;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#0d1400;white-space:nowrap" style-hover="background:#d9ff33;color:#0d1400">Buy airtime</a>
+            <a href="#clock" style="display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 22px;border-radius:2px;background:#d5ff00;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#0d1400;white-space:nowrap" style-hover="background:#d9ff33;color:#0d1400">Buy airtime</a>
             <a href="#picture" style="display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 22px;border-radius:2px;border:1px solid rgba(255,255,255,.22);font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#e6e9ee;white-space:nowrap" style-hover="border-color:rgba(255,255,255,.45);color:#e6e9ee;background:rgba(255,255,255,.05)">Watch full screen</a>
           </div>
         </div>
 
         <div data-rv="1" style="opacity:0;transform:translateY(16px);filter:blur(6px);transition-delay:.5s;flex:0 1 auto;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#5b6470;text-align:right;line-height:2">
           <div>Four surfaces for sale</div>
-          <div>Every one opens at <span style="color:#ccff00">0.01 ETH</span></div>
+          <div>Every one opens at <span style="color:#d5ff00">0.01 SOL</span></div>
           <div>A sale resets it to twice what was paid</div>
         </div>
       </div>
@@ -117,17 +117,17 @@
     <div style="position:relative;width:100%;overflow:hidden;border-top:1px solid rgba(255,255,255,.09);border-bottom:1px solid rgba(255,255,255,.09);background:#0a0b0d">
       <div data-run="1" style="display:flex;width:max-content;animation-name:at-run;animation-timing-function:linear;animation-iteration-count:infinite;animation-duration:{{ tickerDuration }}">
         <div style="display:flex;align-items:center">
-          <a href="#clock" style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Runtime</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></a>
-          <a href="#clock" style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Commercial</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></a>
-          <a href="#clock" style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Left display panel</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></a>
-          <a href="#clock" style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Right display panel</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></a>
+          <a href="#clock" style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Runtime</span><span style="color:#d5ff00;font-variant-numeric:tabular-nums">0.01 SOL</span><span style="color:#2a2f36">open</span></a>
+          <a href="#clock" style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Commercial</span><span style="color:#d5ff00;font-variant-numeric:tabular-nums">0.01 SOL</span><span style="color:#2a2f36">open</span></a>
+          <a href="#clock" style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Left display panel</span><span style="color:#d5ff00;font-variant-numeric:tabular-nums">0.01 SOL</span><span style="color:#2a2f36">open</span></a>
+          <a href="#clock" style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Right display panel</span><span style="color:#d5ff00;font-variant-numeric:tabular-nums">0.01 SOL</span><span style="color:#2a2f36">open</span></a>
           <span style="display:inline-flex;align-items:center;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;color:#2a2f36">Prices fall until somebody takes them</span>
         </div>
         <div aria-hidden="true" style="display:flex;align-items:center">
-          <span style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Runtime</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></span>
-          <span style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Commercial</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></span>
-          <span style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Left display panel</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></span>
-          <span style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Right display panel</span><span style="color:#ccff00;font-variant-numeric:tabular-nums">0.01 ETH</span><span style="color:#2a2f36">open</span></span>
+          <span style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Runtime</span><span style="color:#d5ff00;font-variant-numeric:tabular-nums">0.01 SOL</span><span style="color:#2a2f36">open</span></span>
+          <span style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Commercial</span><span style="color:#d5ff00;font-variant-numeric:tabular-nums">0.01 SOL</span><span style="color:#2a2f36">open</span></span>
+          <span style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Left display panel</span><span style="color:#d5ff00;font-variant-numeric:tabular-nums">0.01 SOL</span><span style="color:#2a2f36">open</span></span>
+          <span style="display:inline-flex;align-items:baseline;gap:14px;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap"><span style="color:#5b6470">Right display panel</span><span style="color:#d5ff00;font-variant-numeric:tabular-nums">0.01 SOL</span><span style="color:#2a2f36">open</span></span>
           <span style="display:inline-flex;align-items:center;padding:13px 40px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;color:#2a2f36">Prices fall until somebody takes them</span>
         </div>
       </div>
@@ -137,7 +137,7 @@
   <section id="clock" data-screen-label="01 The clock" style="width:100%;background:#050607">
     <div style="margin:0 auto;max-width:1560px;padding:132px 24px 140px">
       <div data-rv="1" style="opacity:0;transform:translateY(14px);filter:blur(6px);display:flex;align-items:baseline;gap:20px;padding-bottom:22px;border-bottom:1px solid rgba(255,255,255,.1);font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em">
-        <span style="color:#ccff00">01</span><span style="color:#8b95a3">How it works</span>
+        <span style="color:#d5ff00">01</span><span style="color:#8b95a3">How it works</span>
       </div>
 
       <div style="display:flex;flex-wrap:wrap;gap:72px;align-items:flex-start;padding-top:56px">
@@ -155,19 +155,19 @@
 
           <div style="margin-top:48px;display:flex;flex-direction:column">
             <div data-rv="1" style="opacity:0;transform:translateY(18px);filter:blur(5px);display:flex;gap:22px;padding:20px 0;border-top:1px solid rgba(255,255,255,.08)">
-              <span style="flex-shrink:0;width:26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;color:#ccff00">01</span>
+              <span style="flex-shrink:0;width:26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;color:#d5ff00">01</span>
               <div style="min-width:0"><div style="font-size:16px;font-weight:500;letter-spacing:-.025em;color:#f7f8fa">Pick a surface</div><div style="margin-top:6px;max-width:30rem;font-size:13px;line-height:1.7;color:#5b6470">The picture itself, or any surface the station is selling. Each one has its own price clock.</div></div>
             </div>
             <div data-rv="1" style="opacity:0;transform:translateY(18px);filter:blur(5px);transition-delay:.08s;display:flex;gap:22px;padding:20px 0;border-top:1px solid rgba(255,255,255,.08)">
-              <span style="flex-shrink:0;width:26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;color:#ccff00">02</span>
+              <span style="flex-shrink:0;width:26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;color:#d5ff00">02</span>
               <div style="min-width:0"><div style="font-size:16px;font-weight:500;letter-spacing:-.025em;color:#f7f8fa">Preview your creative</div><div style="margin-top:6px;max-width:30rem;font-size:13px;line-height:1.7;color:#5b6470">See it on that exact surface before you commit. What you preview is what airs.</div></div>
             </div>
             <div data-rv="1" style="opacity:0;transform:translateY(18px);filter:blur(5px);transition-delay:.16s;display:flex;gap:22px;padding:20px 0;border-top:1px solid rgba(255,255,255,.08)">
-              <span style="flex-shrink:0;width:26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;color:#ccff00">03</span>
+              <span style="flex-shrink:0;width:26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;color:#d5ff00">03</span>
               <div style="min-width:0"><div style="font-size:16px;font-weight:500;letter-spacing:-.025em;color:#f7f8fa">Take it at the asking price</div><div style="margin-top:6px;max-width:30rem;font-size:13px;line-height:1.7;color:#5b6470">Pay the number on the screen from your own wallet. The station verifies the on-chain event itself.</div></div>
             </div>
             <div data-rv="1" style="opacity:0;transform:translateY(18px);filter:blur(5px);transition-delay:.24s;display:flex;gap:22px;padding:20px 0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08)">
-              <span style="flex-shrink:0;width:26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;color:#ccff00">04</span>
+              <span style="flex-shrink:0;width:26px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.16em;color:#d5ff00">04</span>
               <div style="min-width:0"><div style="font-size:16px;font-weight:500;letter-spacing:-.025em;color:#f7f8fa">Hold it until you are outbid</div><div style="margin-top:6px;max-width:30rem;font-size:13px;line-height:1.7;color:#5b6470">A guaranteed minimum of runtime, then the surface is yours until another buyer pays more.</div></div>
             </div>
           </div>
@@ -178,43 +178,43 @@
             <div style="pointer-events:none;position:absolute;inset-inline:0;top:0;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.3),rgba(255,255,255,0))"></div>
             <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;border-bottom:1px solid rgba(255,255,255,.1);padding:20px 24px">
               <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#e6e9ee">The board</div>
-              <div style="display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#ccff00"><span style="width:5px;height:5px;border-radius:50%;background:#ccff00"></span>Live</div>
+              <div style="display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#d5ff00"><span style="width:5px;height:5px;border-radius:50%;background:#d5ff00"></span>Live</div>
             </div>
             <ul style="margin:0;padding:0;list-style:none">
               <li style="display:flex;align-items:center;gap:20px;padding:20px 24px">
                 <div style="min-width:0;flex:1">
-                  <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:15px;letter-spacing:-.02em;color:#f7f8fa">Runtime</span><span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#ccff00">open</span></div>
+                  <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:15px;letter-spacing:-.02em;color:#f7f8fa">Runtime</span><span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#d5ff00">open</span></div>
                   <div style="margin-top:6px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:#3c434c">Up to 30 minutes · the picture</div>
-                  <div style="margin-top:12px;height:2px;width:100%;background:rgba(255,255,255,.1)"><div style="height:100%;width:100%;background:#ccff00"></div></div>
+                  <div style="margin-top:12px;height:2px;width:100%;background:rgba(255,255,255,.1)"><div style="height:100%;width:100%;background:#d5ff00"></div></div>
                 </div>
-                <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;flex-shrink:0;font-size:18px;letter-spacing:-.02em;color:#ccff00;white-space:nowrap">0.01 ETH</span>
+                <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;flex-shrink:0;font-size:18px;letter-spacing:-.02em;color:#d5ff00;white-space:nowrap">0.01 SOL</span>
               </li>
               <li style="border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:20px;padding:20px 24px">
                 <div style="min-width:0;flex:1">
-                  <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:15px;letter-spacing:-.02em;color:#f7f8fa">Commercial</span><span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#ccff00">open</span></div>
+                  <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:15px;letter-spacing:-.02em;color:#f7f8fa">Commercial</span><span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#d5ff00">open</span></div>
                   <div style="margin-top:6px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:#3c434c">30 seconds · every break</div>
-                  <div style="margin-top:12px;height:2px;width:100%;background:rgba(255,255,255,.1)"><div style="height:100%;width:100%;background:#ccff00"></div></div>
+                  <div style="margin-top:12px;height:2px;width:100%;background:rgba(255,255,255,.1)"><div style="height:100%;width:100%;background:#d5ff00"></div></div>
                 </div>
-                <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;flex-shrink:0;font-size:18px;letter-spacing:-.02em;color:#ccff00;white-space:nowrap">0.01 ETH</span>
+                <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;flex-shrink:0;font-size:18px;letter-spacing:-.02em;color:#d5ff00;white-space:nowrap">0.01 SOL</span>
               </li>
               <li style="border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:20px;padding:20px 24px">
                 <div style="min-width:0;flex:1">
-                  <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:15px;letter-spacing:-.02em;color:#f7f8fa">Left display panel</span><span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#ccff00">open</span></div>
+                  <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:15px;letter-spacing:-.02em;color:#f7f8fa">Left display panel</span><span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#d5ff00">open</span></div>
                   <div style="margin-top:6px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:#3c434c">Beside the picture · always on</div>
-                  <div style="margin-top:12px;height:2px;width:100%;background:rgba(255,255,255,.1)"><div style="height:100%;width:100%;background:#ccff00"></div></div>
+                  <div style="margin-top:12px;height:2px;width:100%;background:rgba(255,255,255,.1)"><div style="height:100%;width:100%;background:#d5ff00"></div></div>
                 </div>
-                <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;flex-shrink:0;font-size:18px;letter-spacing:-.02em;color:#ccff00;white-space:nowrap">0.01 ETH</span>
+                <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;flex-shrink:0;font-size:18px;letter-spacing:-.02em;color:#d5ff00;white-space:nowrap">0.01 SOL</span>
               </li>
               <li style="border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:20px;padding:20px 24px">
                 <div style="min-width:0;flex:1">
-                  <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:15px;letter-spacing:-.02em;color:#f7f8fa">Right display panel</span><span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#ccff00">open</span></div>
+                  <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:15px;letter-spacing:-.02em;color:#f7f8fa">Right display panel</span><span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:#d5ff00">open</span></div>
                   <div style="margin-top:6px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;color:#3c434c">Beside the picture · always on</div>
-                  <div style="margin-top:12px;height:2px;width:100%;background:rgba(255,255,255,.1)"><div style="height:100%;width:100%;background:#ccff00"></div></div>
+                  <div style="margin-top:12px;height:2px;width:100%;background:rgba(255,255,255,.1)"><div style="height:100%;width:100%;background:#d5ff00"></div></div>
                 </div>
-                <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;flex-shrink:0;font-size:18px;letter-spacing:-.02em;color:#ccff00;white-space:nowrap">0.01 ETH</span>
+                <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;flex-shrink:0;font-size:18px;letter-spacing:-.02em;color:#d5ff00;white-space:nowrap">0.01 SOL</span>
               </li>
             </ul>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid rgba(255,255,255,.1);background:rgba(204,255,0,.05);padding:18px 24px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:#ccff00;white-space:nowrap">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid rgba(255,255,255,.1);background:rgba(204,255,0,.05);padding:18px 24px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:#d5ff00;white-space:nowrap">
               <span>Take one</span><span aria-hidden="true">→</span>
             </div>
           </div>
@@ -226,7 +226,7 @@
   <section id="picture" data-screen-label="02 The picture" style="width:100%;border-top:1px solid rgba(255,255,255,.08);background:#0a0b0d">
     <div style="margin:0 auto;max-width:1560px;padding:132px 24px 0">
       <div data-rv="1" style="opacity:0;transform:translateY(14px);filter:blur(6px);display:flex;align-items:baseline;gap:20px;padding-bottom:22px;border-bottom:1px solid rgba(255,255,255,.1);font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em">
-        <span style="color:#ccff00">02</span><span style="color:#8b95a3">The picture</span>
+        <span style="color:#d5ff00">02</span><span style="color:#8b95a3">The picture</span>
       </div>
       <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:40px;padding:56px 0 64px">
         <h2 style="margin:0;flex:1 1 560px;max-width:20ch;font-size:clamp(36px,6vw,90px);font-weight:500;line-height:.93;letter-spacing:-.055em;color:#f7f8fa;text-wrap:pretty">
@@ -252,12 +252,12 @@
           <div style="flex:0 1 auto;min-width:0">
             <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:#b9c1cc">Nobody is holding the screen</div>
             <div style="display:flex;align-items:flex-end;gap:16px;margin-top:14px">
-              <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;font-size:clamp(38px,5.4vw,68px);line-height:.86;letter-spacing:-.04em;color:#ccff00">0.01</span>
-              <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:13px;text-transform:uppercase;letter-spacing:.2em;color:#8b95a3;padding-bottom:6px">ETH</span>
+              <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;font-size:clamp(38px,5.4vw,68px);line-height:.86;letter-spacing:-.04em;color:#d5ff00">0.01</span>
+              <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:13px;text-transform:uppercase;letter-spacing:.2em;color:#8b95a3;padding-bottom:6px">SOL</span>
             </div>
             <p style="margin:14px 0 0;max-width:26rem;font-size:13.5px;line-height:1.7;color:#b9c1cc">That is what the picture costs this second. Take it and your show plays to the room until somebody pays more than you did.</p>
           </div>
-          <a href="#clock" style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 26px;border-radius:2px;background:#ccff00;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#0d1400;white-space:nowrap" style-hover="background:#d9ff33;color:#0d1400">Put on a show</a>
+          <a href="#clock" style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 26px;border-radius:2px;background:#d5ff00;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#0d1400;white-space:nowrap" style-hover="background:#d9ff33;color:#0d1400">Put on a show</a>
         </div>
       </div>
     </div>
@@ -274,14 +274,14 @@
   <section id="honesty" data-screen-label="03 Honesty" style="width:100%;border-top:1px solid rgba(255,255,255,.08);background:#050607">
     <div style="margin:0 auto;max-width:1560px;padding:132px 24px 140px">
       <div data-rv="1" style="opacity:0;transform:translateY(14px);filter:blur(6px);display:flex;align-items:baseline;gap:20px;padding-bottom:22px;border-bottom:1px solid rgba(255,255,255,.1);font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em">
-        <span style="color:#ccff00">03</span><span style="color:#8b95a3">Honesty</span>
+        <span style="color:#d5ff00">03</span><span style="color:#8b95a3">Honesty</span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:72px;align-items:flex-start;padding-top:56px">
         <div data-rv="1" style="opacity:0;transform:translateY(28px);filter:blur(6px);transition-delay:.14s;flex:1 1 420px;min-width:0">
           <div style="border-top:1px solid rgba(255,255,255,.14);padding:28px 0 32px">
             <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px">
               <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#f7f8fa">Payment facts</div>
-              <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#ccff00">On chain · provable</div>
+              <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#d5ff00">On chain · provable</div>
             </div>
             <p style="margin:16px 0 0;max-width:34rem;font-size:14px;line-height:1.75;color:#8b95a3">A specific buyer paid a specific amount for a quote bound to a placement, a price and a hash of the exact creative. The browser never decides that something is paid: the server reads the transaction from its own node and re-checks every field against the quote it signed.</p>
           </div>
@@ -314,7 +314,7 @@
   <section id="treasury" data-screen-label="04 Treasury" style="width:100%;border-top:1px solid rgba(255,255,255,.08);background:#0a0b0d">
     <div style="margin:0 auto;max-width:1560px;padding:132px 24px 140px">
       <div data-rv="1" style="opacity:0;transform:translateY(14px);filter:blur(6px);display:flex;align-items:baseline;gap:20px;padding-bottom:22px;border-bottom:1px solid rgba(255,255,255,.1);font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em">
-        <span style="color:#ccff00">04</span><span style="color:#8b95a3">Treasury</span>
+        <span style="color:#d5ff00">04</span><span style="color:#8b95a3">Treasury</span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:72px;align-items:flex-start;padding-top:56px">
         <div style="flex:1 1 400px;min-width:0">
@@ -356,7 +356,7 @@
                 <div style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;margin-top:12px;font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:#3c434c">Of the pre-IPO allocation</div>
               </div>
             </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid rgba(255,255,255,.1);background:rgba(204,255,0,.05);padding:18px 24px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:#ccff00;white-space:nowrap">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid rgba(255,255,255,.1);background:rgba(204,255,0,.05);padding:18px 24px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:#d5ff00;white-space:nowrap">
               <span>Open the ledger</span><span aria-hidden="true">→</span>
             </div>
           </div>
@@ -368,7 +368,7 @@
   <section id="room" data-screen-label="05 The room" style="width:100%;border-top:1px solid rgba(255,255,255,.08);background:#050607">
     <div style="margin:0 auto;max-width:1560px;padding:132px 24px 140px">
       <div data-rv="1" style="opacity:0;transform:translateY(14px);filter:blur(6px);display:flex;align-items:baseline;gap:20px;padding-bottom:22px;border-bottom:1px solid rgba(255,255,255,.1);font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em">
-        <span style="color:#ccff00">05</span><span style="color:#8b95a3">The room</span>
+        <span style="color:#d5ff00">05</span><span style="color:#8b95a3">The room</span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:72px;align-items:flex-start;padding-top:56px">
         <div data-rv="1" style="opacity:0;transform:translateY(28px);filter:blur(6px);transition-delay:.14s;flex:1 1 400px;min-width:0">
@@ -405,7 +405,7 @@
   <section id="about" data-screen-label="06 About" style="width:100%;border-top:1px solid rgba(255,255,255,.08);background:#0a0b0d">
     <div style="margin:0 auto;max-width:1560px;padding:132px 24px 140px">
       <div data-rv="1" style="opacity:0;transform:translateY(14px);filter:blur(6px);display:flex;align-items:baseline;gap:20px;padding-bottom:22px;border-bottom:1px solid rgba(255,255,255,.1);font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.2em">
-        <span style="color:#ccff00">06</span><span style="color:#8b95a3">About</span>
+        <span style="color:#d5ff00">06</span><span style="color:#8b95a3">About</span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:72px;align-items:flex-start;padding-top:56px">
         <div style="flex:1 1 420px;min-width:0">
@@ -427,7 +427,7 @@
           <div style="width:100%;max-width:340px;aspect-ratio:4/5;overflow:hidden;border:1px solid rgba(255,255,255,.14);border-radius:3px;background:#050607">
             <img src="./assets/jeff-miller.webp" alt="Jeff Miller" style="width:100%;height:100%;object-fit:cover;object-position:50% 20%;filter:grayscale(1) contrast(1.08)" />
           </div>
-          <div style="margin-top:20px;border-left:2px solid #ccff00;padding-left:16px">
+          <div style="margin-top:20px;border-left:2px solid #d5ff00;padding-left:16px">
             <div style="font-size:16px;font-weight:500;letter-spacing:-.025em;color:#f7f8fa">Jeff Miller</div>
             <div style="margin-top:6px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:#5b6470">Founder</div>
           </div>
@@ -441,8 +441,8 @@
       <div data-rv="1" style="opacity:0;transform:translateY(20px);filter:blur(6px);display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:40px">
         <h2 style="margin:0;flex:1 1 420px;max-width:16ch;font-size:clamp(32px,4.6vw,64px);font-weight:500;line-height:.96;letter-spacing:-.05em;color:#f7f8fa;text-wrap:pretty">The channel is open right now.</h2>
         <div style="flex:0 1 auto;display:flex;flex-wrap:wrap;align-items:center;gap:14px">
-          <a href="#clock" style="display:inline-flex;align-items:center;justify-content:center;height:52px;padding:0 30px;border-radius:2px;background:#ccff00;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#0d1400;white-space:nowrap" style-hover="background:#d9ff33;color:#0d1400">Buy airtime</a>
-          <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#3c434c">Four surfaces · opens at 0.01 ETH</span>
+          <a href="#clock" style="display:inline-flex;align-items:center;justify-content:center;height:52px;padding:0 30px;border-radius:2px;background:#d5ff00;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#0d1400;white-space:nowrap" style-hover="background:#d9ff33;color:#0d1400">Buy airtime</a>
+          <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#3c434c">Four surfaces · opens at 0.01 SOL</span>
         </div>
       </div>
     </div>
@@ -453,10 +453,10 @@
       <div style="display:flex;flex-wrap:wrap;gap:32px">
         <div style="flex:1.6 1 240px;max-width:22rem">
           <span style="display:inline-flex;align-items:center;gap:.5em;font-size:16px;user-select:none">
-            <span aria-hidden="true" style="display:inline-block;width:3px;height:15px;border-radius:1px;background:#ccff00;box-shadow:0 0 12px rgba(204,255,0,.55)"></span>
+            <span aria-hidden="true" style="display:inline-block;width:3px;height:15px;border-radius:1px;background:#d5ff00;box-shadow:0 0 12px rgba(204,255,0,.55)"></span>
             <span style="font-weight:600;text-transform:uppercase;line-height:1;letter-spacing:.24em;color:#f7f8fa;font-size:13.2px">Airtime</span>
           </span>
-          <p style="margin:18px 0 0;font-size:13.5px;line-height:1.75;color:#8b95a3">A browser-native television network where every display surface is programmable advertising inventory, settled on Robinhood Chain.</p>
+          <p style="margin:18px 0 0;font-size:13.5px;line-height:1.75;color:#8b95a3">A browser-native television network where every display surface is programmable advertising inventory, settled on Solana.</p>
         </div>
         <nav aria-label="Watch" style="flex:1 1 118px">
           <div style="margin-bottom:16px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8b95a3">Watch</div>
@@ -496,7 +496,7 @@
         </nav>
       </div>
       <div style="margin-top:56px;border-top:1px solid rgba(255,255,255,.09);padding-top:26px">
-        <p style="margin:0;max-width:48rem;font-size:13px;line-height:1.75;color:#5b6470">Unrated. No content ratings or viewer discretion warnings are applied to anything on this network. AIRTIME is an independent product; Robinhood Chain is used as payment infrastructure.</p>
+        <p style="margin:0;max-width:48rem;font-size:13px;line-height:1.75;color:#5b6470">Unrated. No content ratings or viewer discretion warnings are applied to anything on this network. AIRTIME is an independent product; Solana is used as payment infrastructure.</p>
         <div style="margin-top:20px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px">
           <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
             <span style="font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;display:inline-flex;align-items:center;gap:7px;border-radius:2px;border:1px solid rgba(255,255,255,.12);padding:5px 9px;font-size:9.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:#5b6470"><span style="color:#3c434c">Treasury</span><span style="color:#b9c1cc">Not configured</span></span>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
+import { useAccount } from "@/lib/solana-wallet";
 import { api } from "@/lib/api";
 import { useRealtime } from "@/lib/store";
 import { useSession } from "@/lib/hooks";
@@ -95,7 +95,7 @@ export function StationChat({ channelId = "MAIN", className, compact = false }: 
         )}
         <ul className="flex flex-col gap-2">
           {messages.map((m) => {
-            const mine = address ? m.wallet.toLowerCase() === address.toLowerCase() : false;
+            const mine = address ? m.wallet === address : false;
             return (
               <li key={m.id} className="flex flex-col gap-0.5">
                 <div className="flex items-baseline gap-2">

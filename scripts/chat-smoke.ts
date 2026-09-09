@@ -8,13 +8,15 @@
  *   pnpm tsx scripts/chat-smoke.ts [baseUrl]
  */
 import "./_env";
+import { Keypair } from "@solana/web3.js";
+import { activeChain } from "../src/lib/chain/chains";
 import { signSession, WALLET_COOKIE } from "../src/server/auth/session";
 
 const base = process.argv[2] ?? "http://localhost:3200";
-const wallet = "0x7099797f9b1e9c25a4a3d1e0d5f01d2a0a2b0c0d" as `0x${string}`;
+const wallet = Keypair.generate().publicKey.toBase58();
 
 async function main() {
-  const token = await signSession({ kind: "wallet", address: wallet, chainId: 31337 }, 3600);
+  const token = await signSession({ kind: "wallet", address: wallet, chainId: activeChain().id }, 3600);
   const headers = {
     "content-type": "application/json",
     origin: base,
@@ -29,14 +31,14 @@ async function main() {
   };
 
   console.log("--- posting as", wallet);
-  await show("first message   ", await post("first message from the smoke test"));
+  await show("first message   ", await post("test"));
 
   console.log("--- immediate second message should be refused (min gap)");
   await show("too fast        ", await post("a different message straight away"));
 
   console.log("--- waiting out the gap, then repeating myself");
   await new Promise((r) => setTimeout(r, 2500));
-  await show("duplicate       ", await post("first message from the smoke test"));
+  await show("duplicate       ", await post("test"));
 
   console.log("--- a real second message after the gap");
   await new Promise((r) => setTimeout(r, 2500));

@@ -29,13 +29,13 @@ function Art({ src, alt, position = "50% 50%" }: { src: string; alt: string; pos
   );
 }
 
-export const ClockArt = () => <Art src="/panels/clock-straight.webp" alt="A price stepping down toward its floor" position="50% 34%" />;
+export const ClockArt = () => <Art src="/panels/clock-blue-remade.webp" alt="A price stepping down toward its floor" position="50% 34%" />;
 export const HonestyArt = () => (
-  <Art src="/panels/honesty-verification.webp" alt="A wallet card verified while a gathered audience remains indistinct" position="50% 40%" />
+  <Art src="/panels/honesty-verification-blue.webp" alt="A wallet card verified while a gathered audience remains indistinct" position="50% 40%" />
 );
 export const TreasuryArt = () => (
   <div className="relative h-full w-full">
-    <Art src="/panels/treasury-safe.webp" alt="A secure safe holding document bundles under lime light" position="50% 36%" />
+    <Art src="/panels/treasury-safe-blue.webp" alt="A secure safe holding document bundles under blue light" position="50% 36%" />
     <div
       role="img"
       aria-label="Anduril"
@@ -44,7 +44,7 @@ export const TreasuryArt = () => (
     />
   </div>
 );
-export const RoomArt = () => <Art src="/panels/room-watch-party.webp" alt="Friends sharing a programme in a private screening room" position="50% 38%" />;
+export const RoomArt = () => <Art src="/panels/room-watch-party-blue.webp" alt="Friends sharing a programme in a private screening room" position="50% 38%" />;
 export const PortraitArt = () => <Art src="/team/jeff-miller.webp" alt="Jeff Miller" position="50% 22%" />;
 
 /**

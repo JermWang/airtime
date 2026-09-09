@@ -4,7 +4,7 @@ import { route, type Params } from "@/server/route";
 import { json, notFound } from "@/server/http";
 import { db, schema } from "@/server/db/client";
 import { publicCreative } from "@/server/ads/creatives";
-import { explorerTxUrl, activeChain } from "@/lib/chain/chains";
+import { explorerTxUrl, activeChain, chainLabel } from "@/lib/chain/chains";
 import { shortAddress } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ export const GET = route<Params<{ id: string }>>(async (_req, { params }) => {
     wallet: shortAddress(log.walletAddress),
     walletFull: log.walletAddress,
     payment: log.txHash
-      ? { txHash: log.txHash, txUrl: explorerTxUrl(log.txHash), blockNumber: log.blockNumber?.toString() ?? null, amountWei: log.amountWei, paymentToken: log.paymentToken, chainId: log.chainId ?? activeChain().id, chainName: activeChain().name }
+      ? { txHash: log.txHash, txUrl: explorerTxUrl(log.txHash, log.chainId ?? 0), blockNumber: log.blockNumber?.toString() ?? null, amountWei: log.amountWei, paymentToken: log.paymentToken, chainId: log.chainId ?? activeChain().id, chainName: chainLabel(log.chainId ?? 0) }
       : null,
     playbackStatus: log.playbackStatus,
     analytics: log.analytics,

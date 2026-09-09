@@ -15,7 +15,7 @@ import { getTreasurySummary, recordTreasuryEntry, getTreasuryLedger, deleteTreas
 import { setSetting } from "@/server/settings";
 
 const ADMIN = { type: "ADMIN" as const, id: "test-admin" };
-const ETH = 10n ** 18n;
+const SOL = 10n ** 9n;
 
 beforeAll(async () => {
   await boot({ ticker: false });
@@ -37,27 +37,27 @@ describe("treasury", () => {
   });
 
   it("counts operator-recorded tax and earmarks it under the current policy", async () => {
-    await recordTreasuryEntry({ kind: "TAX_INFLOW", occurredAt: new Date(), amountWei: (2n * ETH).toString(), note: "week 1 tax" }, ADMIN);
+    await recordTreasuryEntry({ kind: "TAX_INFLOW", occurredAt: new Date(), amountWei: (2n * SOL).toString(), note: "week 1 tax" }, ADMIN);
     let s = await getTreasurySummary();
-    expect(s.taxInflowWei).toBe((2n * ETH).toString());
-    expect(s.totalInflowWei).toBe((2n * ETH).toString());
-    expect(s.earmarkedWei).toBe((2n * ETH).toString());
-    expect(s.awaitingDeploymentWei).toBe((2n * ETH).toString());
+    expect(s.taxInflowWei).toBe((2n * SOL).toString());
+    expect(s.totalInflowWei).toBe((2n * SOL).toString());
+    expect(s.earmarkedWei).toBe((2n * SOL).toString());
+    expect(s.awaitingDeploymentWei).toBe((2n * SOL).toString());
 
     // Half the income earmarked → half the earmark.
     await setSetting("treasuryAllocationBps", 5_000);
     s = await getTreasurySummary();
-    expect(s.earmarkedWei).toBe(ETH.toString());
+    expect(s.earmarkedWei).toBe(SOL.toString());
     await setSetting("treasuryAllocationBps", 10_000);
   });
 
   it("tracks pre-stock bought, held and distributed", async () => {
-    await recordTreasuryEntry({ kind: "STOCK_PURCHASE", occurredAt: new Date(), amountWei: (1n * ETH).toString(), shares: "12.5", reference: "broker-001" }, ADMIN);
+    await recordTreasuryEntry({ kind: "STOCK_PURCHASE", occurredAt: new Date(), amountWei: (1n * SOL).toString(), shares: "12.5", reference: "broker-001" }, ADMIN);
     let s = await getTreasurySummary();
-    expect(s.deployedWei).toBe(ETH.toString());
+    expect(s.deployedWei).toBe(SOL.toString());
     expect(s.sharesAcquired).toBe("12.5");
     expect(s.sharesHeld).toBe("12.5");
-    expect(s.awaitingDeploymentWei).toBe(ETH.toString());
+    expect(s.awaitingDeploymentWei).toBe(SOL.toString());
     expect(s.purchases).toBe(1);
 
     await recordTreasuryEntry({ kind: "DISTRIBUTION", occurredAt: new Date(), shares: "4.25", holders: 130 }, ADMIN);
@@ -72,7 +72,7 @@ describe("treasury", () => {
   });
 
   it("requires the figures that make an entry meaningful", async () => {
-    await expect(recordTreasuryEntry({ kind: "STOCK_PURCHASE", occurredAt: new Date(), amountWei: ETH.toString() }, ADMIN)).rejects.toMatchObject({ status: 400 });
+    await expect(recordTreasuryEntry({ kind: "STOCK_PURCHASE", occurredAt: new Date(), amountWei: SOL.toString() }, ADMIN)).rejects.toMatchObject({ status: 400 });
     await expect(recordTreasuryEntry({ kind: "TAX_INFLOW", occurredAt: new Date() }, ADMIN)).rejects.toMatchObject({ status: 400 });
   });
 
@@ -92,22 +92,22 @@ describe("treasury", () => {
     await db().insert(schema.payments).values({
       campaignId: created.id,
       quoteId: `0x${"ab".repeat(32)}`,
-      chainId: 31337,
+      chainId: 902,
       txHash: `0x${"cd".repeat(32)}`,
       blockNumber: 10n,
       logIndex: 0,
       buyer: created.walletAddress,
-      paymentToken: "0x0000000000000000000000000000000000000000",
-      amountWei: (3n * ETH).toString(),
+      paymentToken: "SOL",
+      amountWei: (3n * SOL).toString(),
       status: "CONFIRMED",
     });
 
     const s = await getTreasurySummary();
-    expect(s.airtimeRevenueWei).toBe((3n * ETH).toString());
+    expect(s.airtimeRevenueWei).toBe((3n * SOL).toString());
     expect(s.airtimePayments).toBe(1);
-    // 3 ETH revenue + 2 ETH tax, all earmarked, 1 ETH already spent.
-    expect(s.totalInflowWei).toBe((5n * ETH).toString());
-    expect(s.awaitingDeploymentWei).toBe((4n * ETH).toString());
+    // 3 SOL revenue + 2 SOL tax, all earmarked, 1 SOL already spent.
+    expect(s.totalInflowWei).toBe((5n * SOL).toString());
+    expect(s.awaitingDeploymentWei).toBe((4n * SOL).toString());
   });
 
   it("keeps a deletable ledger", async () => {

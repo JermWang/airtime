@@ -1,3 +1,4 @@
+import { isSolanaSignature } from "@/lib/chain/solana";
 import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
 import { route, type Params } from "@/server/route";
@@ -9,7 +10,7 @@ import { db, schema } from "@/server/db/client";
 
 export const dynamic = "force-dynamic";
 
-const body = z.object({ txHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/) });
+const body = z.object({ txHash: z.string().refine(isSolanaSignature, "Invalid Solana signature") });
 
 /**
  * The browser hints a transaction hash after the wallet reports a receipt.
@@ -35,7 +36,7 @@ export const POST = route<Params<{ id: string }>>(async (req, { params }) => {
     )[0]?.id;
   if (!quoteId) throw new HttpError(409, "Campaign has no quote to confirm");
 
-  const outcome = await verifyQuoteByTxHash(quoteId, txHash as `0x${string}`);
+  const outcome = await verifyQuoteByTxHash(quoteId, txHash);
   const detail = await getCampaignDetail(id);
   return json({ outcome, campaign: campaignView(detail!, { owner: true }) });
 });

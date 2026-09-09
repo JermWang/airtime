@@ -81,7 +81,7 @@ function Scene({ placements, selectedId, onSelect, onTransform, onPickMesh, pick
       const extras = m.userData as { surface?: boolean; role?: string };
       const mapped = byMesh.get(m.name);
       const isSel = selected?.meshName === m.name;
-      const base = new THREE.MeshStandardMaterial({ color: extras.surface ? "#1a1f25" : "#101317", roughness: 0.6, metalness: 0.2, emissive: isSel ? "#ccff00" : mapped ? "#4a5c00" : hover === m.name ? "#3a4416" : "#000000", emissiveIntensity: isSel ? 0.6 : 0.5, transparent: extras.role === "glass", opacity: extras.role === "glass" ? 0.3 : 1 });
+      const base = new THREE.MeshStandardMaterial({ color: extras.surface ? "#1a1f25" : "#101317", roughness: 0.6, metalness: 0.2, emissive: isSel ? "#69aac1" : mapped ? "#345d6c" : hover === m.name ? "#2b4650" : "#000000", emissiveIntensity: isSel ? 0.6 : 0.5, transparent: extras.role === "glass", opacity: extras.role === "glass" ? 0.3 : 1 });
       m.material = base;
     }
   }, [meshes, byMesh, selected, hover]);
@@ -123,7 +123,7 @@ function Scene({ placements, selectedId, onSelect, onTransform, onPickMesh, pick
             <group key={p.id} position={tr.position} rotation={tr.rotation} onClick={(e) => { e.stopPropagation(); onSelect(p.id); }}>
               <mesh scale={[tr.scale[0], tr.scale[1] * (h / w), 1]}>
                 <planeGeometry args={[1, 1]} />
-                <meshStandardMaterial color="#1a1f25" emissive={isSel ? "#ccff00" : "#4a5c00"} emissiveIntensity={0.6} side={THREE.DoubleSide} />
+                <meshStandardMaterial color="#1a1f25" emissive={isSel ? "#69aac1" : "#345d6c"} emissiveIntensity={0.6} side={THREE.DoubleSide} />
               </mesh>
               <Html center position={[0, tr.scale[1] * (h / w) * 0.5 + 0.3, 0]} style={{ pointerEvents: "none" }}>
                 <div className="chip">{p.id}</div>
@@ -148,7 +148,7 @@ function Scene({ placements, selectedId, onSelect, onTransform, onPickMesh, pick
           <group ref={transformTarget} position={t.position} rotation={t.rotation} scale={[t.scale[0], t.scale[1], 1]}>
             <mesh>
               <planeGeometry args={[1, ah / aw]} />
-              <meshBasicMaterial color="#ccff00" transparent opacity={0.15} side={THREE.DoubleSide} />
+              <meshBasicMaterial color="#69aac1" transparent opacity={0.15} side={THREE.DoubleSide} />
             </mesh>
           </group>
         </TransformControls>

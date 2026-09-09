@@ -8,7 +8,7 @@ const base = { decaySeconds: 3600, takeoverPremiumBps: 20_000, minIncrementBps: 
 describe("the control room cannot list a surface below the minimum", () => {
   it("takes rules that start at the minimum", () => {
     const parsed = auctionSchema.parse({ ...base, openingPriceWei: MIN_PRICE_WEI.toString(), floorPriceWei: MIN_PRICE_WEI.toString() });
-    expect(parsed.openingPriceWei).toBe("10000000000000000");
+    expect(parsed.openingPriceWei).toBe("500000000");
   });
 
   it("refuses an opening price under it", () => {
@@ -17,10 +17,10 @@ describe("the control room cannot list a surface below the minimum", () => {
   });
 
   it("refuses a floor under it", () => {
-    const cheap = { ...base, openingPriceWei: MIN_PRICE_WEI.toString(), floorPriceWei: "100000000000000" };
+    const cheap = { ...base, openingPriceWei: MIN_PRICE_WEI.toString(), floorPriceWei: "100000" };
     const result = auctionSchema.safeParse(cheap);
     expect(result.success).toBe(false);
-    if (!result.success) expect(result.error.issues[0].message).toContain("0.01 ETH");
+    if (!result.success) expect(result.error.issues[0].message).toContain("0.5 SOL");
   });
 
   it("still takes anything above it", () => {

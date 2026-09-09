@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import sharp from "sharp";
 import { eq } from "drizzle-orm";
-import { encodeEventTopics, encodeAbiParameters, verifyTypedData, keccak256, toHex, type Hex, type Address } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { createHash } from "node:crypto";
+import { Keypair, PublicKey } from "@solana/web3.js";
+import bs58 from "bs58";
+import { MEMO_PROGRAM, quoteMemo } from "@/lib/chain/solana";
 
 /* Chain access is mocked: tests never talk to an RPC. */
 const chainMock = vi.hoisted(() => ({
@@ -10,17 +12,8 @@ const chainMock = vi.hoisted(() => ({
   logs: [] as Array<Record<string, unknown>>,
 }));
 vi.mock("@/server/chain/client", () => ({
-  publicClient: () => ({
-    getBlockNumber: async () => chainMock.blockNumber,
-    getLogs: async () => chainMock.logs,
-    getTransactionReceipt: async () => {
-      throw new Error("no receipt");
-    },
-  }),
-  paymentContractAddress: () => "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-  requiredConfirmations: () => 1,
-  serverRpcUrl: () => "mock",
-  resetPublicClientForTests: () => {},
+  publicClient: () => ({ getSlot: async () => Number(chainMock.blockNumber), getParsedTransaction: async (signature: string) => chainMock.logs.find(t => t.signature === signature)?.parsed ?? null }),
+  assertConfiguredCluster: async () => {}, serverRpcUrl: () => "mock", resetPublicClientForTests: () => {},
 }));
 
 /* Link submissions are probed server-side; the probe is driven against a stub
@@ -56,16 +49,15 @@ import { createCreativeFromUpload, createLinkCreative } from "@/server/ads/creat
 import { createCampaign, getCampaignDetail, getPublicQueue, getBoard } from "@/server/ads/campaigns";
 import { createQuote, expireQuotes } from "@/server/ads/quotes";
 import { getSurfaceState, activeHold } from "@/server/ads/auction";
-import { pollAwaitingPayments } from "@/server/chain/paymentVerifier";
+import { pollAwaitingPayments as pollPayments, verifyQuoteByTxHash } from "@/server/chain/paymentVerifier";
 import { withdrawRun } from "@/server/ads/activation";
 import { getBroadcastState, ensureScheduleHorizon, insertManualBlock } from "@/server/broadcast/schedule";
 import { serverNow, setClockOffsetMs, addSeconds } from "@/server/time/clock";
-import { quoteSignerAddress } from "@/server/chain/quoteSigner";
-import { airtimePaymentsAbi, eip712Domain, quoteTypes } from "@/lib/chain/airtimePayments";
 import { HttpError } from "@/server/http";
 
-const buyer = privateKeyToAccount("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d");
-const wallet = buyer.address.toLowerCase() as Address;
+const testWallet = (seed: string) => Keypair.fromSeed(createHash("sha256").update(seed).digest()).publicKey.toBase58();
+const sig = (n: number) => bs58.encode(new Uint8Array(64).fill(n));
+const wallet = testWallet("buyer");
 
 async function png(w = 1280, h = 720): Promise<Buffer> {
   return sharp({ create: { width: w, height: h, channels: 3, background: { r: 20, g: 220, b: 120 } } })
@@ -86,7 +78,7 @@ function serveLink(opts: { contentType?: string; durationSec?: number; cors?: bo
   linkMock.body = opts.body ?? ["#EXTM3U", "#EXT-X-TARGETDURATION:10", `#EXTINF:${durationSec.toFixed(3)},`, "seg0.ts", "#EXT-X-ENDLIST"].join("\n");
 }
 
-async function showLink(walletAddress: `0x${string}`, name = "show", durationSec = 600) {
+async function showLink(walletAddress: string, name = "show", durationSec = 600) {
   serveLink({ durationSec });
   try {
     return await createLinkCreative({ walletAddress, placementId: "SHOW", url: `https://cdn.example.com/${name}.m3u8` });
@@ -100,13 +92,15 @@ async function placement(id: string) {
   return p;
 }
 
-function purchasedLog(q: { id: string; walletAddress: string; placementIdHash: string; creativeHash: string; startsAt: Date; endsAt: Date; paymentToken: string; amountWei: string }, txHash: Hex, blockNumber: bigint) {
-  const topics = encodeEventTopics({ abi: airtimePaymentsAbi, eventName: "AirtimePurchased", args: { quoteId: q.id as Hex, buyer: q.walletAddress as Address, placementId: q.placementIdHash as Hex } });
-  const data = encodeAbiParameters(
-    [{ type: "bytes32" }, { type: "uint64" }, { type: "uint64" }, { type: "address" }, { type: "uint256" }],
-    [q.creativeHash as Hex, BigInt(Math.floor(q.startsAt.getTime() / 1000)), BigInt(Math.floor(q.endsAt.getTime() / 1000)), q.paymentToken as Address, BigInt(q.amountWei)],
-  );
-  return { address: "0x5FbDB2315678afecb367f032d93F642f64180aa3", topics, data, transactionHash: txHash, blockNumber, logIndex: 0, blockHash: "0x1", transactionIndex: 0, removed: false };
+function purchasedLog(q: { id: string; walletAddress: string; amountWei: string; contractAddress: string }, signature: string, blockNumber: bigint) {
+ return { quoteId: q.id, signature, parsed: { slot: Number(blockNumber), blockTime: Math.floor(Date.now()/1000), meta: { err: null, innerInstructions: [] }, transaction: { message: { accountKeys: [{ pubkey: new PublicKey(q.walletAddress), signer: true }], instructions: [
+ { programId: new PublicKey("11111111111111111111111111111111"), parsed: { type: "transfer", info: { source: q.walletAddress, destination: q.contractAddress, lamports: Number(q.amountWei) } } },
+ { programId: new PublicKey(MEMO_PROGRAM), parsed: quoteMemo(q.id) }
+ ] } } } };
+}
+async function pollAwaitingPayments() {
+ for (const entry of chainMock.logs) await db().update(schema.quotes).set({ txHint: entry.signature as string }).where(eq(schema.quotes.id, entry.quoteId as string));
+ return pollPayments();
 }
 
 beforeAll(async () => {
@@ -116,7 +110,7 @@ beforeAll(async () => {
 /**
  * There are only two surfaces in the room now, so every test shares them. Each
  * one starts from a pristine market: nothing held, nothing on air, both prices
- * back at the opening 0.01.
+ * back at the opening 0.5.
  */
 beforeEach(async () => {
   setClockOffsetMs(0);
@@ -137,7 +131,7 @@ describe("creative validation", () => {
     const c = await createCreativeFromUpload({ walletAddress: wallet, placementId: "AD", bytes: await png(), filename: "brand.png" });
     expect(c.status).toBe("VALID");
     expect(c.width).toBe(1280);
-    expect(c.creativeHash).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(c.creativeHash).toMatch(/^[0-9a-f]{64}$/);
     expect(c.url).toMatch(/^\/media\/creatives\//);
   });
 
@@ -165,7 +159,7 @@ describe("submissions by link", () => {
       expect(Number(c.durationSec)).toBeCloseTo(1234.5, 1);
       expect(c.url).toBe("https://cdn.example.com/film.m3u8");
       // The link itself is what the buyer signs for, so the hash is over the URL.
-      expect(c.creativeHash).toBe(keccak256(toHex(Buffer.from("https://cdn.example.com/film.m3u8", "utf8"))));
+      expect(c.creativeHash).toBe(createHash("sha256").update("https://cdn.example.com/film.m3u8").digest("hex"));
       expect((c.metadata as { source?: string }).source).toBe("link");
     } finally {
       vi.unstubAllGlobals();
@@ -213,7 +207,7 @@ describe("submissions by link", () => {
 });
 
 describe("quotes and holds", () => {
-  it("issues an EIP-712 quote at the surface's current ask and locks the surface", async () => {
+  it("issues a Solana quote at the surface's current ask and locks the surface", async () => {
     const creative = await showLink(wallet, "a");
     const campaign = await createCampaign({ walletAddress: wallet, placementId: "SHOW", displayName: "Test brand", creativeId: creative.id });
     expect(campaign.status).toBe("READY_TO_PURCHASE");
@@ -227,15 +221,9 @@ describe("quotes and holds", () => {
     expect(q.amountWei).toBe(before.askWei);
     expect(BigInt(q.amountWei)).toBeGreaterThan(0n);
 
-    const ok = await verifyTypedData({
-      address: quoteSignerAddress(),
-      domain: eip712Domain(31337, q.quote.contract),
-      types: quoteTypes,
-      primaryType: "Quote",
-      message: { quoteId: q.quote.quoteId, buyer: q.quote.buyer, placementId: q.quote.placementId, creativeHash: q.quote.creativeHash, startAt: BigInt(q.quote.startAt), endAt: BigInt(q.quote.endAt), paymentToken: q.quote.paymentToken, amount: BigInt(q.quote.amount), expiresAt: BigInt(q.quote.expiresAt), nonce: BigInt(q.quote.nonce) },
-      signature: q.quote.signature,
-    });
-    expect(ok).toBe(true);
+    expect(q.settlement).toBe("solana");
+    expect(q.quote.signature).toMatch(/^[a-f0-9]{64}$/);
+    expect(q.quote.chainId).toBe(902);
     expect(q.quote.creativeHash).toBe(creative.creativeHash);
     // startAt/endAt on chain are the guaranteed runtime, not a booked slot.
     expect(Number(q.quote.endAt) - Number(q.quote.startAt)).toBe(q.guaranteedSeconds);
@@ -258,7 +246,7 @@ describe("quotes and holds", () => {
   it("lets only one buyer hold a surface at a time", async () => {
     const c1 = await createCampaign({ walletAddress: wallet, placementId: "AD", displayName: "A", creativeId: (await createCreativeFromUpload({ walletAddress: wallet, placementId: "AD", bytes: await png(), filename: "a2.png" })).id });
     await createQuote({ campaignId: c1.id, walletAddress: wallet });
-    const other = "0x000000000000000000000000000000000000beef" as Address;
+    const other = testWallet("0x000000000000000000000000000000000000beef");
     const c2 = await createCampaign({ walletAddress: other, placementId: "AD", displayName: "B", creativeId: (await createCreativeFromUpload({ walletAddress: other, placementId: "AD", bytes: await png(), filename: "b.png" })).id });
     await expect(createQuote({ campaignId: c2.id, walletAddress: other })).rejects.toMatchObject({ status: 409 });
     expect((await getSurfaceState(await placement("AD"))).status).toBe("HELD");
@@ -267,7 +255,7 @@ describe("quotes and holds", () => {
   it("serialises concurrent quotes for the same surface – exactly one wins", async () => {
     const campaigns = await Promise.all(
       [0, 1, 2, 3].map(async (i) => {
-        const w = `0x00000000000000000000000000000000000000${(10 + i).toString(16).padStart(2, "0")}` as Address;
+        const w = testWallet(`racer-${i}`);
         const cr = await createCreativeFromUpload({ walletAddress: w, placementId: "AD", bytes: await png(1600, 900), filename: `c${i}.png` });
         return { w, c: await createCampaign({ walletAddress: w, placementId: "AD", displayName: `Racer ${i}`, creativeId: cr.id }) };
       }),
@@ -289,40 +277,6 @@ describe("quotes and holds", () => {
 });
 
 describe("payment, occupancy and takeover", () => {
-  it("authorizes only an event that matches every server-signed payment fact", async () => {
-    chainMock.blockNumber = 102n;
-    const creative = await showLink(wallet, "fully-checked");
-    const campaign = await createCampaign({ walletAddress: wallet, placementId: "SHOW", displayName: "Verified buyer", creativeId: creative.id });
-    const issued = await createQuote({ campaignId: campaign.id, walletAddress: wallet });
-    const [quote] = await db().select().from(schema.quotes).where(eq(schema.quotes.id, issued.quote.quoteId));
-    const otherWallet = "0x000000000000000000000000000000000000beef" as Address;
-    const otherBytes = keccak256(toHex("not-the-signed-value"));
-
-    const mismatches = [
-      purchasedLog({ ...quote, walletAddress: otherWallet }, ("0x" + "41".repeat(32)) as Hex, 101n),
-      purchasedLog({ ...quote, placementIdHash: otherBytes }, ("0x" + "42".repeat(32)) as Hex, 101n),
-      purchasedLog({ ...quote, creativeHash: otherBytes }, ("0x" + "43".repeat(32)) as Hex, 101n),
-      purchasedLog({ ...quote, paymentToken: "0x0000000000000000000000000000000000000001" }, ("0x" + "44".repeat(32)) as Hex, 101n),
-      purchasedLog({ ...quote, amountWei: (BigInt(quote.amountWei) + 1n).toString() }, ("0x" + "45".repeat(32)) as Hex, 101n),
-      purchasedLog({ ...quote, startsAt: new Date(quote.startsAt.getTime() + 1_000) }, ("0x" + "46".repeat(32)) as Hex, 101n),
-      purchasedLog({ ...quote, endsAt: new Date(quote.endsAt.getTime() + 1_000) }, ("0x" + "47".repeat(32)) as Hex, 101n),
-      { ...purchasedLog(quote, ("0x" + "48".repeat(32)) as Hex, 101n), address: otherWallet },
-    ];
-
-    for (const log of mismatches) {
-      chainMock.logs = [log];
-      expect(await pollAwaitingPayments()).toBe(0);
-      expect((await getCampaignDetail(campaign.id))!.campaign.status).toBe("AWAITING_PAYMENT");
-      expect(await db().select().from(schema.payments).where(eq(schema.payments.campaignId, campaign.id))).toHaveLength(0);
-    }
-
-    chainMock.logs = [purchasedLog(quote, ("0x" + "49".repeat(32)) as Hex, 101n)];
-    await expect(Promise.all([pollAwaitingPayments(), pollAwaitingPayments()])).resolves.toBeDefined();
-    expect((await getCampaignDetail(campaign.id))!.campaign.status).toBe("AIRING");
-    expect(await db().select().from(schema.payments).where(eq(schema.payments.campaignId, campaign.id))).toHaveLength(1);
-    expect(await db().select().from(schema.adActivations).where(eq(schema.adActivations.campaignId, campaign.id))).toHaveLength(1);
-  });
-
   it("puts a paid campaign on the surface, then hands it to whoever pays more", async () => {
     const surfaceId = "SHOW";
     const lane = "show";
@@ -334,19 +288,20 @@ describe("payment, occupancy and takeover", () => {
     const [quoteRow] = await db().select().from(schema.quotes).where(eq(schema.quotes.id, q1.quote.quoteId));
 
     // Wrong amount → ignored, nothing moves.
-    chainMock.logs = [purchasedLog({ ...quoteRow, amountWei: (BigInt(quoteRow.amountWei) - 1n).toString() }, ("0x" + "11".repeat(32)) as Hex, 101n)];
+    chainMock.logs = [purchasedLog({ ...quoteRow, amountWei: (BigInt(quoteRow.amountWei) - 1n).toString() }, sig(0x11), 101n)];
     chainMock.blockNumber = 102n;
-    expect(await pollAwaitingPayments()).toBe(0);
+    await db().update(schema.quotes).set({txHint: sig(0x11)}).where(eq(schema.quotes.id, quoteRow.id));
+    expect((await verifyQuoteByTxHash(quoteRow.id, sig(0x11))).status).toBe("mismatch");
     expect((await getCampaignDetail(first.id))!.campaign.status).toBe("AWAITING_PAYMENT");
 
     // Matching event → on air immediately. There is no queue to wait in.
-    chainMock.logs = [purchasedLog(quoteRow, ("0x" + "22".repeat(32)) as Hex, 101n)];
+    chainMock.logs = [purchasedLog(quoteRow, sig(0x22), 101n)];
     expect(await pollAwaitingPayments()).toBe(1);
     let detail = await getCampaignDetail(first.id);
     expect(detail!.campaign.status).toBe("AIRING");
     expect(detail!.campaign.endsAt).toBeNull();
     expect(detail!.campaign.paidPriceWei).toBe(quoteRow.amountWei);
-    expect(detail!.payment?.txHash).toBe("0x" + "22".repeat(32));
+    expect(detail!.payment?.txHash).toBe(sig(0x22));
 
     // Replay of the same event → nothing changes.
     expect(await pollAwaitingPayments()).toBe(0);
@@ -361,7 +316,7 @@ describe("payment, occupancy and takeover", () => {
     expect((await getPublicQueue("MAIN")).onAir.some((e) => e.id === first.id)).toBe(true);
 
     /* ---- nobody can take it during the guaranteed runtime ---------------- */
-    const rival = "0x00000000000000000000000000000000000000c0" as Address;
+    const rival = testWallet("0x00000000000000000000000000000000000000c0");
     const rivalCreative = await showLink(rival, "second");
     const second = await createCampaign({ walletAddress: rival, placementId: surfaceId, displayName: "Second brand", creativeId: rivalCreative.id });
     await expect(createQuote({ campaignId: second.id, walletAddress: rival })).rejects.toMatchObject({ status: 409 });
@@ -380,7 +335,7 @@ describe("payment, occupancy and takeover", () => {
     expect(BigInt(q2.amountWei)).toBeGreaterThan(BigInt(quoteRow.amountWei));
     expect(q2.outbids?.displayName).toBe("First brand");
     const [quoteRow2] = await db().select().from(schema.quotes).where(eq(schema.quotes.id, q2.quote.quoteId));
-    chainMock.logs = [purchasedLog(quoteRow2, ("0x" + "33".repeat(32)) as Hex, 103n)];
+    chainMock.logs = [purchasedLog(quoteRow2, sig(0x33), 103n)];
     chainMock.blockNumber = 104n;
     expect(await pollAwaitingPayments()).toBe(1);
 
@@ -390,7 +345,7 @@ describe("payment, occupancy and takeover", () => {
     expect(detail!.campaign.endedReason).toBe("OUTBID");
     expect(detail!.campaign.durationSec).toBeGreaterThanOrEqual(guaranteeSec);
     expect(detail!.airLog).not.toBeNull();
-    expect(detail!.airLog!.txHash).toBe("0x" + "22".repeat(32));
+    expect(detail!.airLog!.txHash).toBe(sig(0x22));
     expect(detail!.airLog!.actualEnd).not.toBeNull();
 
     const after = await getSurfaceState(await placement(surfaceId));
@@ -424,8 +379,8 @@ describe("payment, occupancy and takeover", () => {
     expect(board.rows).toHaveLength(8);
     expect(board.rows.filter((r) => r.placement.ownsMainStream)).toHaveLength(2);
     expect(board.rows.filter((r) => r.placement.kind === "panel")).toHaveLength(6);
-    // Everything opens at the same 0.01 and demand takes it from there.
-    for (const row of board.rows) expect(row.placement.auction.openingPriceWei).toBe((10n ** 16n).toString());
+    // Everything opens at the same 0.5 and demand takes it from there.
+    for (const row of board.rows) expect(row.placement.auction.openingPriceWei).toBe((500_000_000n).toString());
     for (const row of board.rows) {
       expect(BigInt(row.surface.askWei)).toBeGreaterThan(0n);
       expect(row.surface.placementId).toBe(row.placement.id);
@@ -468,4 +423,20 @@ describe("synchronized programming", () => {
     setClockOffsetMs(0);
     expect(before.now).not.toBeNull();
   });
+});
+
+it("records a late payment for a cancelled campaign without broadcasting it", async () => {
+ chainMock.blockNumber = 100n;
+ const cr = await showLink(wallet, "cancelled");
+ const campaign = await createCampaign({walletAddress:wallet,placementId:"SHOW",displayName:"Cancelled",creativeId:cr.id});
+ const issued = await createQuote({campaignId:campaign.id,walletAddress:wallet});
+ const [q] = await db().select().from(schema.quotes).where(eq(schema.quotes.id,issued.quote.quoteId));
+ await db().update(schema.campaigns).set({status:"CANCELLED"}).where(eq(schema.campaigns.id,campaign.id));
+ chainMock.logs = [purchasedLog(q,sig(0x77),101n)];
+ expect(await pollAwaitingPayments()).toBe(1);
+ const detail=await getCampaignDetail(campaign.id);
+ expect(detail!.campaign.status).toBe("REJECTED");
+ expect(detail!.campaign.rejectionReason).toMatch(/Refund required/);
+ expect(detail!.payment?.status).toBe("CONFIRMED");
+ expect(await db().select().from(schema.adActivations).where(eq(schema.adActivations.campaignId,campaign.id))).toHaveLength(0);
 });

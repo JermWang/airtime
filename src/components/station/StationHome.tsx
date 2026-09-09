@@ -134,7 +134,8 @@ function Fold({ channelId }: { channelId: string }) {
                 <div className="readout flex items-center gap-3 text-[10px] uppercase tracking-[0.2em]">
                   <span className="text-ink-200">Airtime Main</span>
                   <span className="h-[11px] w-px bg-white/20" />
-                  <span className="text-ink-300">Eight surfaces</span>
+                  <span className="text-signal">Solana</span>
+                  <a href="https://www.stonkfun.xyz" target="_blank" rel="noreferrer" className="text-signal transition hover:text-ink-50">Launching on StonkFun ↗</a>
                 </div>
               </Reveal>
               <h1 className="mt-3 max-w-[22ch] text-[clamp(30px,4.2vw,68px)] font-medium leading-[0.94] tracking-[-0.05em] text-ink-50 [text-wrap:pretty]">
@@ -145,7 +146,7 @@ function Fold({ channelId }: { channelId: string }) {
             <div className="min-w-0 max-w-lg flex-[1_1_330px]">
               <Reveal delay={0.3} y={14} immediate>
                 <p className="text-[13.5px] leading-relaxed text-ink-200">
-                  Every surface above is inventory. The price on each one falls until somebody takes it, payment settles on chain, and the station verifies it
+                  Every surface above is inventory. The price on each one falls until somebody takes it, payment settles in SOL, and the station verifies it
                   before a frame airs.
                 </p>
               </Reveal>
@@ -167,7 +168,7 @@ function Fold({ channelId }: { channelId: string }) {
               </Reveal>
               <Reveal delay={0.48} y={14} immediate>
                 <div className="readout mt-3 text-[9.5px] uppercase tracking-[0.16em] text-ink-300">
-                  Every surface opens at <span className="text-signal">0.01 ETH</span> · a sale resets it to twice what was paid
+                  Every surface opens at <span className="text-signal">0.5 SOL</span> · a sale resets it to twice what was paid
                 </div>
               </Reveal>
             </div>
@@ -375,9 +376,9 @@ function ShowPrice({ channelId }: { channelId: string }) {
   const occupant = show?.surface.occupant ?? null;
   return (
     <div className="mt-5 flex items-end gap-3">
-      <span className="readout text-[44px] leading-[0.86] tracking-[-0.04em] text-signal tabular-nums">{live ? formatWei(live.askWei).replace(" ETH", "") : "—"}</span>
+      <span className="readout text-[44px] leading-[0.86] tracking-[-0.04em] text-signal tabular-nums">{live ? formatWei(live.askWei).replace(" SOL", "") : "—"}</span>
       <span className="readout pb-[5px] text-[11px] uppercase tracking-[0.2em] text-ink-300">
-        {occupant ? `ETH · to take it from ${occupant.displayName}` : "ETH · nobody is holding it"}
+        {occupant ? `SOL · to take it from ${occupant.displayName}` : "SOL · nobody is holding it"}
       </span>
     </div>
   );
@@ -401,7 +402,7 @@ function ClosingCta() {
               >
                 Buy airtime
               </Link>
-              <span className="readout text-[10px] uppercase tracking-[0.16em] text-ink-400">Eight surfaces · opens at 0.01 ETH</span>
+              <span className="readout text-[10px] uppercase tracking-[0.16em] text-ink-400">Eight surfaces · opens at 0.5 SOL</span>
             </div>
           </div>
         </Reveal>

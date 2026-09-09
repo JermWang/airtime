@@ -2,7 +2,7 @@ import { z } from "zod";
 import { MAX_DIRECT_UPLOAD_BYTES } from "@/lib/upload";
 import { MIN_PRICE_WEI } from "@/lib/auction";
 
-const weiString = z.string().regex(/^\d+$/, "Amounts are integer wei");
+const weiString = z.string().regex(/^\d+$/, "Amounts are integer lamports");
 
 /**
  * No surface may be listed below the station minimum. The curve clamps to it
@@ -10,7 +10,7 @@ const weiString = z.string().regex(/^\d+$/, "Amounts are integer wei");
  * station would never actually ask.
  */
 const startingPriceWei = weiString.refine((v) => BigInt(v) >= MIN_PRICE_WEI, {
-  message: "Prices start at 0.01 ETH (10000000000000000 wei)",
+  message: "Prices start at 0.5 SOL (500000000 lamports)",
 });
 
 export const auctionSchema = z.object({

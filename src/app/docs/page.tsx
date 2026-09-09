@@ -89,7 +89,7 @@ export default function DocsPage() {
         <div className="flex min-w-0 flex-col gap-10">
           <Section id="quickstart" title="Buy your first spot">
             <P>
-              Nothing has to be installed and no account is created with a password. A wallet on Robinhood Chain is all that is required.
+              Nothing has to be installed and no account is created with a password. A wallet on Solana is all that is required.
             </P>
             <ol className="body-copy flex max-w-3xl flex-col gap-3">
               {[
@@ -99,7 +99,7 @@ export default function DocsPage() {
                 <>Upload an image or video. It is validated on the server and rendered onto that exact surface so you can see it before paying.</>,
                 <>Read the asking price. It descends on its own clock, so waiting costs you nothing but risks somebody else taking the surface first.</>,
                 <>Take the surface at that price. The server signs a quote for it and holds the ask while you pay.</>,
-                <>Send the payment. The station verifies the on-chain event itself, then puts your creative up.</>,
+                <>Send the payment. The station verifies the finalized Solana transfer, then puts your creative up.</>,
                 <>Hold the surface until somebody pays more, and keep the AirLog receipt when the run ends.</>,
               ].map((step, i) => (
                 <li key={i} className="flex gap-3.5">
@@ -185,7 +185,7 @@ export default function DocsPage() {
             />
             <P>
               The descent is linear, so anyone reading the placement row can reproduce it exactly: the ask is the anchor minus the anchor-to-floor distance times
-              the elapsed fraction of the decay. Money is integer wei end to end and every multiplier is integer basis points, so no rounding drift is possible.
+              the elapsed fraction of the decay. Money is integer lamports end to end and every multiplier is integer basis points, so no rounding drift is possible.
             </P>
             <P>
               The server is the only thing that prices anything. The browser asks for a quote and receives a signed one back; it never computes a number that is
@@ -238,16 +238,13 @@ export default function DocsPage() {
             <ol className="body-copy flex max-w-3xl flex-col gap-3">
               {[
                 <>
-                  The server signs an EIP-712 quote binding the quote id, buyer, placement, creative hash, amount, expiry and nonce. The domain separator includes
-                  the chain id and contract address, so a quote cannot be replayed on another chain or deployment.
+                  The server records the buyer, treasury, amount, creative and expiry in a quote, and reserves the surface while the buyer signs.
                 </>,
                 <>
-                  The payment contract re-checks the signature, caller, expiry, quote id, buyer nonce, token and exact amount, marks the quote consumed, forwards
-                  the funds to the treasury and emits its purchase event.
+                  The wallet signs a native SOL transfer with a quote-specific memo. The station validates it and saves the signature before broadcasting, so a closed tab does not lose a submitted payment.
                 </>,
                 <>
-                  The browser may hint a transaction hash, but it is only ever a lookup key. The server fetches the receipt from its own node, finds the event
-                  emitted by the configured contract address, and re-checks every field against the quote it signed.
+                  The server reads the finalized transaction from its own Solana RPC and checks the fee payer, sender, treasury, exact lamport amount and memo. Only then can the campaign go live.
                 </>,
                 <>
                   The same check also runs from the scheduler every few seconds with no browser involved, so closing the tab cannot lose a payment.
@@ -302,13 +299,11 @@ export default function DocsPage() {
             <pre className="block max-w-3xl">{`pnpm dev                 # station on :3000, embedded database, seeded
 pnpm studio:build        # regenerate the studio model
 pnpm chain:local         # local chain
-pnpm contract:build && pnpm contract:deploy:local
 pnpm test                # unit and API integration
-pnpm contract:test       # contract tests
-pnpm test:e2e            # full purchase path in a real browser`}</pre>
+pnpm typecheck          # TypeScript checks
+pnpm test:e2e            # station UI in a real browser`}</pre>
             <P>
-              The end-to-end suite deploys the payment contract to a fresh chain, builds and starts the production server, then drives a browser all the way
-              through: open a billboard, sign in, upload a creative, preview it, take a quote, pay, verify, air it and render the receipt.
+              The automated suites cover reservations, Solana verification, recovery and the station interface. A funded devnet wallet is required to exercise real settlement.
             </P>
           </Section>
 
@@ -319,7 +314,7 @@ pnpm test:e2e            # full purchase path in a real browser`}</pre>
                 <>Advertisers authenticate by wallet signature with single-use, expiring nonces. Operators use a password with a separate session.</>,
                 <>Uploads need a short-lived ticket bound to the wallet and the placement, on top of the session.</>,
                 <>All API input is schema-validated. State-changing endpoints check same-origin and are rate limited.</>,
-                <>The quote signer key holds no funds, never reaches the browser, and the treasury is a separate address configured on the contract.</>,
+                <>The server never holds your wallet key. The receiving Solana treasury is configured separately.</>,
               ]}
             />
           </Section>

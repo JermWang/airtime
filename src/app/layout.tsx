@@ -14,7 +14,7 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 const DESCRIPTION =
-  "A fixed board of on-chain advertising inventory, tokenized as a real-world asset and owned by its audience.";
+  "Live television and programmable advertising on Solana. Pay in SOL. AIRTIME is launching on StonkFun.";
 
 /**
  * The icon and the social card are the files beside this one — Next picks up
@@ -36,6 +36,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
+    site: "@airtimemedia_",
+    creator: "@airtimemedia_",
     title: "AIRTIME",
     description: DESCRIPTION,
   },
@@ -50,7 +52,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export const viewport: Viewport = {
-  themeColor: "#050607",
+  themeColor: "#071013",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

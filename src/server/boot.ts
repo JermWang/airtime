@@ -4,8 +4,7 @@ import { loadClockOffset } from "./settings";
 import { ensureScheduleHorizon } from "./broadcast/schedule";
 import { startTicker } from "./worker/ticker";
 import { env, isProduction } from "./env";
-import { quoteSignerAddress } from "./chain/quoteSigner";
-import { paymentContractAddress } from "./chain/client";
+import { treasuryAddress } from "@/server/chain/treasuryTransfer";
 import { canRunInProcessTicker, configurationProblems, isServerless, platformName } from "./platform";
 
 declare global {
@@ -28,15 +27,15 @@ export function boot(opts: { ticker?: boolean } = {}): Promise<void> {
       await loadClockOffset();
       await ensureScheduleHorizon("MAIN", 12);
       const e = env();
-      const contract = paymentContractAddress();
+      const contract = treasuryAddress();
       console.log(
         [
           "",
           "  AIRTIME station boot",
           `  platform     ${platformName()}`,
-          `  chain        ${e.NEXT_PUBLIC_CHAIN_ENV}`,
-          `  contract     ${contract ?? "NOT CONFIGURED – purchases disabled"}`,
-          `  quote signer ${quoteSignerAddress()}`,
+          `  chain        ${e.NEXT_PUBLIC_SOLANA_NETWORK}`,
+          `  treasury     ${contract || "NOT CONFIGURED – purchases disabled"}`,
+
           `  database     ${e.DATABASE_URL ? "postgres" : "pglite (embedded)"}`,
           `  scheduler    ${canRunInProcessTicker() ? "in-process (1s)" : isServerless() ? "cron + opportunistic (/api/cron/tick)" : "disabled"}`,
           seeded ? "  seeded       DEV DATA programming" : "",

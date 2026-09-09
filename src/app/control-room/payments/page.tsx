@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useAdminPayments } from "@/components/control-room/adminApi";
 import { Panel, StatusChip } from "@/components/control-room/ui";
-import { formatDateTime, formatWei, shortAddress, shortHash } from "@/lib/format";
+import { formatPayment, formatDateTime, shortAddress, shortHash } from "@/lib/format";
 
 export default function PaymentsPage() {
   const { data } = useAdminPayments();
   return (
-    <Panel title="Payments · verified from chain events">
+    <Panel title="Payments · verified from chain transactions">
       <table className="data">
         <thead>
           <tr>
@@ -35,7 +35,7 @@ export default function PaymentsPage() {
               <td className="readout text-[10.5px]" title={p.buyer}>
                 {shortAddress(p.buyer)}
               </td>
-              <td className="readout text-[10.5px] text-ink-50">{formatWei(p.amountWei)}</td>
+              <td className="readout text-[10.5px] text-ink-50">{formatPayment(p.amountWei, p.chainId)}</td>
               <td className="readout text-[10.5px]">
                 {p.txUrl ? (
                   <a href={p.txUrl} target="_blank" rel="noreferrer" className="text-signal">
