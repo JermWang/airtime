@@ -23,7 +23,7 @@
 .diagramLabel { font-family: var(--font-mono); font-size: 8px; letter-spacing: 2px; fill: #7f8a94; }
 .diagramWord { position: absolute; left: 28px; bottom: 24px; font-size: clamp(26px, 4vw, 62px); line-height: 1; letter-spacing: -.055em; color: #ffffff0d; font-weight: 500; }
 .routes { stroke: url(#signal-line); stroke-width: 1; stroke-dasharray: 4 6; }
-.source { stroke: #74804f; fill: #121710; transition: stroke .4s, fill .4s; }
+.source { stroke: #527c8b; fill: #0c1d23; transition: stroke .4s, fill .4s; }
 .orbit { stroke: #69aac126; stroke-dasharray: 2 8; transform-origin: 435px 130px; }
 .core { stroke: #69aac170; fill: #0c1d23; }
 .destination { stroke: #69aac1; fill: #69aac120; }
@@ -33,7 +33,7 @@
 .display[data-stage="3"] .destination { fill: #69aac1; }
 .detail { display: flex; position: relative; min-height: 275px; padding: 28px 32px 32px; border-top: 1px solid #ffffff12; }
 .detailContent { position: relative; z-index: 1; max-width: 540px; }
-.detail .eyebrow { font-size: 8px; margin-bottom: 12px; color: #a3af91; }
+.detail .eyebrow { font-size: 8px; margin-bottom: 12px; color: #a4c5cf; }
 .detail h3 { font-size: clamp(24px, 2.5vw, 35px); font-weight: 500; line-height: 1.1; letter-spacing: -.04em; }
 .copy { font-size: 13px; line-height: 1.85; color: #aab3bc; margin-top: 14px; max-width: 49ch; }
 .link { display: inline-flex; align-items: center; gap: 25px; color: #69aac1; margin-top: 22px; padding: 5px 0; border-bottom: 1px solid #69aac150; }
