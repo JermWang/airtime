@@ -255,12 +255,12 @@ textarea {
 .btn-primary {
   background: var(--color-signal);
   border-color: var(--color-signal);
-  color: #0d1400;
+  color: #071013;
   font-weight: 600;
 }
 .btn-primary:hover {
-  background: #d9ff33;
-  border-color: #d9ff33;
+  background: #a4c5cf;
+  border-color: #a4c5cf;
 }
 .btn-ghost {
   border-color: transparent;

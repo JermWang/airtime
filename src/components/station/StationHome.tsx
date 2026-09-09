@@ -96,7 +96,7 @@ function SiteHeader() {
         <SoundControl compact />
         <Link
           href="/airtime"
-          className="readout inline-flex h-[34px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-4 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
+          className="readout inline-flex h-[34px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-4 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#071013] transition hover:bg-[#a4c5cf]"
         >
           Buy airtime
         </Link>
@@ -165,7 +165,7 @@ function Fold({ channelId }: { channelId: string }) {
                 <div className="mt-3.5 flex flex-wrap items-center gap-3">
                   <Link
                     href="/airtime"
-                    className="readout inline-flex h-[42px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-[22px] text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
+                    className="readout inline-flex h-[42px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-[22px] text-[11px] font-semibold uppercase tracking-[0.16em] text-[#071013] transition hover:bg-[#a4c5cf]"
                   >
                     Buy airtime
                   </Link>
@@ -409,7 +409,7 @@ function ClosingCta() {
             <div className="flex flex-[0_1_auto] flex-wrap items-center gap-3.5">
               <Link
                 href="/airtime"
-                className="readout inline-flex h-[52px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-[30px] text-[11.5px] font-semibold uppercase tracking-[0.16em] text-[#0d1400] transition hover:bg-[#d9ff33]"
+                className="readout inline-flex h-[52px] items-center justify-center whitespace-nowrap rounded-sm bg-signal px-[30px] text-[11.5px] font-semibold uppercase tracking-[0.16em] text-[#071013] transition hover:bg-[#a4c5cf]"
               >
                 Buy airtime
               </Link>
