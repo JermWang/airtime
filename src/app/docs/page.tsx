@@ -175,6 +175,10 @@ export default function DocsPage() {
               Nobody buys a thirty-second spot here. A buyer takes a surface at the price it is asking right now and stays on it until somebody pays more, so each
               surface is a single descending price clock.
             </P>
+            <P>
+              Every purchase includes the guaranteed runtime shown in its quote. After that, the ad runs until outbid. Being outbid does not qualify for a refund:
+              the guaranteed runtime you paid for was delivered.
+            </P>
             <Bullets
               items={[
                 <>A surface nobody has bought asks its opening price and walks down toward its floor. The first buyer who thinks the current number is fair takes it.</>,
@@ -259,6 +263,10 @@ export default function DocsPage() {
               ))}
             </ol>
             <P>A pending transaction is never treated as paid, and unique indexes on the payments table make double-recording impossible.</P>
+            <P>
+              A quote briefly reserves the surface. If your transfer arrives after the reservation expires and the surface has changed hands, contact the station
+              for a verified refund.
+            </P>
           </Section>
 
           <Section id="receipts" title="Receipts and delivery">

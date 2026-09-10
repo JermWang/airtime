@@ -322,10 +322,6 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
                   >
                     {quoting ? "Locking the price…" : !surface?.forSale ? surface?.reason ?? "Not for sale right now" : live ? `Take it for ${formatWei(live.askWei)}` : "Reading the market…"}
                   </button>
-                  <p className="readout text-[9.5px] uppercase leading-relaxed tracking-[0.12em] text-ink-500">
-                    Guaranteed {formatDurationSec(placement.auction.minHoldSeconds)} of runtime, then it runs on until outbid. No refunds when you are outbid: the
-                    runtime you paid for was delivered. A quote briefly reserves the surface. If your transfer arrives after the reservation expires and the surface has changed hands, contact the station for a verified refund.
-                  </p>
                 </>
               )}
 
