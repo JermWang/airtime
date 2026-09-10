@@ -10,7 +10,7 @@ const weiString = z.string().regex(/^\d+$/, "Amounts are integer lamports");
  * station would never actually ask.
  */
 const startingPriceWei = weiString.refine((v) => BigInt(v) >= MIN_PRICE_WEI, {
-  message: "Prices start at 0.5 SOL (500000000 lamports)",
+  message: "Prices start at 0.01 SOL (10000000 lamports)",
 });
 
 export const auctionSchema = z.object({

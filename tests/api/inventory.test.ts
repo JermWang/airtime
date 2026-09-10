@@ -380,7 +380,7 @@ describe("payment, occupancy and takeover", () => {
     expect(board.rows.filter((r) => r.placement.ownsMainStream)).toHaveLength(2);
     expect(board.rows.filter((r) => r.placement.kind === "panel")).toHaveLength(6);
     // Everything opens at the same 0.5 and demand takes it from there.
-    for (const row of board.rows) expect(row.placement.auction.openingPriceWei).toBe((500_000_000n).toString());
+    for (const row of board.rows) expect(row.placement.auction.openingPriceWei).toBe((10_000_000n).toString());
     for (const row of board.rows) {
       expect(BigInt(row.surface.askWei)).toBeGreaterThan(0n);
       expect(row.surface.placementId).toBe(row.placement.id);

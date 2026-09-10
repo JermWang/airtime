@@ -180,7 +180,7 @@ function Fold({ channelId }: { channelId: string }) {
               </Reveal>
               <Reveal delay={0.48} y={14} immediate>
                 <div className="readout mt-3 text-[9.5px] uppercase tracking-[0.16em] text-ink-300">
-                  Every surface opens at <span className="text-signal">0.5 SOL</span> · a sale resets it to twice what was paid
+                  Every surface opens at <span className="text-signal">0.01 SOL</span> · a sale resets it to twice what was paid
                 </div>
               </Reveal>
             </div>
@@ -221,7 +221,7 @@ function Panels({ channelId }: { channelId: string }) {
               cta={{ href: "/airtime", label: "Take a surface" }}
             >
               <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
-                No rate card or sales call. Prices start at 0.5 SOL. Every surface carries its own price clock, and the clock is the whole negotiation. Demand is the only
+                No rate card or sales call. Prices start at 0.01 SOL. Every surface carries its own price clock, and the clock is the whole negotiation. Demand is the only
                 thing that raises a price.
               </p>
               <div className="mt-4 flex flex-col">
@@ -361,7 +361,7 @@ function Panels({ channelId }: { channelId: string }) {
               </p>
               <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
                 AIRTIME puts the whole thing back in the open. The station runs around the clock in a browser, the price of every surface is on the screen, and
-                anyone with a wallet can take one. No sales call, no gatekeeper. Prices start at 0.5 SOL.
+                anyone with a wallet can take one. No sales call, no gatekeeper. Prices start at 0.01 SOL.
               </p>
               <div className="mt-5 border-l-2 border-signal pl-3.5">
                 <div className="text-[15px] font-medium tracking-[-0.025em] text-ink-50">Jeff Miller</div>
@@ -412,7 +412,7 @@ function ClosingCta() {
               >
                 Buy airtime
               </Link>
-              <span className="readout text-[10px] uppercase tracking-[0.16em] text-ink-400">Eight surfaces · opens at 0.5 SOL</span>
+              <span className="readout text-[10px] uppercase tracking-[0.16em] text-ink-400">Eight surfaces · opens at 0.01 SOL</span>
             </div>
           </div>
         </Reveal>

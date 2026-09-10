@@ -15,7 +15,7 @@ test("station is live: picture, programme and the price board", async ({ page })
   const board = await page.request.get("/api/board?channel=MAIN").then((r) => r.json());
   const ids = board.rows.map((r: { placement: { id: string } }) => r.placement.id).sort();
   expect(ids).toEqual(["AD", "PANEL_LEFT", "PANEL_RIGHT", "PANEL_TOP_LEFT", "PANEL_TOP_MID", "PANEL_TOP_RIGHT", "PANEL_TOWER", "SHOW"]);
-  for (const row of board.rows) expect(row.surface.askWei).toBe("500000000");
+  for (const row of board.rows) expect(row.surface.askWei).toBe("10000000");
 
   // Opening a surface goes straight into the purchase flow.
   await page.goto("/airtime/SHOW");

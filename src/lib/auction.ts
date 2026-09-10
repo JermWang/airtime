@@ -13,7 +13,7 @@
 export const BPS = 10_000n;
 
 /**
- * The floor under every surface on the station: 0.5 SOL.
+ * The floor under every surface on the station: 0.01 SOL.
  *
  * Nothing is ever asked for less than this, whatever a placement's stored rules
  * say. Configuration is validated against it and the seed opens there, but the
@@ -21,7 +21,7 @@ export const BPS = 10_000n;
  * the browser derive a price from: a row written before the rule existed, or by
  * hand, still cannot put a surface on sale below the station's minimum.
  */
-export const MIN_PRICE_WEI = 500_000_000n;
+export const MIN_PRICE_WEI = 10_000_000n;
 
 export interface AuctionRules {
   openingPriceWei: string;
