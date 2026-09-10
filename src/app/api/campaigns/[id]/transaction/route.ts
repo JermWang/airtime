@@ -43,7 +43,12 @@ export const POST = route<Params<{ id: string }>>(async (req, { params }) => {
  }
  let signed: Transaction;
  try { signed = Transaction.from(Buffer.from(input.signedTransaction, "base64")); } catch { throw new HttpError(400, "Invalid transaction"); }
- if (signed.recentBlockhash !== quote.txBlockhash || !signed.verifySignatures() || !signed.feePayer?.equals(buyer) || signed.signatures.length !== 1 || signed.instructions.length !== 2) throw new HttpError(400, "Unexpected transaction");
+ if (signed.recentBlockhash !== quote.txBlockhash) throw new HttpError(400, "The wallet returned a different transaction blockhash. No payment was sent. Request a fresh quote.");
+ if (!signed.verifySignatures() || !signed.feePayer?.equals(buyer) || signed.signatures.length !== 1) throw new HttpError(400, "The wallet signature or fee payer does not match this purchase. No payment was sent.");
+ if (signed.instructions.length !== 2) {
+  console.warn("[payment-validation] wallet changed instructions", { campaignId: id, programs: signed.instructions.map(ix => ix.programId.toBase58()) });
+  throw new HttpError(400, "The wallet changed the payment instructions, so the station rejected it before sending. No SOL was spent. Contact the station with this message.");
+ }
  const [transfer, note] = signed.instructions;
  try {
   const decoded = SystemInstruction.decodeTransfer(transfer);

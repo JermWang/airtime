@@ -1,6 +1,8 @@
 "use client";
 import { useCallback, useState } from "react";
 import { Transaction } from "@solana/web3.js";
+import bs58 from "bs58";
+import { isRejectedPaymentSubmission } from "@/lib/paymentSubmission";
 import { useSolanaWallet } from "@/lib/solana-wallet";
 import { api, type QuoteDto, type CampaignDto } from "@/lib/api";
 import { activeChain } from "@/lib/chain/chains";
@@ -22,9 +24,16 @@ export function usePurchase() {
    const tx = Transaction.from(Uint8Array.from(atob(prepared.transaction), c => c.charCodeAt(0)));
    const signed = await signTransaction(tx);
    const bytes = signed.serialize();
+   signature = signed.signature ? bs58.encode(signed.signature) : null;
    // From this point a response timeout is ambiguous; don't invite a second payment.
    submitted = true;
-   const result = await api<{ signature: string }>(`/api/campaigns/${quote.campaignId}/transaction`, { method: "POST", json: { signedTransaction: btoa(String.fromCharCode(...bytes)) } });
+   let result: { signature: string };
+   try {
+    result = await api<{ signature: string }>(`/api/campaigns/${quote.campaignId}/transaction`, { method: "POST", json: { signedTransaction: btoa(String.fromCharCode(...bytes)) } });
+   } catch (error) {
+    if (isRejectedPaymentSubmission(error)) { submitted = false; signature = null; }
+    throw error;
+   }
    signature = result.signature;
    for (let attempt = 0; attempt < 30; attempt++) {
     setState({ phase: "confirming", txHash: signature, error: null, outcome: "Waiting for Solana finality" });
