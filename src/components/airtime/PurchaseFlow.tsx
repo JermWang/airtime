@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { api, type CampaignDto, type CreativeDto, type PlacementDto, type QuoteDto } from "@/lib/api";
 import { useServerNow, useSurface } from "@/lib/hooks";
 import { useStation } from "@/lib/store";
-import { activeChain, paymentChains, chainLabel } from "@/lib/chain/chains";
+import { activeChain, paymentChains, chainLabel, explorerTxUrl } from "@/lib/chain/chains";
 import { formatWei, formatDurationSec, formatDateTime, cn, shortHash } from "@/lib/format";
 import { CreativeUpload } from "./CreativeUpload";
 import { CreativePreview } from "./CreativePreview";
@@ -58,6 +58,9 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
   const [payChainId, setPayChainId] = useState<number>(preferredChain.id);
   const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const verifiedTxUrl = purchase.state.phase === "confirmed" && purchase.state.txHash
+    ? explorerTxUrl(purchase.state.txHash, quote?.chainId ?? payChainId)
+    : null;
 
   placementKindCache.set(placement.id, placement.kind);
 
@@ -391,6 +394,11 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
                         </span>
                       </div>
                       {purchase.state.txHash && <div className="readout mt-1 text-[10px] text-ink-400">tx {shortHash(purchase.state.txHash)}</div>}
+                      {verifiedTxUrl && (
+                        <a href={verifiedTxUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-signal" data-testid="verified-payment-link">
+                          View on Solscan ↗
+                        </a>
+                      )}
                     </div>
                   )}
                   {purchase.state.error && <div className="text-[11.5px] text-[#ff8a83]" data-testid="payment-error">{purchase.state.error}</div>}
@@ -412,8 +420,8 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
                   <div className="readout mt-2 text-[10px] text-ink-400">
                     paid {formatWei(campaign.payment.amountWei)} ·{" "}
                     {campaign.payment.txUrl ? (
-                      <a href={campaign.payment.txUrl} target="_blank" rel="noreferrer" className="text-signal">
-                        {shortHash(campaign.payment.txHash)}
+                      <a href={campaign.payment.txUrl} target="_blank" rel="noreferrer" className="text-signal" title={campaign.payment.txHash} data-testid="payment-solscan-link">
+                        View on Solscan ↗
                       </a>
                     ) : (
                       shortHash(campaign.payment.txHash)

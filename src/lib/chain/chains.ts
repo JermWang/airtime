@@ -19,7 +19,8 @@ export const explorerBaseUrl = (): string | null => activeChainEnv() === "local"
 function explorerUrl(kind: string, value: string, chainId = activeChain().id): string | null {
  const c = chainById(chainId);
  if (!c || c.cluster === "custom" || value.startsWith("0x")) return null;
- return `https://explorer.solana.com/${kind}/${encodeURIComponent(value)}${c.cluster === "devnet" ? "?cluster=devnet" : ""}`;
+ const base = kind === "tx" ? "https://solscan.io" : "https://explorer.solana.com";
+ return `${base}/${kind}/${encodeURIComponent(value)}${c.cluster === "devnet" ? "?cluster=devnet" : ""}`;
 }
 export const explorerTxUrl = (signature: string, chainId?: number) => explorerUrl("tx", signature, chainId);
 export const explorerAddressUrl = (address: string) => explorerUrl("address", address);

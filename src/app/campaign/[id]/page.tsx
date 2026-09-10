@@ -97,8 +97,8 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                   <dt>Transaction</dt>
                   <dd>
                     {c.payment.txUrl ? (
-                      <a className="text-signal" href={c.payment.txUrl} target="_blank" rel="noreferrer">
-                        {shortHash(c.payment.txHash)}
+                      <a className="text-signal" href={c.payment.txUrl} target="_blank" rel="noreferrer" title={c.payment.txHash} data-testid="payment-solscan-link">
+                        View on Solscan ↗
                       </a>
                     ) : (
                       <span className="text-ink-100">{shortHash(c.payment.txHash)}</span>

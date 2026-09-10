@@ -11,7 +11,8 @@ it("accepts only the configured Solana network", () => {
 });
 it("links devnet signatures with the cluster and never relabels historical signatures", () => {
  process.env.NEXT_PUBLIC_SOLANA_NETWORK = "devnet";
- expect(explorerTxUrl("signature")).toBe("https://explorer.solana.com/tx/signature?cluster=devnet");
+ expect(explorerTxUrl("signature")).toBe("https://solscan.io/tx/signature?cluster=devnet");
  expect(explorerTxUrl("0x123",4663)).toBeNull();
- expect(explorerTxUrl("signature",900)).toBe("https://explorer.solana.com/tx/signature");
+ expect(explorerTxUrl("signature",900)).toBe("https://solscan.io/tx/signature");
+ expect(explorerTxUrl("signature",902)).toBeNull();
 });

@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PageFrame } from "@/components/hud/PageFrame";
 import { Wordmark } from "@/components/hud/Wordmark";
 import { api } from "@/lib/api";
-import { formatDateTime, formatDurationSec, formatWei, shortHash, cn } from "@/lib/format";
+import { formatDateTime, formatDurationSec, formatWei, cn } from "@/lib/format";
 
 interface AirLogDto {
   id: string;
@@ -100,8 +100,8 @@ export default function AirLogPage({ params }: { params: Promise<{ id: string }>
                   <dt>Transaction</dt>
                   <dd>
                     {log.payment.txUrl ? (
-                      <a className="text-signal" href={log.payment.txUrl} target="_blank" rel="noreferrer">
-                        {shortHash(log.payment.txHash)}
+                      <a className="text-signal" href={log.payment.txUrl} target="_blank" rel="noreferrer" title={log.payment.txHash} data-testid="payment-solscan-link">
+                        View on Solscan ↗
                       </a>
                     ) : (
                       <span className="break-all text-ink-50">{log.payment.txHash}</span>
