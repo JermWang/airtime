@@ -23,6 +23,7 @@ import { signSession } from "@/server/auth/session";
 import { POST as submit } from "@/app/api/campaigns/[id]/transaction/route";
 import { verifyQuoteByTxHash } from "@/server/chain/paymentVerifier";
 import { verifyRefund } from "@/server/chain/refundVerifier";
+import { MIN_PRICE_WEI } from "@/lib/auction";
 import { MEMO_PROGRAM } from "@/lib/chain/solana";
 const keys=JSON.parse(readFileSync(".render/solana-devnet-test-wallets.json","utf8"));
 const buyer=Keypair.fromSecretKey(Uint8Array.from(keys.buyer));
@@ -39,7 +40,7 @@ async function transfer(from:Keypair,to:PublicKey,amount:number,memo:string|unde
  tx.sign(from);const signature=bs58.encode(tx.signature!);report[tag]=signature;save();
  await rpc.sendRawTransaction(tx.serialize(),{skipPreflight:false,maxRetries:3});await finalized(signature);return signature;
 }
-beforeAll(async()=>{expect(await rpc.getGenesisHash()).toBe("EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG");expect(treasury.publicKey.toBase58()).toBe(process.env.SOLANA_TREASURY_ADDRESS);expect(await rpc.getBalance(buyer.publicKey)).toBeGreaterThan(20_000_000);await boot({ticker:false});session.cookie=await signSession({kind:"wallet",address:buyer.publicKey.toBase58(),chainId:901},3600);});
+beforeAll(async()=>{expect(await rpc.getGenesisHash()).toBe("EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG");expect(treasury.publicKey.toBase58()).toBe(process.env.SOLANA_TREASURY_ADDRESS);expect(await rpc.getBalance(buyer.publicKey)).toBeGreaterThan(Number(MIN_PRICE_WEI) + 10_000_000);await boot({ticker:false});session.cookie=await signSession({kind:"wallet",address:buyer.publicKey.toBase58(),chainId:901},3600);});
 afterAll(async()=>{await closeDb();save();});
 it("submits, finalizes, activates and refunds a native SOL payment on real devnet",async()=>{
  // Treasury needs its own fee/rent buffer so it can refund the full price.
@@ -47,8 +48,8 @@ it("submits, finalizes, activates and refunds a native SOL payment on real devne
  const bytes=await sharp({create:{width:1280,height:720,channels:3,background:"#69aac1"}}).png().toBuffer();
  const creative=await createCreativeFromUpload({walletAddress:buyer.publicKey.toBase58(),placementId:"PANEL_LEFT",bytes,filename:"test.png"});
  const c=await createCampaign({walletAddress:buyer.publicKey.toBase58(),placementId:"PANEL_LEFT",displayName:"test",creativeId:creative.id});
- const quote=await createQuote({campaignId:c.id,walletAddress:buyer.publicKey.toBase58(),chainId:901,maxPriceWei:10_000_000n});
- expect(quote.amountWei).toBe("10000000");report.campaignId=c.id;report.quoteId=quote.quote.quoteId;
+ const quote=await createQuote({campaignId:c.id,walletAddress:buyer.publicKey.toBase58(),chainId:901,maxPriceWei:MIN_PRICE_WEI});
+ expect(quote.amountWei).toBe(MIN_PRICE_WEI.toString());report.campaignId=c.id;report.quoteId=quote.quote.quoteId;
  const context={params:Promise.resolve({id:c.id})};
  const prepared=await submit(req({}),context);expect(prepared.status).toBe(200);
  const tx=Transaction.from(Buffer.from((await prepared.json()).transaction,"base64"));tx.sign(buyer);
@@ -63,7 +64,7 @@ it("submits, finalizes, activates and refunds a native SOL payment on real devne
  const [campaign]=await db().select().from(schema.campaigns).where(eq(schema.campaigns.id,c.id));expect(campaign.status).toBe("AIRING");
  expect((await getBoard("MAIN")).rows.find(r=>r.placement.id==="PANEL_LEFT")?.occupant?.id).toBe(c.id);
  report.paymentConfirmed=true;report.exactlyOnce=true;report.activated=true;save();
- const refund=await transfer(treasury,buyer.publicKey,10_000_000,"AIRTIME:REFUND:"+payments[0].id,"refundSignature");
+ const refund=await transfer(treasury,buyer.publicKey,Number(quote.amountWei),"AIRTIME:REFUND:"+payments[0].id,"refundSignature");
  expect((await verifyRefund(payments[0],refund)).status).toBe("confirmed");
  await adminSetCampaignStatus(c.id,"REFUNDED",{type:"SYSTEM",id:null},{reason:"devnet test refund",refundTxHash:refund});
  const [payment]=await db().select().from(schema.payments).where(eq(schema.payments.id,payments[0].id));expect(payment.status).toBe("REFUNDED");

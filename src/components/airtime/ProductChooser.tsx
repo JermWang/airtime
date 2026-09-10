@@ -84,7 +84,7 @@ export function ProductChooser({ channelId = "MAIN", className }: { channelId?: 
       <div className="mb-3.5">
         <div className="label-strong">What are you putting on?</div>
         <div className="mt-1 text-[11.5px] leading-relaxed text-ink-300">
-          Every price starts at 0.01 SOL and falls until somebody buys. A sale resets it to twice what was paid, so the only thing that pushes a price up here is
+          Every price starts at 0.5 SOL and falls until somebody buys. A sale resets it to twice what was paid, so the only thing that pushes a price up here is
           somebody else wanting it.
         </div>
       </div>

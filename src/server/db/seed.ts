@@ -36,7 +36,7 @@ const startingPrice = (n?: number) => {
 /**
  * Auction rules.
  *
- * Everything opens at 0.01 SOL and stays there until somebody buys it. A sale
+ * Everything opens at 0.5 SOL and stays there until somebody buys it. A sale
  * is what moves the price: the ask jumps to `takeoverPremiumBps` of whatever
  * was paid and then walks back down over `decayHours`, never below what the
  * current holder paid plus 5%. Demand is the only thing that raises a price
@@ -342,7 +342,7 @@ export const HOUSE_PLACEHOLDERS: Array<typeof schema.showcaseCreatives.$inferIns
     placementId: null,
     label: "AIRTIME",
     headline: "Buy the screen",
-    sublabel: "Runtime from 0.01 SOL · advertising supports AIRTIME buybacks",
+    sublabel: "Runtime from 0.5 SOL · advertising supports AIRTIME buybacks",
     accent: "#69aac1",
     sortOrder: 1,
   },
