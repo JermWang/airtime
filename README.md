@@ -36,3 +36,15 @@ Before production rollout, configure the actual treasury and matching RPC/networ
 pnpm test covers auction rules, reservations, Solana transfer validation, signature recovery, media validation and treasury accounting. pnpm test:e2e covers the public station and launch UI. Funded network settlement needs the configured devnet wallet.
 
 Deployment note: keep the connected GitHub main branch synchronized with the released Solana code. For coordinated configuration changes, set variables with `--skip-deploys`, then deploy the intended revision and verify the live network and treasury in the control-room overview.
+
+## StonkFun token metrics and rewards
+
+The public `/api/token` endpoint reads StonkFun's documented `/api/public/v1/tokens/{mint}`, `/rewards`, and `/burns` endpoints. It is read-only and requires no API key. The treasury page and home-page treasury figures poll this feed every 60 seconds. Market data and platform rewards are not mixed into the station's advertising-income ledger.
+
+At launch, set `NEXT_PUBLIC_SOLANA_TOKEN_MINT` to the verified AIRTIME CA on the mainnet deployment and rebuild/redeploy (the same setting controls the public CA chips). No other coin is used as a fallback. A missing CA shows "coming soon"; a not-yet-indexed mint is retried. Standard Mode shows no holder rewards. Reward Mode reports the actual paired asset and payout totals from StonkFun. No daily payout time, one-token threshold, or reward cap is invented locally.
+
+Responses are validated against the exact mint and reward asset. Requests are coalesced and cached for one minute per process; upstream Retry-After is honored. Errors retain the last successful snapshot with a stale label and source timestamp; missing numbers are not manufactured as zero. A configured-mint change discards the previous mint's cache. Source data older than fifteen minutes is marked stale.
+
+This integration does not launch a coin, claim fees, send SOL, or execute buybacks. Platform burns and flywheel participation are reported from StonkFun. Spending AIRTIME advertising revenue still needs separate execution and transaction records. Validate the selected launch mode and paired asset on StonkFun before publishing the CA.
+
+Sources: [API documentation](https://www.stonkfun.xyz/developers) and [rewards](https://www.stonkfun.xyz/rewards).

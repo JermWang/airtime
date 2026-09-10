@@ -30,6 +30,7 @@ export default defineConfig({
     stderr: "pipe",
     env: {
       NEXT_PUBLIC_SOLANA_NETWORK: "devnet",
+      NEXT_PUBLIC_SOLANA_TOKEN_MINT: "",
       SOLANA_TREASURY_ADDRESS: "",
       DATABASE_URL: "",
       AIRTIME_PGLITE_DIR: path.resolve(__dirname, ".pglite-e2e"),

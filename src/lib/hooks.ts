@@ -5,6 +5,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type BroadcastStateDto, type QueueDto, type ActivationsDto, type PlacementDto, type BoardDto, type SurfaceDto, type SessionDto, type CampaignDto, type ShowcaseDto, type TreasuryDto } from "./api";
 import { useClock, useRealtime } from "./store";
 import { houseForPlacement, pickHouse } from "./house";
+import type { StonkfunSnapshot } from "./stonkfun";
+
+export function useStonkfunToken() {
+  return useQuery({ queryKey: ["stonkfun-token"], queryFn: () => api<StonkfunSnapshot>("/api/token"), staleTime: 60_000, refetchInterval: 60_000, retry: false });
+}
 
 /* ------------------------------------------------------------------------- */
 /*  Server clock sync                                                         */

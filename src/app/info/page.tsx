@@ -34,7 +34,7 @@ const MISSION = [
   "Television built the largest advertising business in history on a simple idea: a channel has a finite amount of time and space, and anyone can buy a piece of it. Somewhere along the way that stopped being true. Buying a spot now means a rate card, a sales call, an agency, an insertion order, and a minimum spend that rules out almost everybody.",
   "AIRTIME puts the whole thing back in the open. The station runs around the clock in a browser. Every surface in it, starting with the picture itself, is inventory with a price on the screen. You can see what a surface costs, see your own creative on it before you commit, take it with a wallet, and watch it go up. No sales call, no gatekeeper. Prices start at 0.5 SOL.",
   "The price is not negotiated behind a door either. Each surface runs its own clock that walks the price down until somebody thinks it is worth taking, and taking it from the current holder always costs more than they paid. That is the entire rate card, and anyone can reproduce it from the numbers on the placement.",
-  "The launch policy separates two streams: advertising revenue is designated for AIRTIME buybacks and burns; StonkFun creator fees are designated for Anduril pre-stock rewards. Token and rewards automation is pending activation. See the Token and rewards documentation for eligibility and timing.",
+  "Advertising revenue is designated for AIRTIME buybacks and burns. StonkFun handles paired-token rewards for Reward Mode launches. Once the CA is published, the treasury page follows AIRTIME’s metrics and payouts directly from StonkFun.",
 ];
 
 const STEPS = [
@@ -148,7 +148,7 @@ export default function InfoPage() {
         <div>
           <h2 className="section-title">Where the money goes</h2>
           <p className="body-copy mt-4 max-w-2xl">
-            Advertising revenue is designated for AIRTIME buybacks and burns. StonkFun creator fees are designated for Anduril pre-stock rewards. These services are pending activation; the token and rewards documentation explains the launch policy.
+            Advertising revenue is designated for AIRTIME buybacks and burns. StonkFun handles holder payouts for Reward Mode tokens. The treasury page tracks AIRTIME’s market data, paired reward asset and reported burns once the CA is published.
           </p>
           <Link href="/treasury" className="btn btn-sm mt-6">
             Open the treasury

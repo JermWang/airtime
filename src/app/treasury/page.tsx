@@ -3,6 +3,7 @@
 import { PageFrame } from "@/components/hud/PageFrame";
 import { useTreasury } from "@/lib/hooks";
 import { airtimeTokenDecimals } from "@/lib/chain/chains";
+import { StonkfunTokenPanel } from "@/components/airtime/StonkfunTokenPanel";
 import { formatWei, formatDateTime, shortHash, cn } from "@/lib/format";
 import type { TreasuryLedgerRowDto } from "@/lib/api";
 
@@ -28,56 +29,29 @@ function Figure({ label, value, sub, tone }: { label: string; value: string; sub
 export default function TreasuryPage() {
   const { data, isLoading } = useTreasury();
   const s = data?.summary;
-  // Parts per million, so 0.005% survives the trip without a rounding story.
 
   return (
     <PageFrame title="Treasury" wide>
       <p className="mb-5 max-w-3xl text-[13px] leading-relaxed text-ink-200">
-        Launch policy: advertising revenue is designated for AIRTIME buybacks and burns; StonkFun creator fees are designated for Anduril pre-stock rewards. Token and rewards automation is pending activation. Advertising payments are verified on chain; other ledger entries are operator records and require supporting references.
+        AIRTIME advertising payments settle in SOL. Token market data, holder rewards and platform burns are reported by StonkFun for the published AIRTIME mint.
       </p>
+
+      <StonkfunTokenPanel />
 
       {isLoading && !s && <div className="label">Loading treasury…</div>}
 
       {s && (
         <>
-          <section className="mb-4 grid gap-3 md:grid-cols-4">
-            <Figure label="Airtime revenue" value={formatWei(s.airtimeRevenueWei)} sub={`${s.airtimePayments} verified payment${s.airtimePayments === 1 ? "" : "s"}`} />
-            <Figure label="Token tax received" value={formatWei(s.taxInflowWei)} sub="operator recorded" />
-            <Figure label="Total income" value={formatWei(s.totalInflowWei)} sub="combined historical receipts, not a shared allocation" />
-            <Figure label="Reward policy" value="Pending activation" sub="see token and rewards documentation" tone="muted" />
-          </section>
-
-          <section className="mb-6 grid gap-3 md:grid-cols-4">
-            <Figure label="Spent on Anduril pre-stock" value={formatWei(s.deployedWei)} sub={`${s.purchases} purchase${s.purchases === 1 ? "" : "s"}`} tone="signal" />
-            <Figure label="Pre-stock held" value={`${s.sharesHeld} sh`} sub={`${s.sharesAcquired} acquired · ${s.sharesDistributed} distributed`} tone="signal" />
-            <Figure
-              label="Distributed to holders"
-              value={`${s.sharesDistributed} sh`}
-              sub={s.distributions ? `${s.distributions} distribution${s.distributions === 1 ? "" : "s"} · ${s.holdersReached} holder payouts` : "none yet"}
-            />
-            <Figure label="Planned allocation" value="Pro-rata" sub="minimum 1 AIRTIME at daily snapshot" tone="signal" />
-          </section>
-
-          <section className="mb-6 grid gap-3 md:grid-cols-3">
-            <Figure
-              label="$AIRTIME bought back"
-              value={formatWei(s.buybackTokens, airtimeTokenDecimals(), "AIRTIME")}
-              sub={`${formatWei(s.buybackSpentWei)} spent · ${s.buybacks} buyback${s.buybacks === 1 ? "" : "s"} · operator recorded`}
-              tone="signal"
-            />
-            <Figure
-              label="$AIRTIME burned"
-              value={formatWei(s.burnedTokens, airtimeTokenDecimals(), "AIRTIME")}
-              sub={s.burns ? `${s.burns} burn${s.burns === 1 ? "" : "s"} · operator recorded` : "none yet"}
-            />
-            <Figure label="$AIRTIME held" value={formatWei(s.tokensHeld, airtimeTokenDecimals(), "AIRTIME")} sub="bought back, not yet burned" tone="muted" />
+          <section className="mb-5 grid gap-3 sm:grid-cols-2">
+            <Figure label="Airtime advertising revenue" value={formatWei(s.airtimeRevenueWei)} sub={`${s.airtimePayments} verified payment${s.airtimePayments === 1 ? "" : "s"}`} />
+            <div className="rounded-lg border border-white/10 p-4 text-sm leading-relaxed text-ink-300">Advertising revenue is designated for AIRTIME buybacks and burns. The station records completed activity below with transaction references; StonkFun token rewards are tracked separately above.</div>
           </section>
 
           <section className="glass rounded-lg p-3">
-            <div className="label mb-2">Ledger</div>
+            <div className="label mb-2">Station ledger · operator records</div>
             {data!.ledger.length === 0 ? (
               <div className="rounded-md border border-dashed border-white/10 px-3 py-4 text-[12px] text-ink-400">
-                Nothing recorded yet. Entries appear here as the operator records tax inflows, pre-stock purchases, distributions, and $AIRTIME bought back or burned.
+                No station ledger entries yet. StonkFun reward totals and platform burns appear in the live token section above.
               </div>
             ) : (
               <table className="data">

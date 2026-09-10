@@ -1,9 +1,9 @@
 "use client";
 
-import { useTreasury, useQueue } from "@/lib/hooks";
+import { useTreasury, useQueue, useStonkfunToken } from "@/lib/hooks";
 import { StationPlayer } from "@/components/station/StationPlayer";
 import { activeChain } from "@/lib/chain/chains";
-import { formatWei, formatPercentFromPpm, shortHash, cn } from "@/lib/format";
+import { formatWei, shortHash, cn } from "@/lib/format";
 
 /**
  * The two halves of a panel: the picture on the front, the record on the back.
@@ -112,11 +112,15 @@ export function ProofBlocks({ channelId = "MAIN" }: { channelId?: string }) {
 export function LedgerGrid() {
   const { data } = useTreasury();
   const s = data?.summary;
+  const token = useStonkfunToken();
+  const feed = token.data?.data;
+  const rewards = feed?.rewards.rewards;
+  const state = feed && (token.error || token.data?.status === "stale") ? "Last known · see treasury" : token.data?.status === "waiting_for_ca" ? "CA coming soon" : feed ? "Reported by StonkFun" : "Awaiting StonkFun data";
   const cells: Array<[string, string, string, boolean]> = [
     ["Airtime revenue", s ? formatWei(s.airtimeRevenueWei) : "—", "Derived from chain", false],
-    ["Spent on pre-stock", s ? formatWei(s.deployedWei) : "—", "Operator recorded", false],
-    ["Held", s ? `${s.sharesHeld} sh` : "—", "Acquired minus distributed", false],
-    ["Reward cap per holder", `${formatPercentFromPpm(s?.holderRewardCapPpm ?? 50)}%`, "Of the pre-IPO allocation", true],
+    ["Reward asset", feed?.token.mode === "reward" ? feed.token.quote.symbol : "—", state, true],
+    ["Rewards paid", rewards ? new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 }).format(rewards.distributedTokens) : "—", state, false],
+    ["Launch mode", feed?.token.mode === "reward" ? "Reward" : feed?.token.mode === "standard" ? "Standard" : "—", state, false],
   ];
   return (
     <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-lg border border-white/12">

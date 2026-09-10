@@ -307,10 +307,10 @@ function Panels({ channelId }: { channelId: string }) {
               cta={{ href: "/treasury", label: "Open the ledger" }}
             >
               <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
-                Advertising revenue is designated for AIRTIME buybacks and burns. Creator fees from StonkFun are designated for Anduril pre-stock rewards to eligible holders.
+                Advertising revenue is designated for AIRTIME buybacks and burns. StonkFun handles paired-token distributions for Reward Mode holders.
               </p>
               <p className="mt-3.5 text-[13.5px] leading-[1.7] text-ink-300">
-                The token and automated rewards are pending activation. Read the Token and rewards section of the docs for the daily schedule, eligibility and separate uses of each revenue stream.
+                Once the CA is published, the treasury page automatically follows AIRTIME’s market data, rewards and platform burns on StonkFun. Eligibility and payout timing follow StonkFun’s rules.
               </p>
               <LedgerGrid />
               <p className="mt-3.5 text-[11.5px] leading-[1.7] text-ink-500">This is not an offer, a prospectus, or investment advice.</p>
