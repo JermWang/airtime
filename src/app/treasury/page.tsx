@@ -99,9 +99,8 @@ export default function TreasuryPage() {
           </section>
 
           <p className="mt-5 max-w-3xl text-[11px] leading-relaxed text-ink-500">
-            Airtime revenue is derived from payments whose on-chain event the station verified independently. Everything else on this page is a figure entered by the
-            station operator: this site cannot prove a broker purchase or a distribution the way it can prove an airtime payment. Nothing here is an offer, a
-            prospectus, or investment advice.
+            Advertising revenue comes from Solana payments verified by the station. Token metrics, rewards and platform burns come from StonkFun.
+            Station ledger entries are operator records and require supporting transaction references. Nothing here is an offer, a prospectus, or investment advice.
           </p>
         </>
       )}
