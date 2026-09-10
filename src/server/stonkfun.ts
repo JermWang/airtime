@@ -14,7 +14,7 @@ const tokenSchema = z.object({
   network: z.literal("mainnet-beta"),
   token: z.object({
     mint: mintSchema, name: z.string().max(200), symbol: z.string().max(80), mode: mode.nullable(), quote,
-    market: z.object({ priceUsd: amount.nullable(), marketCapUsd: amount.nullable(), volume24hUsd: amount.nullable(), priceChange24h: z.number().finite().nullable() }),
+    market: z.object({ priceUsd: amount.nullable().default(null), marketCapUsd: amount.nullable().default(null), volume24hUsd: amount.nullable().default(null), priceChange24h: z.number().finite().nullable().default(null) }),
     transferFee: z.object({ bps: z.number().int().min(0).max(10000) }).optional(),
     flywheel: z.object({ active: z.boolean() }).optional(),
   }),
@@ -22,11 +22,11 @@ const tokenSchema = z.object({
 const rewardsSchema = z.object({
   mint: mintSchema, mode,
   quote: quote.extend({ decimals: z.number().int().min(0).max(18) }).optional(),
-  rewards: z.object({ distributedTokens: amount, undistributedTokens: amount, payoutCount: amount.int(), holderCount: amount.int(), lastPayoutAt: date.nullable() }).nullable(),
+  rewards: z.object({ distributedTokens: amount, undistributedTokens: amount, payoutCount: amount.int(), holderCount: amount.int(), lastPayoutAt: date.nullable().default(null) }).nullable(),
 });
 const burnsSchema = z.object({
   mint: mintSchema,
-  totals: z.object({ amountTokens: amount, valueUsdAtBurn: amount, burnCount: amount.int(), lastBurnAt: date.nullable() }),
+  totals: z.object({ amountTokens: amount, valueUsdAtBurn: amount, burnCount: amount.int(), lastBurnAt: date.nullable().default(null) }),
   burns: z.array(z.object({ signature: z.string().refine(isSolanaSignature), amountTokens: amount, valueUsdAtBurn: amount, source: z.string().max(80).optional(), burnedAt: date })).max(25),
 });
 

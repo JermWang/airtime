@@ -42,6 +42,19 @@ describe("StonkFun mint-bound reporting", () => {
     const snapshot = await createStonkfunReader()(mint);
     expect(snapshot.status).toBe("unavailable"); expect(snapshot.data).toBeNull();
   });
+  it("accepts a new launch before price history or a first burn exists", async () => {
+    mockFeed((data, url) => {
+      if (url.includes("/burns")) return { ...burns(), totals: { amountTokens: 0, valueUsdAtBurn: 0, burnCount: 0 } };
+      if (url.includes("/rewards")) return data;
+      const initial = token();
+      return { ...initial, token: { ...initial.token, market: { priceUsd: 0.1, marketCapUsd: 1000, volume24hUsd: 20 } } };
+    });
+    const snapshot = await createStonkfunReader()(mint);
+    expect(snapshot.status).toBe("live");
+    expect(snapshot.data?.token.market.priceChange24h).toBeNull();
+    expect(snapshot.data?.burns.totals.lastBurnAt).toBeNull();
+    expect(snapshot.data?.rewards.rewards?.distributedTokens).toBe(123.45);
+  });
   it("rejects reward data for the wrong paired asset", async () => {
     mockFeed((data, url) => url.includes("/rewards") ? { ...rewards(), quote: { ...quote, mint: other } } : data);
     expect((await createStonkfunReader()(mint)).data).toBeNull();
