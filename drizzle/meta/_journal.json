@@ -106,6 +106,13 @@
       "when": 1789026000000,
       "tag": "0014_restore_launch_minimum",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789112400000,
+      "tag": "0015_portrait_side_panels",
+      "breakpoints": true
     }
   ]
 }

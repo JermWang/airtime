@@ -3,6 +3,7 @@
 import { useStation } from "@/lib/store";
 import { StationPlayer } from "@/components/station/StationPlayer";
 import type { PlacementDto } from "@/lib/api";
+import { AdSurface } from "./AdSurface";
 import { cn } from "@/lib/format";
 
 /**
@@ -11,7 +12,8 @@ import { cn } from "@/lib/format";
  * the exact aspect ratio, framing and safe zones.
  */
 export function Preview2D({ placement, className }: { placement: PlacementDto; className?: string }) {
-  const preview = useStation((s) => s.preview);
+  const currentPreview = useStation((s) => s.preview);
+  const preview = currentPreview?.placementId === placement.id ? currentPreview : null;
   const safe = useStation((s) => s.showSafeZones);
   const [aw, ah] = placement.aspectRatio.split(":").map(Number);
 
@@ -35,19 +37,10 @@ export function Preview2D({ placement, className }: { placement: PlacementDto; c
   }
 
   return (
-    <div className={cn("relative w-full", className)}>
+    <div className={cn("relative mx-auto w-full", className)} style={{ maxWidth: 600 * aw / ah }}>
       <div className="relative w-full overflow-hidden rounded-md border-[6px] border-[#0c0d0f] bg-black shadow-[0_30px_80px_rgba(0,0,0,0.6)]" style={{ aspectRatio: `${aw} / ${ah}` }}>
         {preview ? (
-          preview.kind === "video" ? (
-            <video src={preview.url} muted loop autoPlay playsInline className={cn("h-full w-full", preview.fit === "FILL" ? "object-cover" : "object-contain")} />
-          ) : preview.kind === "text" ? (
-            <div className="readout flex h-full w-full items-center whitespace-nowrap px-6 text-[4cqw] uppercase tracking-[0.14em] text-signal" style={{ containerType: "inline-size" }}>
-              {preview.text}
-            </div>
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview.url} alt="" className={cn("h-full w-full", preview.fit === "FILL" ? "object-cover" : "object-contain")} />
-          )
+          <div className="absolute inset-0"><AdSurface creative={{ type: preview.kind === "text" ? "TEXT" : preview.kind === "video" ? "VIDEO" : "IMAGE", url: preview.url ?? null, posterUrl: null, textContent: preview.text ?? null }} aspectRatio={placement.aspectRatio} fit={preview.fit} label="Selected panel preview" /></div>
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-[radial-gradient(ellipse_at_center,#14171b,#07080a)]">
             <div className="label-strong">Available airtime</div>

@@ -79,9 +79,9 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
       setPreview(null);
       return;
     }
-    setPreview(creative.type === "TEXT" ? { kind: "text", text: creative.textContent ?? "", fit } : { kind: creative.type === "VIDEO" ? "video" : "image", url: creative.url ?? undefined, fit });
+    setPreview(creative.type === "TEXT" ? { placementId: placement.id, kind: "text", text: creative.textContent ?? "", fit } : { placementId: placement.id, kind: creative.type === "VIDEO" ? "video" : "image", url: creative.url ?? undefined, fit });
     return () => setPreview(null);
-  }, [creative, fit, setPreview]);
+  }, [creative, fit, setPreview, placement.id]);
 
   useEffect(() => {
     setShowSafeZones(step === "creative" && Boolean(creative));

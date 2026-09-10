@@ -66,6 +66,7 @@ const SOUND_KEY = "airtime.sound";
 export type StationMode = "watch" | "browse" | "focus" | "preview";
 
 export interface PreviewCreative {
+  placementId: string;
   kind: "image" | "video" | "text";
   url?: string;
   text?: string;

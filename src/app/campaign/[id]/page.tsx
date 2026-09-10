@@ -4,6 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { PageFrame } from "@/components/hud/PageFrame";
 import { useCampaign } from "@/lib/hooks";
+import { AdSurface } from "@/components/airtime/AdSurface";
 import { CampaignCheckout } from "@/components/airtime/CampaignCheckout";
 import { formatPayment, formatDateTime, formatDurationSec, shortHash, statusLabel, cn } from "@/lib/format";
 
@@ -49,15 +50,8 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
               <div className="label mb-2">Creative</div>
               {c.creative ? (
                 <div className="flex min-w-0 flex-col gap-4 lg:flex-row">
-                  <div className="w-56 shrink-0 overflow-hidden rounded-md border border-white/10 bg-black" style={{ aspectRatio: c.placement.aspectRatio.replace(":", " / ") }}>
-                    {c.creative.type === "TEXT" ? (
-                      <div className="readout flex h-full items-center justify-center px-3 text-center text-[11px] uppercase tracking-[0.12em] text-signal">{c.creative.textContent}</div>
-                    ) : c.creative.type === "VIDEO" ? (
-                      <video src={c.creative.url ?? undefined} muted controls playsInline className="h-full w-full object-contain" />
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={c.creative.url ?? ""} alt="" className={cn("h-full w-full", c.fit === "FILL" ? "object-cover" : "object-contain")} />
-                    )}
+                  <div className="relative w-56 shrink-0 overflow-hidden rounded-md border border-white/10 bg-black" style={{ aspectRatio: c.placement.aspectRatio.replace(":", " / ") }}>
+                    <div className="absolute inset-0"><AdSurface creative={c.creative} aspectRatio={c.placement.aspectRatio} fit={c.fit} label={c.displayName} controls /></div>
                   </div>
                   <dl className="readout grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-[10.5px] text-ink-300">
                     <dt>Type</dt>

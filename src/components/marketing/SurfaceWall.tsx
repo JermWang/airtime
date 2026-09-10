@@ -5,6 +5,7 @@ import styles from "./SurfaceWall.module.css";
 import Link from "next/link";
 import { useBoard, useActivations, useBroadcastState, useHousePlaceholder } from "@/lib/hooks";
 import { useLiveAsk } from "@/components/airtime/AskTicker";
+import { AdSurface } from "@/components/airtime/AdSurface";
 import { StationPlayer } from "@/components/station/StationPlayer";
 import { usePlayer } from "@/components/station/playerStore";
 import { HouseCard } from "@/components/hud/HouseCard";
@@ -177,17 +178,11 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
       className={cn("group @container relative flex h-full min-w-0 w-full flex-col bg-ink-900", preview ? "overflow-hidden" : styles.screen, !preview && panel.area)}
       aria-label={`${onSelect ? "Enlarge" : "View placement"} ${row?.placement.name ?? panel.label}`}
     >
-      {/* Whatever is on the surface fills it corner to corner: a spot is not
-          letterboxed above a bar of station furniture. The price floats over
-          it, and the card inside keeps its own text clear of the chip. */}
+      {/* Paid media keeps the exact canvas reviewed at checkout. The wall may
+          resize around it; house artwork still fills the surrounding panel. */}
       <div className={cn("absolute inset-0 overflow-hidden", !preview && styles.face)}>
-        {creative?.url ? (
-          creative.type === "VIDEO" ? (
-            <video src={creative.url} muted playsInline loop autoPlay className={cn("h-full w-full bg-black", occupant?.fit === "FIT" ? "object-contain" : "object-cover")} />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={creative.url} alt={occupant?.displayName ?? "Advertisement"} className={cn("h-full w-full bg-black", occupant?.fit === "FIT" ? "object-contain" : "object-cover")} />
-          )
+        {creative && row ? (
+          <AdSurface creative={creative} aspectRatio={row.placement.aspectRatio} fit={occupant?.fit ?? "FIT"} label={occupant?.displayName} />
         ) : house ? (
           <>
             {brand ? (
