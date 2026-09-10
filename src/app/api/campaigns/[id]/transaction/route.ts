@@ -10,6 +10,7 @@ import { publicClient, assertConfiguredCluster } from "@/server/chain/client";
 import { MEMO_PROGRAM, quoteMemo } from "@/lib/chain/solana";
 import { isPaymentChain } from "@/lib/chain/chains";
 import { serverNow } from "@/server/time/clock";
+import { paymentInstructions } from "@/lib/chain/walletInstructions";
 export const dynamic = "force-dynamic";
 const body = z.object({ signedTransaction: z.string().max(1800).optional() });
 export const POST = route<Params<{ id: string }>>(async (req, { params }) => {
@@ -45,11 +46,11 @@ export const POST = route<Params<{ id: string }>>(async (req, { params }) => {
  try { signed = Transaction.from(Buffer.from(input.signedTransaction, "base64")); } catch { throw new HttpError(400, "Invalid transaction"); }
  if (signed.recentBlockhash !== quote.txBlockhash) throw new HttpError(400, "The wallet returned a different transaction blockhash. No payment was sent. Request a fresh quote.");
  if (!signed.verifySignatures() || !signed.feePayer?.equals(buyer) || signed.signatures.length !== 1) throw new HttpError(400, "The wallet signature or fee payer does not match this purchase. No payment was sent.");
- if (signed.instructions.length !== 2) {
-  console.warn("[payment-validation] wallet changed instructions", { campaignId: id, programs: signed.instructions.map(ix => ix.programId.toBase58()) });
-  throw new HttpError(400, "The wallet changed the payment instructions, so the station rejected it before sending. No SOL was spent. Contact the station with this message.");
- }
- const [transfer, note] = signed.instructions;
+ let payment: TransactionInstruction[];
+ try { payment = paymentInstructions(signed.instructions); }
+ catch (error) { throw new HttpError(400, `${(error as Error).message}. No payment was sent.`); }
+ if (payment.length !== 2) throw new HttpError(400, "Unexpected payment instructions. No payment was sent.");
+ const [transfer, note] = payment;
  try {
   const decoded = SystemInstruction.decodeTransfer(transfer);
   if (!decoded.fromPubkey.equals(buyer) || decoded.toPubkey.toBase58() !== quote.contractAddress || BigInt(decoded.lamports) !== BigInt(quote.amountWei)) throw new Error("mismatch");

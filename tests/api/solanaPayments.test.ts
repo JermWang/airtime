@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
-import { Keypair, Transaction, SystemProgram, SystemInstruction, PublicKey } from "@solana/web3.js";
+import { Keypair, Transaction, TransactionInstruction, ComputeBudgetProgram, SystemProgram, SystemInstruction, PublicKey } from "@solana/web3.js";
+import { LIGHTHOUSE_PROGRAM } from "@/lib/chain/walletInstructions";
 import bs58 from "bs58";
 import nacl from "tweetnacl";
 import sharp from "sharp";
@@ -61,6 +62,30 @@ it("persists the signature before broadcasting and refuses duplicate submission"
  expect((await submit(request("/api/campaigns/"+id+"/transaction",body),context)).status).toBe(200);
  expect((await submit(request("/api/campaigns/"+id+"/transaction",body),context)).status).toBe(409);
  expect(mocks.send).toHaveBeenCalledTimes(1);
+});
+it("accepts Phantom guards and priority fees, then activates the ad exactly once",async()=>{
+ const {tx,quote,context,id}=await order();
+ const original=[...tx.instructions];
+ const guard=new TransactionInstruction({programId:new PublicKey(LIGHTHOUSE_PROGRAM),keys:[{pubkey:buyer.publicKey,isSigner:false,isWritable:false}],data:Buffer.from([5,0])});
+ tx.instructions=[ComputeBudgetProgram.setComputeUnitLimit({units:100_000}),ComputeBudgetProgram.setComputeUnitPrice({microLamports:1000}),guard,...original,guard];
+ tx.sign(buyer);
+ expect((await submit(request(`/api/campaigns/${id}/transaction`,{signedTransaction:tx.serialize().toString("base64")}),context)).status).toBe(200);
+ const transfer=SystemInstruction.decodeTransfer(original[0]);
+ mocks.parsed.mockResolvedValue({slot:101,meta:{err:null,innerInstructions:[]},transaction:{message:{accountKeys:[{pubkey:buyer.publicKey,signer:true}],instructions:tx.instructions.map(ix=>ix===original[0]?{programId:SystemProgram.programId,parsed:{type:"transfer",info:{source:buyer.publicKey.toBase58(),destination:transfer.toPubkey.toBase58(),lamports:Number(transfer.lamports)}}}:ix===original[1]?{programId:new PublicKey(MEMO_PROGRAM),parsed:quoteMemo(quote.quote.quoteId)}:{programId:ix.programId,accounts:ix.keys.map(k=>k.pubkey),data:bs58.encode(ix.data)})}}});
+ expect(await pollAwaitingPayments()).toBe(1);
+ expect(await pollAwaitingPayments()).toBe(0);
+ const [campaign]=await db().select().from(schema.campaigns).where(eq(schema.campaigns.id,id));
+ expect(campaign.status).toBe("AIRING");
+ expect(await db().select().from(schema.payments).where(eq(schema.payments.quoteId,quote.quote.quoteId))).toHaveLength(1);
+});
+it.each(["extra transfer","changed amount","memory write","unknown program"])("still rejects %s alongside wallet guards",async kind=>{
+ const {tx,context,id}=await order();
+ if(kind==="changed amount")tx.instructions[0]=SystemProgram.transfer({fromPubkey:buyer.publicKey,toPubkey:SystemInstruction.decodeTransfer(tx.instructions[0]).toPubkey,lamports:1});
+ else if(kind==="extra transfer")tx.add(SystemProgram.transfer({fromPubkey:buyer.publicKey,toPubkey:Keypair.generate().publicKey,lamports:1}));
+ else tx.add(new TransactionInstruction({programId:kind==="memory write"?new PublicKey(LIGHTHOUSE_PROGRAM):Keypair.generate().publicKey,keys:[],data:Buffer.from([0,0])}));
+ tx.instructions.unshift(ComputeBudgetProgram.setComputeUnitLimit({units:100_000}));tx.sign(buyer);
+ expect((await submit(request(`/api/campaigns/${id}/transaction`,{signedTransaction:tx.serialize().toString("base64")}),context)).status).toBe(400);
+ expect(mocks.send).not.toHaveBeenCalled();
 });
 it("resumes the same quote and identifies submitted payments without broadcasting twice",async()=>{
  const {tx,quote,context,id}=await order();

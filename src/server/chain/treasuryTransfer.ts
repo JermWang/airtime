@@ -1,4 +1,6 @@
-import { PublicKey, type ParsedTransactionWithMeta, type ParsedInstruction } from "@solana/web3.js";
+import { PublicKey, TransactionInstruction, type ParsedTransactionWithMeta, type ParsedInstruction } from "@solana/web3.js";
+import bs58 from "bs58";
+import { paymentInstructions } from "@/lib/chain/walletInstructions";
 import { NATIVE_TOKEN, isPaymentChain } from "@/lib/chain/chains";
 import { MEMO_PROGRAM, isSolanaAddress, isSolanaSignature, quoteMemo } from "@/lib/chain/solana";
 import { assertConfiguredCluster } from "./client";
@@ -11,12 +13,22 @@ export function treasuryAddress(): string {
  return isSolanaAddress(address) ? new PublicKey(address).toBase58() : "";
 }
 export const memoFor = (quote: Pick<Quote, "id">): string => quoteMemo(quote.id);
-/** Only the exact native transfer + memo transaction built by AIRTIME is accepted. */
+/** Verify the exact native transfer + memo, allowing validated wallet guards. */
 export function transferMismatch(tx: ParsedTransactionWithMeta, buyer: string, treasury: string, amount: string, memo: string): string | null {
  if (!tx.meta || tx.meta.err) return "transaction failed";
  const keys = tx.transaction.message.accountKeys;
  if (keys[0]?.pubkey.toBase58() !== buyer || !keys[0].signer) return "buyer must be the fee payer and signer";
- const instructions = tx.transaction.message.instructions;
+ if (keys.filter(key => key.signer).length !== 1) return "unexpected transaction signer";
+ const all = tx.transaction.message.instructions;
+ let instructions: typeof all;
+ try {
+  const raw = all.map(ix => new TransactionInstruction({ programId: ix.programId,
+    keys: "accounts" in ix ? ix.accounts.map(pubkey => ({ pubkey, isSigner: false, isWritable: false })) : [],
+    data: "data" in ix ? Buffer.from(bs58.decode(ix.data)) : Buffer.alloc(0),
+  }));
+  const payment = new Set(paymentInstructions(raw));
+  instructions = all.filter((_, index) => payment.has(raw[index]));
+ } catch { return "unexpected wallet instructions"; }
  if (instructions.length !== 2 || tx.meta.innerInstructions?.some((group) => group.instructions.length)) return "unexpected transaction instructions";
  const transfer = instructions[0] as ParsedInstruction;
  if (transfer.programId.toBase58() !== "11111111111111111111111111111111" || transfer.parsed?.type !== "transfer") return "expected a native SOL transfer";
