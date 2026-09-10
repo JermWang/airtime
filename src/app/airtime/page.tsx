@@ -2,6 +2,7 @@
 
 import { PageFrame } from "@/components/hud/PageFrame";
 import { InventoryList } from "@/components/hud/InventoryDrawer";
+import { CampaignCheckout } from "@/components/airtime/CampaignCheckout";
 import { useMyCampaigns, useSession } from "@/lib/hooks";
 import Link from "next/link";
 import { formatDateTime, statusLabel, cn } from "@/lib/format";
@@ -38,6 +39,7 @@ export default function AirtimePage() {
                       </div>
                       <span className={cn("chip", c.status === "AIRING" ? "chip-live" : ["PAID", "COMPLETED"].includes(c.status) ? "chip-signal" : "")}>{statusLabel(c.status)}</span>
                     </Link>
+                    <CampaignCheckout campaign={c} />
                   </li>
                 ))}
               </ul>

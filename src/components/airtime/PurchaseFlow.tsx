@@ -20,6 +20,8 @@ type Step = "connect" | "creative" | "price" | "quote" | "done";
 
 interface Props {
   placement: PlacementDto;
+  initialCampaign?: CampaignDto;
+  initialQuote?: QuoteDto | null;
   onClose?: () => void;
   /** Called when the campaign goes live (e.g. to focus the board). */
   onConfirmed?: (c: CampaignDto) => void;
@@ -33,7 +35,7 @@ interface Props {
  * There is no slot to choose and no duration to pick. You pay what the surface
  * is asking and it is yours until somebody pays more.
  */
-export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props) {
+export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose, onConfirmed, compact }: Props) {
   const { isConnected } = useAccount();
   const auth = useWalletAuth();
   const purchase = usePurchase();
@@ -44,11 +46,11 @@ export function PurchaseFlow({ placement, onClose, onConfirmed, compact }: Props
   const { data: surface } = useSurface(placement.id);
   const live = useLiveAsk(placement, surface);
 
-  const [creative, setCreative] = useState<CreativeDto | null>(null);
-  const [campaign, setCampaign] = useState<CampaignDto | null>(null);
-  const [displayName, setDisplayName] = useState("");
-  const [fit, setFit] = useState<"FIT" | "FILL">(placement.material.fit);
-  const [quote, setQuote] = useState<QuoteDto | null>(null);
+  const [creative, setCreative] = useState<CreativeDto | null>(initialCampaign?.creative ?? null);
+  const [campaign, setCampaign] = useState<CampaignDto | null>(initialCampaign ?? null);
+  const [displayName, setDisplayName] = useState(initialCampaign?.displayName ?? "");
+  const [fit, setFit] = useState<"FIT" | "FILL">(initialCampaign?.fit ?? placement.material.fit);
+  const [quote, setQuote] = useState<QuoteDto | null>(initialQuote ?? null);
   const preferredChain = activeChain();
   const chains = paymentChains().filter((chain) => chain.id === preferredChain.id);
   const [payChainId, setPayChainId] = useState<number>(preferredChain.id);

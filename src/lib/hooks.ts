@@ -302,6 +302,7 @@ export function useMyCampaigns(enabled: boolean) {
     queryKey: ["campaigns", "mine"],
     queryFn: () => api<{ campaigns: CampaignDto[] }>("/api/campaigns"),
     enabled,
+    refetchInterval: (query) => query.state.data?.campaigns.some(c => c.status === "AWAITING_PAYMENT" || c.status === "PAID") ? 3000 : false,
   });
 }
 

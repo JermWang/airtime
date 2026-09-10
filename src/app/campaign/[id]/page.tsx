@@ -4,6 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { PageFrame } from "@/components/hud/PageFrame";
 import { useCampaign } from "@/lib/hooks";
+import { CampaignCheckout } from "@/components/airtime/CampaignCheckout";
 import { formatPayment, formatDateTime, formatDurationSec, shortHash, statusLabel, cn } from "@/lib/format";
 
 const STEPS = ["DRAFT", "READY_TO_PURCHASE", "AWAITING_PAYMENT", "PAID", "AIRING", "COMPLETED"];
@@ -47,7 +48,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
             <div className="glass rounded-lg p-4">
               <div className="label mb-2">Creative</div>
               {c.creative ? (
-                <div className="flex gap-4">
+                <div className="flex min-w-0 flex-col gap-4 lg:flex-row">
                   <div className="w-56 shrink-0 overflow-hidden rounded-md border border-white/10 bg-black" style={{ aspectRatio: c.placement.aspectRatio.replace(":", " / ") }}>
                     {c.creative.type === "TEXT" ? (
                       <div className="readout flex h-full items-center justify-center px-3 text-center text-[11px] uppercase tracking-[0.12em] text-signal">{c.creative.textContent}</div>
@@ -58,7 +59,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                       <img src={c.creative.url ?? ""} alt="" className={cn("h-full w-full", c.fit === "FILL" ? "object-cover" : "object-contain")} />
                     )}
                   </div>
-                  <dl className="readout grid flex-1 grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[10.5px] text-ink-300">
+                  <dl className="readout grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-[10.5px] text-ink-300">
                     <dt>Type</dt>
                     <dd className="text-ink-100">{c.creative.type}</dd>
                     {c.creative.width && (
@@ -72,7 +73,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                     <dt>Framing</dt>
                     <dd className="text-ink-100">{c.fit}</dd>
                     <dt>Creative hash</dt>
-                    <dd className="break-all text-ink-100" title="keccak256 of the stored bytes; signed into the quote and emitted on chain">
+                    <dd className="break-all text-ink-100" title="SHA-256 of the stored creative bytes">
                       {c.creative.creativeHash}
                     </dd>
                     <dt>SHA-256</dt>
@@ -113,6 +114,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
               ) : (
                 <div className="text-[12px] text-ink-400">Not paid yet.</div>
               )}
+              <CampaignCheckout campaign={c} />
             </div>
             <div className="glass rounded-lg p-4">
               <div className="label mb-2">Buyer</div>

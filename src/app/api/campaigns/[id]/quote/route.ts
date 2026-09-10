@@ -58,5 +58,6 @@ export const GET = route<Params<{ id: string }>>(async (_req, { params }) => {
     settlement: "solana",
     payTo: quote.contractAddress,
     chainId: quote.chainId,
+    paymentSubmitted: Boolean(quote.txHint && !quote.txError),
   });
 });

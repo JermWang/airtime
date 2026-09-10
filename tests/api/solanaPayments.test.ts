@@ -18,6 +18,7 @@ import { createQuote, expireQuotes } from "@/server/ads/quotes";
 import { signSession } from "@/server/auth/session";
 import { signInMessage } from "@/lib/chain/solana";
 import { POST as submit } from "@/app/api/campaigns/[id]/transaction/route";
+import { GET as resumeQuote } from "@/app/api/campaigns/[id]/quote/route";
 import { POST as verify } from "@/app/api/auth/verify/route";
 import { pollAwaitingPayments } from "@/server/chain/paymentVerifier";
 import { MEMO_PROGRAM, quoteMemo } from "@/lib/chain/solana";
@@ -59,6 +60,20 @@ it("persists the signature before broadcasting and refuses duplicate submission"
  const body={signedTransaction:tx.serialize().toString("base64")};
  expect((await submit(request("/api/campaigns/"+id+"/transaction",body),context)).status).toBe(200);
  expect((await submit(request("/api/campaigns/"+id+"/transaction",body),context)).status).toBe(409);
+ expect(mocks.send).toHaveBeenCalledTimes(1);
+});
+it("resumes the same quote and identifies submitted payments without broadcasting twice",async()=>{
+ const {tx,quote,context,id}=await order();
+ const req=new Request(origin+`/api/campaigns/${id}/quote`);
+ const before=await resumeQuote(req,context);
+ expect(before.status).toBe(200);
+ expect(await before.json()).toMatchObject({campaignId:id,amountWei:quote.amountWei,paymentSubmitted:false,quote:{quoteId:quote.quote.quoteId}});
+ tx.sign(buyer);
+ expect((await submit(request(`/api/campaigns/${id}/transaction`,{signedTransaction:tx.serialize().toString("base64")}),context)).status).toBe(200);
+ const after=await resumeQuote(req,context);
+ expect(await after.json()).toMatchObject({paymentSubmitted:true});
+ mocks.cookie=await signSession({kind:"wallet",address:Keypair.generate().publicKey.toBase58(),chainId:902},3600);
+ expect((await resumeQuote(req,context)).status).toBe(404);
  expect(mocks.send).toHaveBeenCalledTimes(1);
 });
 it("rejects a signed transaction whose destination was changed",async()=>{
