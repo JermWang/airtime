@@ -21,7 +21,7 @@
 .diagram { position: relative; padding: 12px 24px 0; color: #69aac1; background-image: linear-gradient(#ffffff03 1px, transparent 1px), linear-gradient(90deg, #ffffff03 1px, transparent 1px); background-size: 32px 32px; }
 .diagram svg { position: relative; z-index: 1; width: 100%; height: auto; max-height: 280px; }
 .diagramLabel { font-family: var(--font-mono); font-size: 8px; letter-spacing: 2px; fill: #7f8a94; }
-.diagramWord { position: absolute; left: 28px; bottom: 24px; font-size: clamp(26px, 4vw, 62px); line-height: 1; letter-spacing: -.055em; color: #ffffff0d; font-weight: 500; }
+.diagramWord { position: absolute; z-index: 2; pointer-events: none; left: 28px; bottom: 24px; font-size: clamp(26px, 4vw, 62px); line-height: 1; letter-spacing: -.055em; color: #ffffff0d; font-weight: 500; }
 .routes { stroke: url(#signal-line); stroke-width: 1; stroke-dasharray: 4 6; }
 .source { stroke: #527c8b; fill: #0c1d23; transition: stroke .4s, fill .4s; }
 .orbit { stroke: #69aac126; stroke-dasharray: 2 8; transform-origin: 435px 130px; }
