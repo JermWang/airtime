@@ -10,6 +10,7 @@ import { useStation } from "@/lib/store";
 import { activeChain, paymentChains, chainLabel } from "@/lib/chain/chains";
 import { formatWei, formatDurationSec, formatDateTime, cn, shortHash } from "@/lib/format";
 import { CreativeUpload } from "./CreativeUpload";
+import { CreativePreview } from "./CreativePreview";
 import { AskTicker, useLiveAsk } from "./AskTicker";
 import { useWalletAuth } from "./useWalletAuth";
 import { usePurchase } from "./usePurchase";
@@ -252,6 +253,7 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
 
           {(step === "price" || step === "quote") && creative && campaign && (
             <div className="flex flex-col gap-3">
+              <CreativePreview creative={creative} placement={placement} fit={fit} />
               <div className="flex items-center gap-2 rounded-md border border-white/10 bg-black/30 p-2">
                 <div className="h-9 w-16 shrink-0 overflow-hidden rounded-sm bg-black">
                   {creative.type === "TEXT" ? (
@@ -362,7 +364,7 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
                   {purchase.state.phase === "idle" || purchase.state.phase === "error" ? (
                     <div className="flex gap-2">
                       <button className="btn btn-ghost" onClick={() => { setQuote(null); purchase.reset(); }}>
-                        Back
+                        Edit framing
                       </button>
                       <button className="btn btn-primary flex-1" disabled={quoteSecondsLeft === 0} onClick={() => void pay()} data-testid="pay">
                         Pay {formatWei(quote.amountWei)} on {chainLabel(quote.chainId)}
