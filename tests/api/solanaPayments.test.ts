@@ -14,12 +14,12 @@ vi.mock("@/server/chain/client", () => ({
 import { boot } from "@/server/boot";
 import { db, schema, closeDb } from "@/server/db/client";
 import { createCreativeFromUpload } from "@/server/ads/creatives";
-import { createCampaign } from "@/server/ads/campaigns";
+import { createCampaign, updateCampaignDraft } from "@/server/ads/campaigns";
 import { createQuote, expireQuotes } from "@/server/ads/quotes";
 import { signSession } from "@/server/auth/session";
 import { signInMessage } from "@/lib/chain/solana";
 import { POST as submit } from "@/app/api/campaigns/[id]/transaction/route";
-import { GET as resumeQuote } from "@/app/api/campaigns/[id]/quote/route";
+import { GET as resumeQuote, DELETE as releaseQuote } from "@/app/api/campaigns/[id]/quote/route";
 import { POST as verify } from "@/app/api/auth/verify/route";
 import { pollAwaitingPayments } from "@/server/chain/paymentVerifier";
 import { MEMO_PROGRAM, quoteMemo } from "@/lib/chain/solana";
@@ -63,6 +63,13 @@ it("persists the signature before broadcasting and refuses duplicate submission"
  expect((await submit(request("/api/campaigns/"+id+"/transaction",body),context)).status).toBe(409);
  expect(mocks.send).toHaveBeenCalledTimes(1);
 });
+it("persists reviewed ad text, destination and framing before payment",async()=>{
+ const {id,context}=await order();
+ expect((await releaseQuote(request(`/api/campaigns/${id}/quote`,{}),context)).status).toBe(200);
+ const updated=await updateCampaignDraft(id,buyer.publicKey.toBase58(),{displayName:"AIRTIME mainnet verified",clickUrl:"https://airtime.media/",fit:"FIT"});
+ expect(updated).toMatchObject({displayName:"AIRTIME mainnet verified",clickUrl:"https://airtime.media/",fit:"FIT"});
+ await expect(updateCampaignDraft(id,buyer.publicKey.toBase58(),{clickUrl:"javascript:alert(1)"})).rejects.toThrow(/HTTPS/);
+});
 it("accepts Phantom guards and priority fees, then activates the ad exactly once",async()=>{
  const {tx,quote,context,id}=await order();
  const original=[...tx.instructions];
@@ -97,6 +104,7 @@ it("resumes the same quote and identifies submitted payments without broadcastin
  expect((await submit(request(`/api/campaigns/${id}/transaction`,{signedTransaction:tx.serialize().toString("base64")}),context)).status).toBe(200);
  const after=await resumeQuote(req,context);
  expect(await after.json()).toMatchObject({paymentSubmitted:true});
+ expect((await releaseQuote(request(`/api/campaigns/${id}/quote`,{}),context)).status).toBe(409);
  mocks.cookie=await signSession({kind:"wallet",address:Keypair.generate().publicKey.toBase58(),chainId:902},3600);
  expect((await resumeQuote(req,context)).status).toBe(404);
  expect(mocks.send).toHaveBeenCalledTimes(1);

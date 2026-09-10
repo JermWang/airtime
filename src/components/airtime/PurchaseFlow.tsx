@@ -50,6 +50,7 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
   const [creative, setCreative] = useState<CreativeDto | null>(initialCampaign?.creative ?? null);
   const [campaign, setCampaign] = useState<CampaignDto | null>(initialCampaign ?? null);
   const [displayName, setDisplayName] = useState(initialCampaign?.displayName ?? "");
+  const [clickUrl, setClickUrl] = useState(initialCampaign?.clickUrl ?? "");
   const [fit, setFit] = useState<"FIT" | "FILL">(initialCampaign?.fit ?? placement.material.fit);
   const [quote, setQuote] = useState<QuoteDto | null>(initialQuote ?? null);
   const preferredChain = activeChain();
@@ -97,10 +98,10 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
       setError(null);
       try {
         if (campaign) {
-          const updated = await api<CampaignDto>(`/api/campaigns/${campaign.id}`, { method: "PATCH", json: { creativeId: c.id, fit } });
+          const updated = await api<CampaignDto>(`/api/campaigns/${campaign.id}`, { method: "PATCH", json: { creativeId: c.id, fit, clickUrl: clickUrl.trim() || null } });
           setCampaign(updated);
         } else {
-          const created = await api<CampaignDto>("/api/campaigns", { method: "POST", json: { placementId: placement.id, displayName: displayName || "Untitled campaign", creativeId: c.id, fit } });
+          const created = await api<CampaignDto>("/api/campaigns", { method: "POST", json: { placementId: placement.id, displayName: displayName || "Untitled campaign", creativeId: c.id, fit, clickUrl: clickUrl.trim() || null } });
           setCampaign(created);
         }
         setCreative(c);
@@ -108,7 +109,7 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
         setError((e as Error).message);
       }
     },
-    [campaign, placement.id, displayName, fit],
+    [campaign, placement.id, displayName, fit, clickUrl],
   );
 
   const requestQuote = useCallback(async () => {
@@ -117,9 +118,11 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
     setError(null);
     try {
       const name = displayName.trim() || campaign.displayName;
-      if (name !== campaign.displayName || fit !== campaign.fit) {
+      const destination = placement.allowsClickThrough ? clickUrl.trim() || null : null;
+      if (destination && !/^https:\/\//i.test(destination)) throw new Error("Use a complete https:// destination link.");
+      if (name !== campaign.displayName || fit !== campaign.fit || destination !== campaign.clickUrl) {
         const updated = await api<CampaignDto>(`/api/campaigns/${campaign.id}`, {
-          method: "PATCH", json: { displayName: name, fit },
+          method: "PATCH", json: { displayName: name, fit, clickUrl: destination },
         });
         setCampaign(updated);
       }
@@ -133,7 +136,7 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
     } finally {
       setQuoting(false);
     }
-  }, [campaign, live, displayName, fit, payChainId, purchase]);
+  }, [campaign, live, displayName, fit, clickUrl, placement.allowsClickThrough, payChainId, purchase]);
 
   const pay = useCallback(async () => {
     if (!quote) return;
@@ -230,8 +233,8 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
 
           {step === "creative" && (
             <div className="flex flex-col gap-3">
-              <input className="field" placeholder="Brand or campaign name (shown on the board)" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={60} data-testid="display-name" />
-              <CreativeUpload placement={placement} onCreative={onCreative} current={creative} />
+              <label className="flex flex-col gap-1.5 text-[11px] text-ink-300">Ad text / name<input className="field" placeholder="Text shown with your ad (up to 60 characters)" value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={60} data-testid="display-name" /></label>
+              <CreativeUpload placement={placement} onCreative={onCreative} current={creative} clickUrl={clickUrl} onClickUrlChange={setClickUrl} />
               {creative && creative.type !== "TEXT" && placement.type !== "OVERLAY" && (
                 <div className="flex items-center gap-2">
                   <span className="label">Framing</span>
@@ -253,7 +256,11 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
 
           {(step === "price" || step === "quote") && creative && campaign && (
             <div className="flex flex-col gap-3">
-              <CreativePreview creative={creative} placement={placement} fit={fit} />
+              {step === "price" && <div className="flex flex-col gap-3">
+                <label className="flex flex-col gap-1.5 text-[11px] text-ink-300">Ad text / name<input className="field" value={displayName} maxLength={60} disabled={quoting} onChange={e => setDisplayName(e.target.value)} data-testid="preview-ad-text" /></label>
+                {placement.allowsClickThrough && <label className="flex flex-col gap-1.5 text-[11px] text-ink-300">Destination link (optional)<input className="field" type="url" placeholder="https://your-site.com" value={clickUrl} disabled={quoting} onChange={e => setClickUrl(e.target.value)} data-testid="preview-ad-link" /></label>}
+              </div>}
+              <CreativePreview creative={creative} placement={placement} fit={fit} displayName={displayName.trim() || campaign.displayName} clickUrl={placement.allowsClickThrough ? clickUrl.trim() : ""} />
               <div className="flex items-center gap-2 rounded-md border border-white/10 bg-black/30 p-2">
                 <div className="h-9 w-16 shrink-0 overflow-hidden rounded-sm bg-black">
                   {creative.type === "TEXT" ? (
@@ -363,10 +370,15 @@ export function PurchaseFlow({ placement, initialCampaign, initialQuote, onClose
 
                   {purchase.state.phase === "idle" || purchase.state.phase === "error" ? (
                     <div className="flex gap-2">
-                      <button className="btn btn-ghost" onClick={() => { setQuote(null); purchase.reset(); }}>
-                        Edit framing
+                      <button className="btn btn-ghost" disabled={quoting} onClick={async () => {
+                        setQuoting(true); setError(null);
+                        try { await api(`/api/campaigns/${campaign.id}/quote`, { method: "DELETE" }); setQuote(null); purchase.reset(); }
+                        catch (error) { setError((error as Error).message); }
+                        finally { setQuoting(false); }
+                      }}>
+                        Edit ad
                       </button>
-                      <button className="btn btn-primary flex-1" disabled={quoteSecondsLeft === 0} onClick={() => void pay()} data-testid="pay">
+                      <button className="btn btn-primary flex-1" disabled={quoting || quoteSecondsLeft === 0} onClick={() => void pay()} data-testid="pay">
                         Pay {formatWei(quote.amountWei)} on {chainLabel(quote.chainId)}
                       </button>
                     </div>

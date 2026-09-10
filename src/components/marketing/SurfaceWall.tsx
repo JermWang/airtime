@@ -183,10 +183,10 @@ function PanelSurface({ panel, row, occupant, onSelect, preview = false }: { pan
       <div className={cn("absolute inset-0 overflow-hidden", !preview && styles.face)}>
         {creative?.url ? (
           creative.type === "VIDEO" ? (
-            <video src={creative.url} muted playsInline loop autoPlay className="h-full w-full object-cover" />
+            <video src={creative.url} muted playsInline loop autoPlay className={cn("h-full w-full bg-black", occupant?.fit === "FIT" ? "object-contain" : "object-cover")} />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={creative.posterUrl ?? creative.url} alt="" className="h-full w-full object-cover" />
+            <img src={creative.url} alt={occupant?.displayName ?? "Advertisement"} className={cn("h-full w-full bg-black", occupant?.fit === "FIT" ? "object-contain" : "object-cover")} />
           )
         ) : house ? (
           <>
@@ -394,6 +394,7 @@ function SurfaceDetail({ row, occupant, onClose }: { row: BoardRowDto; occupant:
           <p className="mt-4 text-sm leading-relaxed text-ink-300">{row.placement.description ?? "A place for your creative in the AIRTIME display district."}</p>
           <div className="mt-7 border-y border-white/10 py-5"><div className="readout text-[10px] uppercase tracking-widest text-ink-300">Current asking price</div><div className="mt-2 text-3xl text-signal">{formatWei(live?.askWei ?? row.surface.askWei)}</div></div>
           <dl className="mt-5 grid grid-cols-2 gap-5 text-sm"><div><dt className="text-ink-400">Screen format</dt><dd className="mt-1">{row.placement.aspectRatio}</dd></div><div><dt className="text-ink-400">Accepts</dt><dd className="mt-1">{row.placement.mediaTypes.join(" / ").toLowerCase()}</dd></div><div className="col-span-2"><dt className="text-ink-400">On this screen</dt><dd className="mt-1">{occupant?.displayName ?? "House display · available inventory"}</dd></div></dl>
+          {occupant?.clickUrl && /^https?:\/\//i.test(occupant.clickUrl) && <a href={occupant.clickUrl} target="_blank" rel="noopener noreferrer" className="mt-4 block break-all text-sm text-signal">Visit advertiser ↗ · {occupant.clickUrl}</a>}
           {row.surface.reason && <p className="mt-4 text-sm text-ink-300">{row.surface.reason}</p>}
           <Link href={`/airtime/${row.placement.id}`} className="mt-7 flex min-h-11 items-center justify-center rounded-sm bg-signal px-5 text-sm font-semibold text-black">{row.surface.forSale ? "Get this placement ↗" : "View placement ↗"}</Link>
         </div>

@@ -8,6 +8,8 @@ interface Props {
   placement: PlacementDto;
   onCreative: (c: CreativeDto) => void | Promise<void>;
   current: CreativeDto | null;
+  clickUrl: string;
+  onClickUrlChange: (value: string) => void;
 }
 
 /**
@@ -16,14 +18,13 @@ interface Props {
  * upload form, so the link is the first-class path for shows and the station
  * probes it server-side before it will sell airtime against it.
  */
-export function CreativeUpload({ placement, onCreative, current }: Props) {
+export function CreativeUpload({ placement, onCreative, current, clickUrl, onClickUrlChange }: Props) {
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [text, setText] = useState("");
   const [link, setLink] = useState("");
   const [tab, setTab] = useState<"link" | "file">("link");
-  const [clickUrl, setClickUrl] = useState("");
   const [drag, setDrag] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const isText = placement.mediaTypes.length === 1 && placement.mediaTypes[0] === "TEXT";
@@ -191,7 +192,7 @@ export function CreativeUpload({ placement, onCreative, current }: Props) {
         </>
       )}
       {placement.allowsClickThrough && (
-        <input className="field" placeholder="Click-through URL (https, optional)" value={clickUrl} onChange={(e) => setClickUrl(e.target.value)} />
+        <label className="flex flex-col gap-1.5 text-[11px] text-ink-300">Destination link (optional)<input className="field" type="url" placeholder="https://your-site.com" value={clickUrl} onChange={(e) => onClickUrlChange(e.target.value)} /></label>
       )}
       {errors.length > 0 && (
         <ul className="rounded-md border border-live/40 bg-live/10 px-3 py-2 text-[11.5px] text-[#ff8a83]" data-testid="creative-errors">

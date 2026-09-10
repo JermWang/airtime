@@ -4,10 +4,12 @@ import type { CreativeDto, PlacementDto } from "@/lib/api";
 import { cn } from "@/lib/format";
 
 /** Uses checkout's own state so previews cannot leak between open campaigns. */
-export function CreativePreview({ creative, placement, fit }: {
+export function CreativePreview({ creative, placement, fit, displayName, clickUrl }: {
   creative: CreativeDto;
   placement: PlacementDto;
   fit: "FIT" | "FILL";
+  displayName: string;
+  clickUrl: string;
 }) {
   const mediaClass = cn("absolute inset-0 h-full w-full", fit === "FILL" ? "object-cover" : "object-contain");
   const [width, height] = placement.aspectRatio.split(":").map(Number);
@@ -25,6 +27,11 @@ export function CreativePreview({ creative, placement, fit }: {
         // eslint-disable-next-line @next/next/no-img-element
         <img src={creative.url ?? ""} alt="Your ad with the selected framing" className={mediaClass} />
       )}
+    </div>
+    <div className="mt-3 min-w-0 border-t border-white/10 pt-3" aria-live="polite">
+      <p className="break-words text-sm font-medium text-ink-50" data-testid="preview-ad-caption">{displayName}</p>
+      {clickUrl && <p className="mt-1 break-all text-[11px] text-signal" data-testid="preview-ad-destination">Visit advertiser ↗ · {clickUrl}</p>}
+      <p className="mt-1 text-[10px] text-ink-400">Shown with your ad in the surface details.</p>
     </div>
     <p className="mt-2 text-[11px] leading-relaxed text-ink-300" aria-live="polite">
       {fit === "FIT" ? "Fit shows the entire ad. Black bars appear when its shape differs from the surface." : "Fill covers the entire surface. Edges may be cropped to fit."}

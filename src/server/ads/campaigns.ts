@@ -9,6 +9,14 @@ import { describeSurface, type SurfaceState } from "./auction";
 import { endRun, withdrawRun } from "./activation";
 import { explorerTxUrl, activeChain } from "@/lib/chain/chains";
 import { shortAddress } from "@/lib/format";
+import { validateClickUrl } from "../media/validate";
+
+function campaignClickUrl(value: string | null | undefined) {
+  if (!value?.trim()) return null;
+  const url = validateClickUrl(value.trim());
+  if (!url) throw new HttpError(400, "Use a valid HTTPS destination link without login details.");
+  return url;
+}
 import { verifyRefund } from "../chain/refundVerifier";
 
 import type { Campaign, Placement, Creative, Payment, AirLog } from "../db/schema";
@@ -31,7 +39,7 @@ export async function createCampaign(input: { walletAddress: string; placementId
       displayName: input.displayName.trim().slice(0, 60) || "Untitled campaign",
       status,
       fit: input.fit ?? placement.material.fit,
-      clickUrl: placement.allowsClickThrough ? input.clickUrl ?? creative?.clickUrl ?? null : null,
+      clickUrl: placement.allowsClickThrough ? campaignClickUrl(input.clickUrl ?? creative?.clickUrl) : null,
     })
     .returning();
   await audit({ type: "WALLET", id: input.walletAddress }, "campaign.created", { type: "campaign", id: row.id }, { placementId: placement.id });
@@ -54,7 +62,7 @@ export async function updateCampaignDraft(id: string, walletAddress: string, pat
   const set: Partial<typeof schema.campaigns.$inferInsert> = { updatedAt: serverNow() };
   if (patch.displayName !== undefined) set.displayName = patch.displayName.trim().slice(0, 60) || campaign.displayName;
   if (patch.fit) set.fit = patch.fit;
-  if (patch.clickUrl !== undefined) set.clickUrl = placement.allowsClickThrough ? patch.clickUrl : null;
+  if (patch.clickUrl !== undefined) set.clickUrl = placement.allowsClickThrough ? campaignClickUrl(patch.clickUrl) : null;
   if (patch.creativeId !== undefined) {
     if (patch.creativeId) {
       const creative = await getOwnedCreative(patch.creativeId, walletAddress);
