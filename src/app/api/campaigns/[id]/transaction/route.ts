@@ -1,6 +1,6 @@
 import { z } from "zod";
 import bs58 from "bs58";
-import { PublicKey, SystemProgram, SystemInstruction, Transaction, TransactionInstruction } from "@solana/web3.js";
+import { PublicKey, SystemProgram, SystemInstruction, Transaction, TransactionInstruction, VersionedTransaction } from "@solana/web3.js";
 import { eq } from "drizzle-orm";
 import { route, type Params } from "@/server/route";
 import { json, parseBody, assertSameOrigin, HttpError } from "@/server/http";
@@ -31,7 +31,15 @@ export const POST = route<Params<{ id: string }>>(async (req, { params }) => {
    SystemProgram.transfer({ fromPubkey: buyer, toPubkey: new PublicKey(quote.contractAddress), lamports: BigInt(quote.amountWei) }),
    new TransactionInstruction({ programId: new PublicKey(MEMO_PROGRAM), keys: [{ pubkey: buyer, isSigner: true, isWritable: false }], data: Buffer.from(memo) }),
   );
-  return json({ transaction: tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64") });
+  const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
+  let simulation;
+  try {
+   simulation = await connection.simulateTransaction(VersionedTransaction.deserialize(serialized), { sigVerify: false, commitment: "confirmed" });
+  } catch {
+   throw new HttpError(503, "Solana could not preview this payment. Try again shortly; no payment was sent.");
+  }
+  if (simulation.value.err) throw new HttpError(400, "This payment cannot complete on Solana. Check that your wallet has enough SOL for the price and network fee, then try again. No payment was sent.");
+  return json({ transaction: serialized.toString("base64") });
  }
  let signed: Transaction;
  try { signed = Transaction.from(Buffer.from(input.signedTransaction, "base64")); } catch { throw new HttpError(400, "Invalid transaction"); }

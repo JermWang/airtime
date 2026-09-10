@@ -4,10 +4,10 @@ import bs58 from "bs58";
 import nacl from "tweetnacl";
 import sharp from "sharp";
 import { eq } from "drizzle-orm";
-const mocks = vi.hoisted(() => ({ cookie: "", send: vi.fn(), parsed: vi.fn(), height: vi.fn() }));
+const mocks = vi.hoisted(() => ({ cookie: "", send: vi.fn(), parsed: vi.fn(), height: vi.fn(), simulate: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => ({value:mocks.cookie}), set: (_: string, value: string) => { mocks.cookie=value; } }) }));
 vi.mock("@/server/chain/client", () => ({
- publicClient: () => ({ getSlot: async () => 100, getLatestBlockhash: async () => ({ blockhash:"11111111111111111111111111111111", lastValidBlockHeight:1000 }), sendRawTransaction:mocks.send, getParsedTransaction:mocks.parsed, getBlockHeight:mocks.height }),
+ publicClient: () => ({ simulateTransaction:mocks.simulate, getSlot: async () => 100, getLatestBlockhash: async () => ({ blockhash:"11111111111111111111111111111111", lastValidBlockHeight:1000 }), sendRawTransaction:mocks.send, getParsedTransaction:mocks.parsed, getBlockHeight:mocks.height }),
  assertConfiguredCluster: async () => {}, serverRpcUrl: () => "mock", resetPublicClientForTests: () => {},
 }));
 import { boot } from "@/server/boot";
@@ -30,6 +30,7 @@ beforeEach(async () => {
  await db().update(schema.placements).set({currentCampaignId:null,lastClearingPriceWei:"0"});
  await db().update(schema.adActivations).set({status:"ENDED",endedAt:new Date()});
  await db().update(schema.reservations).set({status:"RELEASED"});
+ mocks.simulate.mockReset().mockResolvedValue({value:{err:null}});
  mocks.send.mockReset(); mocks.parsed.mockReset().mockResolvedValue(null); mocks.height.mockReset().mockResolvedValue(500);
  await db().update(schema.quotes).set({txError:"previous test complete"});
  mocks.cookie=await signSession({kind:"wallet",address:buyer.publicKey.toBase58(),chainId:902},3600);
@@ -141,4 +142,14 @@ it("retires a failed on-chain payment without airing the campaign",async()=>{
  expect(await pollAwaitingPayments()).toBe(0);
  const [q]=await db().select().from(schema.quotes).where(eq(schema.quotes.id,o.quote.quote.quoteId));expect(q.txError).toMatch(/failed/);
  expect(await db().select().from(schema.payments).where(eq(schema.payments.quoteId,q.id))).toHaveLength(0);
+});
+
+it.each(["failure", "rpc unavailable"])("blocks wallet preparation when simulation reports %s", async kind => {
+ const {context,id}=await order();
+ if(kind==="failure")mocks.simulate.mockResolvedValueOnce({value:{err:"InsufficientFundsForFee"}});
+ else mocks.simulate.mockRejectedValueOnce(new Error("RPC down"));
+ const r=await submit(request('/api/campaigns/'+id+'/transaction',{}),context);
+ expect(r.status).toBe(kind==="failure"?400:503);
+ expect(await r.json()).not.toHaveProperty("transaction");
+ expect(mocks.send).not.toHaveBeenCalled();
 });
